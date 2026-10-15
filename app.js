@@ -248,8 +248,6 @@ function renderTournamentView() {
   renderRegatasSummary(divData);
   renderTournamentMatches(divData);
   renderStandingsTable(divData);
-  renderTournamentScorers(divData);
-  updateAmhLinks(divData);
 }
 
 function renderRegatasSummary(divData) {
