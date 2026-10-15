@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#030d2d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Citaciones - Regatas Andino Hockey</title>
+  
+  <!-- Tipografía Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Mensaje Flotante Toast -->
+  <div id="toast" class="toast">¡Citación actualizada!</div>
+
+  <div class="container">
+    
+    <!-- ====================================================================
+         TÍTULO INSTITUCIONAL DE LA CABECERA
+         ==================================================================== -->
+    <header class="top-title-header">
+      <span class="squad-sub-badge">REGATAS ANDINO • HOCKEY</span>
+      <h1 class="squad-main-title">PLANTEL SUPERIOR B</h1>
+    </header>
+
+    <!-- ====================================================================
+         VISTA 1: CITACIÓN DEL PARTIDO
+         ==================================================================== -->
+    <div id="viewCitacion" class="view-panel active">
+      
+      <!-- Selector de Categoría: 1ra / Intermedia -->
+      <nav class="category-switch">
+        <button class="cat-btn active" id="btnCatPrimera" data-category="primera">
+          <span>🏑</span> 1ra División
+        </button>
+        <button class="cat-btn" id="btnCatIntermedia" data-category="intermedia">
+          <span>🏑</span> Intermedia
+        </button>
+      </nav>
+
+      <!-- Tarjeta del Partido & Escudos VS -->
+      <section class="match-card">
+        
+        <!-- Torneo y Fecha -->
+        <div class="match-fixture-bar">
+          <span class="fixture-pill" id="dispFixture">FECHA 10 • TORNEO CLAUSURA</span>
+        </div>
+
+        <!-- Choque de Escudos -->
+        <div class="match-clash-box">
+          <!-- Local: Regatas Andino -->
+          <div class="clash-team">
+            <div class="team-badge-circle local">
+              <img src="escudo-regatas-andino.png" alt="Regatas Andino">
+            </div>
+            <div class="team-name-title">REGATAS ANDINO</div>
+          </div>
+
+          <!-- Insignia VS -->
+          <div class="clash-vs-badge">VS</div>
+
+          <!-- Visitante: Rival -->
+          <div class="clash-team">
+            <div class="team-badge-circle visitor" id="rivalBadgeContainer">
+              <span class="team-badge-initial" id="rivalBadgeInitial">M</span>
+            </div>
+            <div class="team-name-title" id="dispRivalName">MURIALDO B</div>
+          </div>
+        </div>
+
+        <!-- Datos del Encuentro -->
+        <div class="match-info-list">
+          <div class="match-info-item">
+            <span class="info-label">📅 DÍA</span>
+            <span class="info-val" id="dispDate">Sábado 24 de Octubre</span>
+          </div>
+
+          <div class="match-info-item">
+            <span class="info-label">📍 CANCHA</span>
+            <span class="info-val" id="dispLocation">Regatas Andino</span>
+          </div>
+        </div>
+
+        <!-- Horarios de la Categoría Activa -->
+        <div class="schedule-grid">
+          <div class="schedule-card highlight">
+            <div class="schedule-title">CITACIÓN <span id="scheduleCatName">1RA</span></div>
+            <div class="schedule-hour" id="dispCallTime">15:30</div>
+            <div class="schedule-note">Vestuario puntual</div>
+          </div>
+
+          <div class="schedule-card">
+            <div class="schedule-title">INICIO PARTIDO</div>
+            <div class="schedule-hour" id="dispMatchTime">16:35</div>
+            <div class="schedule-note">Comienzo de juego</div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Foto del Plantel Superior -->
+      <section class="team-photo-card">
+        <div class="team-photo-wrapper">
+          <img src="foto-plantel.jpg" alt="Plantel Superior Regatas Andino" class="team-photo-img">
+          <div class="team-photo-overlay">
+            <span class="team-photo-badge">PLANTEL SUPERIOR B • REGATAS ANDINO</span>
+            <span class="team-photo-motto">"Juntas somos más"</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lista de Jugadoras Citadas -->
+      <section class="roster-card">
+        <div class="roster-header">
+          <div class="roster-title-group">
+            <h2 class="roster-title">CITADAS</h2>
+            <span class="roster-cat-tag" id="rosterCategoryTag">1RA DIVISIÓN</span>
+          </div>
+          <span class="roster-count" id="playerCount">15 JUGADORAS</span>
+        </div>
+
+        <!-- Lista Limpia de Jugadoras -->
+        <div class="players-list" id="playersList">
+          <!-- Renderizado dinámicamente por app.js -->
+        </div>
+      </section>
+
+      <!-- Banners de Acceso Rápido (Torneo y Físico) -->
+      <div class="banners-stack">
+        <!-- Banner Torneo & Posiciones AMH -->
+        <div class="tournament-banner-card" id="btnOpenTournamentFromBanner">
+          <div class="tourn-banner-icon">🏆</div>
+          <div class="tourn-banner-info">
+            <h4>TORNEO CLAUSURA DAMAS B</h4>
+            <p>Tabla de posiciones oficial AMH y partidos jugados</p>
+          </div>
+          <span class="tourn-banner-arrow">➔</span>
+        </div>
+
+        <!-- Banner Evaluaciones Físicas -->
+        <div class="physical-banner-card" id="btnOpenPhysicalFromBanner">
+          <div class="phys-banner-icon">⚡</div>
+          <div class="phys-banner-info">
+            <h4>EVALUACIONES FÍSICAS</h4>
+            <p>Consultá tus marcas de Broad Jump, CMJ, Yo-Yo, velocidad y fuerza</p>
+          </div>
+          <span class="phys-banner-arrow">➔</span>
+        </div>
+      </div>
+
+    </div> <!-- /viewCitacion -->
+
+    <!-- ====================================================================
+         VISTA 2: TORNEO & TABLA DE POSICIONES (AMH CLAUSURA DAMAS B 2026)
+         ==================================================================== -->
+    <div id="viewTorneo" class="view-panel" style="display: none;">
+      
+      <!-- Botón Superior Volver a Citación -->
+      <div class="view-return-bar">
+        <button class="btn-return-citacion" id="btnReturnToCitacionFromTorneo">
+          <span>←</span> Volver a Citación del Partido
+        </button>
+      </div>
+
+      <!-- Cabecera del Torneo -->
+      <section class="tournament-header-card">
+        <div class="tourn-header-badge">🏆 ASOCIACIÓN MENDOCINA DE HOCKEY</div>
+        <h2 class="tourn-main-title">CLAUSURA DAMAS B 2026</h2>
+        <p class="tourn-subtitle">Tabla de posiciones oficial, partidos jugados y estadísticas</p>
+
+        <!-- Switch de División (Primera / Intermedia) -->
+        <div class="division-switch-pills">
+          <button type="button" class="div-pill-btn active" id="pillPrimera" data-division="primera">
+            <span class="pill-dot"></span> 1ra División (Primera)
+          </button>
+          <button type="button" class="div-pill-btn" id="pillIntermedia" data-division="intermedia">
+            <span class="pill-dot"></span> Intermedia (Segunda)
+          </button>
+        </div>
+      </section>
+
+      <!-- Tarjeta Resumen Regatas Andino B -->
+      <section class="regatas-summary-card" id="regatasSummaryCard">
+        <!-- Renderizado dinámicamente por app.js -->
+      </section>
+
+      <!-- Partidos y Fixture (Jugados / Por Jugar) -->
+      <section class="tournament-matches-card">
+        <div class="tourn-section-header matches-header-stacked">
+          <div>
+            <h3 class="tourn-section-title">🏑 FIXTURE Y PARTIDOS</h3>
+            <span class="tourn-section-subtitle" id="matchesCategorySubtitle">Fechas de Clausura Damas B</span>
+          </div>
+          <div class="matches-subswitch-pills">
+            <button type="button" class="match-subtab-btn active" id="tabMatchesPlayed">
+              <span>🏑 Jugados</span>
+              <span class="subtab-count" id="countPlayedBadge">11</span>
+            </button>
+            <button type="button" class="match-subtab-btn" id="tabMatchesPending">
+              <span>📅 Por Jugar</span>
+              <span class="subtab-count" id="countPendingBadge">4</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="matches-list" id="tournamentMatchesList">
+          <!-- Renderizado dinámicamente por app.js -->
+        </div>
+      </section>
+
+      <!-- Tabla de Posiciones Oficial -->
+      <section class="tournament-table-card">
+        <div class="tourn-section-header">
+          <div>
+            <h3 class="tourn-section-title">📊 TABLA DE POSICIONES OFICIAL</h3>
+            <span class="tourn-section-subtitle" id="tableCategorySubtitle">Zona A • Asociación Mendocina de Hockey</span>
+          </div>
+          <button type="button" class="btn-sync-amh-small" id="btnSyncAmh" title="Actualizar desde AMH">
+            <span>🔄</span> Actualizar
+          </button>
+        </div>
+
+        <!-- Tabla Responsiva -->
+        <div class="standings-table-wrapper">
+          <table class="standings-table" id="standingsTable">
+            <thead>
+              <tr>
+                <th class="th-pos">#</th>
+                <th class="th-team">EQUIPO</th>
+                <th title="Partidos Jugados">PJ</th>
+                <th title="Partidos Ganados">PG</th>
+                <th title="Partidos Empatados">PE</th>
+                <th title="Partidos Perdidos">PP</th>
+                <th title="Goles a Favor">GF</th>
+                <th title="Goles en Contra">GE</th>
+                <th title="Diferencia de Goles">DIF</th>
+                <th class="th-pts" title="Puntos Totales">PTS</th>
+              </tr>
+            </thead>
+            <tbody id="standingsTableBody">
+              <!-- Renderizado dinámicamente por app.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-legend">
+          <span><span class="legend-dot club-dot"></span> Regatas Andino B</span>
+          <span><span class="legend-dot top-dot"></span> Puestos de vanguardia</span>
+        </div>
+      </section>
+
+      <!-- Goleadoras del Torneo -->
+      <section class="tournament-scorers-card">
+        <div class="tourn-section-header">
+          <div>
+            <h3 class="tourn-section-title">🎯 GOLEADORAS DEL TORNEO</h3>
+            <span class="tourn-section-subtitle">Top anotadoras oficiales AMH</span>
+          </div>
+        </div>
+
+        <div class="scorers-list" id="tournamentScorersList">
+          <!-- Renderizado dinámicamente por app.js -->
+        </div>
+      </section>
+
+      <!-- Enlaces al Sistema Oficial AMH -->
+      <section class="amh-official-card">
+        <div class="amh-official-header">
+          <span class="amh-logo-icon">🔗</span>
+          <div>
+            <h4>Sistema Oficial AMH (Oracle APEX)</h4>
+            <p>Accedé directamente a los reportes de la Asociación Mendocina de Hockey</p>
+          </div>
+        </div>
+        <div class="amh-links-group">
+          <a href="http://15.235.75.172:8080/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=1" target="_blank" rel="noopener noreferrer" class="btn-amh-link" id="btnOpenAmhStandings">
+            <span>📊</span> Abrir Tabla Oficial en AMH ➔
+          </a>
+          <a href="http://15.235.75.172:8080/ords/r/amh/torneos/6?p6_torneos_p=97&p6_club_p=3&p6_jug_cod_division_p=1" target="_blank" rel="noopener noreferrer" class="btn-amh-link" id="btnOpenAmhMatches">
+            <span>🏑</span> Abrir Partidos Oficiales en AMH ➔
+          </a>
+        </div>
+      </section>
+
+    </div> <!-- /viewTorneo -->
+
+    <!-- ====================================================================
+         VISTA 2: EVALUACIONES FÍSICAS & RENDIMIENTO
+         ==================================================================== -->
+    <div id="viewFisico" class="view-panel" style="display: none;">
+      
+      <!-- Botón Superior Volver al Partido -->
+      <div class="view-return-bar">
+        <button class="btn-return-citacion" id="btnReturnToCitacion">
+          <span>←</span> Volver a Citación del Partido
+        </button>
+      </div>
+
+      <!-- Buscador y Filtros -->
+      <section class="physical-search-card">
+        <div class="physical-header-title">
+          <span class="phys-badge">⚡ RENDIMIENTO ATLÉTICO</span>
+          <h2 class="phys-title">EVALUACIONES FÍSICAS</h2>
+          <p class="phys-desc">Buscá tu nombre para ver tus mediciones y la comparativa de tu evolución entre evaluaciones.</p>
+        </div>
+
+        <!-- Buscador con Input -->
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="inputSearchPlayer" class="search-input" placeholder="Escribí tu nombre o apellido..." autocomplete="off">
+          <button id="btnClearSearch" class="btn-clear-search" style="display: none;" title="Limpiar búsqueda">&times;</button>
+        </div>
+
+        <!-- Filtros por División / Rama -->
+        <div class="phys-filter-chips" id="physFilterChips">
+          <button class="filter-chip active" data-filter="all">Todas</button>
+          <button class="filter-chip" data-filter="1ra">1ra División</button>
+          <button class="filter-chip" data-filter="Inter">Intermedia</button>
+          <button class="filter-chip" data-filter="5ta">5ta División</button>
+        </div>
+
+        <!-- Lista sugerida de jugadoras -->
+        <div class="players-suggest-list" id="playersSuggestList">
+          <!-- Renderizado dinámicamente por app.js -->
+        </div>
+      </section>
+
+      <!-- Ficha de la Jugadora Seleccionada -->
+      <section class="player-profile-card" id="playerProfileCard" style="display: none;">
+        <!-- Header del perfil -->
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <span id="profileInitial">P</span>
+          </div>
+          <div class="profile-info">
+            <h3 class="profile-name" id="profilePlayerName">Prato Delfina</h3>
+            <div class="profile-tags">
+              <span class="profile-tag-div" id="profilePlayerDiv">1ra División</span>
+              <span class="profile-tag-tests" id="profilePlayerTestsCount">8 Tests</span>
+            </div>
+          </div>
+          <button class="btn-change-player" id="btnChangePlayer" title="Cerrar y buscar otra jugadora">
+            ✕
+          </button>
+        </div>
+
+        <!-- Barra resumen de comparativa -->
+        <div class="profile-summary-bar">
+          <span class="summary-icon">📈</span>
+          <span class="summary-text" id="profileSummaryText">Comparativa de evolución entre evaluaciones</span>
+        </div>
+
+        <!-- Grilla de Tarjetas de Tests Físicos -->
+        <div class="tests-grid" id="testsGrid">
+          <!-- Renderizado dinámicamente por app.js -->
+        </div>
+      </section>
+
+      <!-- Estado vacío (invitación a seleccionar) -->
+      <section class="empty-player-state" id="emptyPlayerState">
+        <div class="empty-icon">🏑⚡</div>
+        <h3>Seleccioná tu nombre</h3>
+        <p>Escribí tu nombre en el buscador de arriba o tocalo en la lista para ver tus resultados de Broad Jump, CMJ, Yo-Yo, velocidad y fuerza.</p>
+      </section>
+
+    </div> <!-- /viewFisico -->
+
+  </div> <!-- /container -->
+
+  <!-- ====================================================================
+       BARRA DE NAVEGACIÓN FLOTANTE INFERIOR (DOCK DISCRETO)
+       ==================================================================== -->
+  <nav class="bottom-nav-dock" id="bottomNavDock">
+    <button type="button" class="nav-dock-btn active" id="dockBtnCitacion" data-view="citacion" title="Citación del Partido">
+      <span class="dock-icon">🏑</span>
+      <span class="dock-label">Citación</span>
+    </button>
+    <button type="button" class="nav-dock-btn" id="dockBtnTorneo" data-view="torneo" title="Torneo y Tabla de Posiciones">
+      <span class="dock-icon">🏆</span>
+      <span class="dock-label">Torneo</span>
+    </button>
+    <button type="button" class="nav-dock-btn" id="dockBtnFisico" data-view="fisico" title="Evaluaciones Físicas">
+      <span class="dock-icon">⚡</span>
+      <span class="dock-label">Físico</span>
+    </button>
+  </nav>
+
+  <!-- ====================================================================
+       BOTÓN FLOTANTE INFERIOR IZQUIERDA (ACCESO CUERPO TÉCNICO)
+       ==================================================================== -->
+  <aside class="bottom-left-bar">
+    <button class="btn-edit-mode" id="btnOpenEdit" title="Acceso Cuerpo Técnico">
+      <span>⚙️</span> Editar
+    </button>
+  </aside>
+
+  <!-- ====================================================================
+       MODAL DE EDICIÓN & ACCESO CUERPO TÉCNICO
+       ==================================================================== -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>⚙️ Panel Cuerpo Técnico</h3>
+        <button class="modal-close" id="btnCloseEdit">&times;</button>
+      </div>
+
+      <!-- Pantalla de Bloqueo por Contraseña -->
+      <div id="authGate" style="padding: 32px 20px; text-align: center;">
+        <div style="font-size: 2.4rem; margin-bottom: 10px;">🔒</div>
+        <h4 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin-bottom: 6px;">Acceso Cuerpo Técnico</h4>
+        <p style="font-size: 0.82rem; color: #9bb1d6; margin-bottom: 18px;">Ingresá la contraseña para administrar las citaciones</p>
+        
+        <input type="password" id="authPasswordInput" class="form-input" placeholder="Contraseña..." style="max-width: 240px; margin: 0 auto 10px auto; text-align: center; font-size: 1rem; letter-spacing: 1px;" autocomplete="off">
+        <div id="authErrorMsg" style="color: #ef4444; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; display: none;">Contraseña incorrecta</div>
+        <button class="btn-primary" id="btnSubmitAuth" style="max-width: 180px; margin: 0 auto; width: 100%;">Ingresar</button>
+      </div>
+
+      <!-- Panel de Administración con Google Sheets (visible tras autenticar) -->
+      <div class="modal-body" id="editFormBody" style="display: none;">
+        
+        <div class="sheets-manage-card">
+          <div class="sheets-live-indicator">
+            <span class="live-dot"></span> Sincronizado en Vivo con Google Sheets
+          </div>
+          
+          <p class="sheets-manage-desc">
+            Todos los datos (<strong>Rival, Fecha N°, Horarios, Cancha, Citadas y Escudo</strong>) se administran directamente desde tu planilla de Google Sheets.
+          </p>
+
+          <a href="https://docs.google.com/spreadsheets/d/1S0g4BpD6m6Ih9_DQRrdLlnUsruUKrZmlKBAKiWL3XbU/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets">
+            <span>📊</span> Abrir Planilla de Citaciones ➔
+          </a>
+
+          <a href="https://docs.google.com/spreadsheets/d/1dAoeA0_F4RGLDEjJ0taIJiPA3WlMWl5e/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" style="background: linear-gradient(135deg, #0284c7, #00a2ff);">
+            <span>⚡</span> Abrir Planilla de Evaluaciones Físicas ➔
+          </a>
+
+          <button type="button" class="btn-sync-sheets" id="btnSyncNow">
+            <span>🔄</span> Sincronizar Cambios Ahora
+          </button>
+        </div>
+
+        <!-- Guía Rápida de Celdas -->
+        <div class="sheets-guide-box">
+          <h5 class="sheets-guide-title">📋 Celdas que podés editar en la planilla:</h5>
+          <ul class="sheets-guide-list">
+            <li><strong>Columna F:</strong> Jugadoras citadas marcadas.</li>
+            <li><strong>Columna H e I:</strong>
+              <div>• <code>Fecha N°</code> (ej: <code>10</code>)</div>
+              <div>• <code>Rival</code> (ej: <code>Murialdo B</code>)</div>
+              <div>• <code>Dia</code> (ej: <code>Sábado 24 de Octubre</code>)</div>
+              <div>• <code>Cancha</code> (ej: <code>Regatas Andino</code>)</div>
+              <div>• <code>Horario citacion</code> y <code>Horario partido</code></div>
+              <div>• <code>Url escudo rival</code> (link de imagen del escudo)</div>
+            </li>
+            <li>Hojas separadas para <strong>primera</strong> e <strong>intermedia</strong>.</li>
+          </ul>
+        </div>
+
+        <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
+          <button type="button" class="btn-secondary" id="btnCloseModalBottom" style="width: 100%;">Cerrar</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

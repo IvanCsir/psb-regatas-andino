@@ -1,0 +1,15 @@
+# Dependencias
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Archivos del sistema y SO
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Entorno y credenciales locales
+.env
+.env.local
