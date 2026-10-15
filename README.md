@@ -26,11 +26,6 @@ La página web está conectada directamente con tu planilla de Google Sheets:
 
 ---
 
-## 🔒 Acceso para Editar
-- **Contraseña:** `ctandinob`
-
----
-
 ## 🚀 Despliegue en Netlify
 Para actualizar tu sitio con esta nueva versión conectada a Google Sheets:
 1. Entrá a [Netlify Drop](https://app.netlify.com/drop).
