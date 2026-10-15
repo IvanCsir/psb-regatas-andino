@@ -583,28 +583,36 @@ body {
 
 .bottom-left-bar {
   position: fixed;
-  bottom: 18px;
-  left: 18px;
-  z-index: 90;
+  bottom: 16px;
+  left: 16px;
+  z-index: 990;
 }
 
 .btn-edit-mode {
-  background: rgba(7, 21, 66, 0.88);
+  background: rgba(7, 21, 66, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-cyan);
   color: var(--text-secondary);
-  border-radius: var(--radius-full);
-  padding: 9px 16px;
-  font-family: var(--font-main);
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 162, 255, 0.2);
   transition: all 0.2s ease;
+}
+
+.btn-edit-mode .edit-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-edit-mode:hover {
@@ -612,7 +620,11 @@ body {
   border-color: var(--color-regatas-cyan);
   background: var(--bg-surface-elevated);
   transform: translateY(-2px);
-  box-shadow: 0 6px 22px rgba(0, 162, 255, 0.25);
+  box-shadow: 0 6px 22px rgba(0, 162, 255, 0.35);
+}
+
+.btn-edit-mode:hover .edit-icon {
+  transform: rotate(45deg);
 }
 
 /* ==========================================================================
@@ -2455,15 +2467,23 @@ body {
   box-shadow: 0 4px 14px rgba(0, 162, 255, 0.45);
 }
 
-/* Ajuste móvil para botón editar */
+/* Ajuste móvil para botón editar y dock inferior */
 @media (max-width: 480px) {
   .bottom-left-bar {
     left: 10px;
-    bottom: 14px;
+    bottom: 12px;
   }
   .btn-edit-mode {
-    padding: 8px 12px;
-    font-size: 0.75rem;
+    width: 38px;
+    height: 38px;
+  }
+  .btn-edit-mode .edit-icon {
+    font-size: 1.1rem;
+  }
+  .bottom-nav-dock {
+    bottom: 12px;
+    padding: 4px 6px;
+    gap: 3px;
   }
   .nav-dock-btn {
     padding: 6px 10px;
