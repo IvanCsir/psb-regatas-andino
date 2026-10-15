@@ -288,15 +288,18 @@ body {
 }
 
 .team-badge-circle.visitor {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: var(--bg-surface-elevated);
+  border-color: #fbbf24;
+  background: #030d2d;
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.25);
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
 }
 
 .team-badge-circle.visitor img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 4px;
+  padding: 6px;
+  display: block;
 }
 
 .team-badge-initial {
