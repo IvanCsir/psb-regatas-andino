@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEvents();
   setupPhysicalSection();
   initDtModule();
+  initSunMode();
   setupPwa();
 
   // Sincronizaciones en vivo
@@ -1940,6 +1941,92 @@ try {
   }
 } catch (e) {}
 
+const DT_SUN_MODE_KEY = 'regatas_dt_sun_mode_pref_v1';
+let dtSunModeActive = false;
+try {
+  dtSunModeActive = localStorage.getItem(DT_SUN_MODE_KEY) === 'true';
+} catch (e) {}
+
+// Feedback Háptico para móviles (confirmación física táctil bajo el sol)
+function triggerDtHaptic(type = 'default') {
+  if (!('vibrate' in navigator)) return;
+  try {
+    if (type === 'goal') {
+      navigator.vibrate([60, 50, 75]); // Doble pulso vigoroso para gol
+    } else if (type === 'card' || type === 'stroke') {
+      navigator.vibrate([45, 40, 45]);
+    } else if (type === 'undo') {
+      navigator.vibrate(35);
+    } else if (type === 'quarter') {
+      navigator.vibrate([30, 25, 30]);
+    } else if (type === 'tap') {
+      navigator.vibrate(25); // Pulso ágil de confirmación táctil
+    } else {
+      navigator.vibrate(35);
+    }
+  } catch (e) {}
+}
+
+function initSunMode() {
+  applyDtSunMode();
+
+  const btnSun = document.getElementById('btnDtSunMode');
+  if (btnSun) {
+    btnSun.addEventListener('click', () => toggleDtSunMode());
+  }
+
+  const drawerBtnSun = document.getElementById('drawerBtnSunMode');
+  if (drawerBtnSun) {
+    drawerBtnSun.addEventListener('click', () => {
+      toggleDtSunMode();
+      closeNavDrawer();
+    });
+  }
+}
+
+function toggleDtSunMode(force) {
+  dtSunModeActive = typeof force === 'boolean' ? force : !dtSunModeActive;
+  try {
+    localStorage.setItem(DT_SUN_MODE_KEY, dtSunModeActive ? 'true' : 'false');
+  } catch (e) {}
+  applyDtSunMode();
+  triggerDtHaptic('tap');
+  showToast(dtSunModeActive ? '☀️ Modo Cancha al Sol activado (Alto Contraste)' : '🌙 Modo Noche activado');
+}
+
+function applyDtSunMode() {
+  const isSun = !!dtSunModeActive;
+  document.body.classList.toggle('dt-sun-mode', isSun);
+
+  const viewDt = document.getElementById('viewDT');
+  if (viewDt) viewDt.classList.toggle('sun-mode-active', isSun);
+
+  // Actualizar botón de la botonera DT
+  const btnSun = document.getElementById('btnDtSunMode');
+  const iconSun = document.getElementById('dtSunModeIcon');
+  const textSun = document.getElementById('dtSunModeText');
+  if (btnSun) {
+    btnSun.classList.toggle('active', isSun);
+    btnSun.title = isSun ? 'Cambiar a Modo Noche' : 'Cambiar a Modo Cancha al Sol (Alto Contraste)';
+  }
+  if (iconSun) iconSun.textContent = isSun ? '🌙' : '☀️';
+  if (textSun) textSun.textContent = isSun ? 'Modo Noche' : 'Modo Sol';
+
+  // Actualizar botón del drawer
+  const drawerIcon = document.getElementById('drawerSunIcon');
+  const drawerTitle = document.getElementById('drawerSunTitle');
+  const drawerDesc = document.getElementById('drawerSunDesc');
+  if (drawerIcon) drawerIcon.textContent = isSun ? '🌙' : '☀️';
+  if (drawerTitle) drawerTitle.textContent = isSun ? 'Modo Noche (Oscuro)' : 'Modo Cancha al Sol';
+  if (drawerDesc) drawerDesc.textContent = isSun ? 'Volver al diseño nocturno clásico' : 'Alto contraste para ver la pantalla bajo el sol directo';
+
+  // Actualizar color de la barra del navegador móvil
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', isSun ? '#ffffff' : '#030d2d');
+  }
+}
+
 function setDtTeamView(viewMode) {
   if (!['home', 'away', 'both'].includes(viewMode)) viewMode = 'home';
   dtCurrentTeamView = viewMode;
@@ -2970,9 +3057,7 @@ function logIncident(type, team, endedInGoal = false, player = '') {
   });
 
   // Vibración háptica en móviles si está disponible
-  if (navigator.vibrate) {
-    navigator.vibrate(endedInGoal ? [60, 50, 60] : 45);
-  }
+  triggerDtHaptic(endedInGoal ? 'goal' : (type.startsWith('card') ? 'card' : 'tap'));
 
   showToast(`${evt.team === 'home' ? '🔵' : '🔴'} ${evt.label}`);
   renderDtView();
@@ -3130,6 +3215,7 @@ window.closePlayerAssignModal = closePlayerAssignModal;
 
 // Modal de Opción A: Córner Corto / Penal
 function openIncidentOptionModal(type, team) {
+  triggerDtHaptic('tap');
   dtPendingOptionAction = { type, team };
 
   const modal = document.getElementById('modalIncidentOption');
@@ -3156,6 +3242,7 @@ function confirmIncidentOption(isGoal) {
     const action = { ...dtPendingOptionAction };
     closeIncidentOptionModal();
     if (isGoal && action.team === 'home') {
+      triggerDtHaptic('goal');
       openPlayerAssignModal({ type: action.type, team: 'home', endedInGoal: true });
     } else {
       logIncident(action.type, action.team, isGoal);
@@ -3190,7 +3277,7 @@ function undoLastIncident() {
     sheetName: getDtMatchSheetName(dtMatchState)
   });
 
-  if (navigator.vibrate) navigator.vibrate(30);
+  triggerDtHaptic('undo');
   showToast(`↩ Deshecho: ${popped.label}`);
   renderDtView();
 }
