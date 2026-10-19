@@ -49,6 +49,7 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
+  padding: 14px 12px calc(95px + env(safe-area-inset-bottom, 0px)) 12px;
   padding: max(14px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(95px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   background-image: 
     radial-gradient(circle at 50% 0%, #0d276b 0%, var(--bg-deep-blue) 65%),
@@ -462,6 +463,10 @@ body {
 
 .team-photo-overlay {
   position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   inset: 0;
   background: linear-gradient(
     180deg, 
@@ -640,6 +645,10 @@ body {
 
 .modal-overlay {
   position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   inset: 0;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
@@ -4236,7 +4245,9 @@ body {
 /* Botón Flotante Superior Izquierda */
 .btn-hamburger {
   position: fixed;
+  top: 12px;
   top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 14px;
   left: calc(14px + env(safe-area-inset-left, 0px));
   z-index: 1050;
   width: 42px;
@@ -4253,6 +4264,7 @@ body {
   gap: 4px;
   padding: 0;
   cursor: pointer;
+  touch-action: manipulation;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 14px rgba(0, 162, 255, 0.2);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent;
@@ -4262,6 +4274,7 @@ body {
   display: block;
   width: 18px;
   height: 2px;
+  margin: 1.5px 0;
   background: #38bdf8;
   border-radius: 2px;
   transition: all 0.25s ease;
@@ -4285,6 +4298,10 @@ body {
 /* Overlay / Fondo Oscuro del Drawer */
 .nav-drawer-overlay {
   position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   inset: 0;
   background: rgba(2, 8, 28, 0.78);
   backdrop-filter: blur(8px);
@@ -4308,6 +4325,8 @@ body {
   top: 0;
   left: 0;
   bottom: 0;
+  width: 320px;
+  max-width: 86vw;
   width: min(320px, 86vw);
   background: linear-gradient(180deg, #030d2d 0%, #071747 60%, #020922 100%);
   border-right: 1px solid rgba(0, 162, 255, 0.35);

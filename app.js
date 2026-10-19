@@ -811,7 +811,9 @@ async function syncTournamentData(manual = false) {
     }
 
     if (syncedAny) {
-      localStorage.setItem(TOURNAMENT_STORAGE_KEY, JSON.stringify(tournamentData));
+      try {
+        localStorage.setItem(TOURNAMENT_STORAGE_KEY, JSON.stringify(tournamentData));
+      } catch (e) {}
       if (badge) {
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -865,7 +867,11 @@ function loadData() {
 }
 
 function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(matchData));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(matchData));
+  } catch (e) {
+    console.warn('[Storage] No se pudo guardar en localStorage:', e);
+  }
 }
 
 // ============================================================================
@@ -1045,19 +1051,25 @@ function renderRivalLogo() {
     const img = document.createElement('img');
     img.src = matchData.rivalLogo;
     img.alt = rivalName;
-    img.crossOrigin = 'anonymous';
 
     img.onerror = () => {
       container.innerHTML = `<span class="team-badge-initial" style="color: ${fallbackColor};">${initial}</span>`;
       applyRivalCircleColor(fallbackColor);
     };
 
-    // Intentar extraer el color predominante directamente de la imagen
-    extractDominantImageColor(img, (dominantColor) => {
-      if (dominantColor) {
-        applyRivalCircleColor(dominantColor);
-      }
-    });
+    // Intentar extraer el color predominante usando una imagen auxiliar en segundo plano
+    try {
+      const probeImg = new Image();
+      probeImg.crossOrigin = 'anonymous';
+      probeImg.src = matchData.rivalLogo;
+      extractDominantImageColor(probeImg, (dominantColor) => {
+        if (dominantColor) {
+          applyRivalCircleColor(dominantColor);
+        }
+      });
+    } catch (e) {
+      // Ignorar fallo de extracción, la imagen principal se muestra de todos modos
+    }
 
     container.innerHTML = '';
     container.appendChild(img);
@@ -1468,7 +1480,9 @@ async function loadPhysicalEvaluations(manual = false) {
 
     if (parsed.length > 0) {
       physicalPlayers = parsed;
-      localStorage.setItem(PHYSICAL_STORAGE_KEY, JSON.stringify(physicalPlayers));
+      try {
+        localStorage.setItem(PHYSICAL_STORAGE_KEY, JSON.stringify(physicalPlayers));
+      } catch (e) {}
 
       // Actualizar vista activa si hay seleccionada
       if (selectedPlayerId) {
@@ -3340,8 +3354,8 @@ function openDtSummaryModal() {
         </thead>
         <tbody>
           ${[1, 2, 3, 4].map(q => {
-            const h = qStats[q]?.home || {};
-            const a = qStats[q]?.away || {};
+            const h = (qStats[q] && qStats[q].home) || {};
+            const a = (qStats[q] && qStats[q].away) || {};
             return `
               <tr>
                 <td class="team-name-cell"><strong>${q}° Cuarto</strong></td>
@@ -3470,6 +3484,7 @@ function shareDtMatchWhatsApp() {
 
   const scorersList = Object.entries(scorersMap).sort((a, b) => b[1] - a[1]);
   const cardsList = Object.entries(cardsMap);
+  const getQ = (q, team, key) => (qStats[q] && qStats[q][team] && qStats[q][team][key]) || 0;
 
   const lines = [
     `🏑 *REPORTE TÁCTICO EN VIVO - REGATAS ANDINO B*`,
@@ -3486,10 +3501,10 @@ function shareDtMatchWhatsApp() {
     `• 🟨 Tarjetas ${rival}: 🟩 ${tot.away.green} | 🟨 ${tot.away.yellow} | 🟥 ${tot.away.red}`,
     ``,
     `📋 *DETALLE POR CUARTOS:*`,
-    `• 1°C: Goles ${qStats[1]?.home?.goals || 0}-${qStats[1]?.away?.goals || 0} | Área ${qStats[1]?.home?.entries || 0}-${qStats[1]?.away?.entries || 0} | CC ${qStats[1]?.home?.corners || 0}-${qStats[1]?.away?.corners || 0}`,
-    `• 2°C: Goles ${qStats[2]?.home?.goals || 0}-${qStats[2]?.away?.goals || 0} | Área ${qStats[2]?.home?.entries || 0}-${qStats[2]?.away?.entries || 0} | CC ${qStats[2]?.home?.corners || 0}-${qStats[2]?.away?.corners || 0}`,
-    `• 3°C: Goles ${qStats[3]?.home?.goals || 0}-${qStats[3]?.away?.goals || 0} | Área ${qStats[3]?.home?.entries || 0}-${qStats[3]?.away?.entries || 0} | CC ${qStats[3]?.home?.corners || 0}-${qStats[3]?.away?.corners || 0}`,
-    `• 4°C: Goles ${qStats[4]?.home?.goals || 0}-${qStats[4]?.away?.goals || 0} | Área ${qStats[4]?.home?.entries || 0}-${qStats[4]?.away?.entries || 0} | CC ${qStats[4]?.home?.corners || 0}-${qStats[4]?.away?.corners || 0}`
+    `• 1°C: Goles ${getQ(1, 'home', 'goals')}-${getQ(1, 'away', 'goals')} | Área ${getQ(1, 'home', 'entries')}-${getQ(1, 'away', 'entries')} | CC ${getQ(1, 'home', 'corners')}-${getQ(1, 'away', 'corners')}`,
+    `• 2°C: Goles ${getQ(2, 'home', 'goals')}-${getQ(2, 'away', 'goals')} | Área ${getQ(2, 'home', 'entries')}-${getQ(2, 'away', 'entries')} | CC ${getQ(2, 'home', 'corners')}-${getQ(2, 'away', 'corners')}`,
+    `• 3°C: Goles ${getQ(3, 'home', 'goals')}-${getQ(3, 'away', 'goals')} | Área ${getQ(3, 'home', 'entries')}-${getQ(3, 'away', 'entries')} | CC ${getQ(3, 'home', 'corners')}-${getQ(3, 'away', 'corners')}`,
+    `• 4°C: Goles ${getQ(4, 'home', 'goals')}-${getQ(4, 'away', 'goals')} | Área ${getQ(4, 'home', 'entries')}-${getQ(4, 'away', 'entries')} | CC ${getQ(4, 'home', 'corners')}-${getQ(4, 'away', 'corners')}`
   ];
 
   if (scorersList.length > 0) {

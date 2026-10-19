@@ -6,7 +6,7 @@ const DEFAULT_MATCH_DATA = {
   clubName: "CLUB REGATAS ANDINO",
   spreadsheetId: SPREADSHEET_ID,
   rival: "Murialdo B",
-  rivalLogo: "", // Se actualiza automáticamente desde la celda "Url escudo rival" en Google Sheets
+  rivalLogo: "https://cdn.scorefy.app/teams/shield/fxwodbgmjantrezt49558ttbj.png", // Murialdo B (se actualiza automáticamente desde Google Sheets)
   tournament: "Torneo Clausura",
   fixtureRound: "Fecha 10",
   dateDisplay: "Sábado 24 de Octubre",
