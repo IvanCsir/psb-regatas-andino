@@ -1855,6 +1855,11 @@ function switchDtMatch(matchKey, meta = {}) {
   saveDtMatchesStore();
 
   renderDtView();
+
+  // Sincronizar inmediatamente las incidencias desde Google Sheets para este partido
+  if (isDtAuthenticated()) {
+    fetchDtMatchFromCloud();
+  }
 }
 
 // Llenado dinámico del selector de partidos (1ra División)
@@ -1911,8 +1916,21 @@ function populateDtMatchSelect() {
   select.innerHTML = html;
 }
 
+function deduceEventType(evt) {
+  if (evt && evt.type) return evt.type;
+  const label = ((evt && evt.label) || '').toLowerCase();
+  if (label.includes('ingreso') || label.includes('área') || label.includes('area')) return 'entry';
+  if (label.includes('córner') || label.includes('corner')) return 'corner';
+  if (label.includes('penal') || label.includes('stroke')) return 'stroke';
+  if (label.includes('gol de jugada') || label.includes('jugada')) return 'fieldGoal';
+  if (label.includes('verde')) return 'cardGreen';
+  if (label.includes('amarilla')) return 'cardYellow';
+  if (label.includes('roja')) return 'cardRed';
+  return 'entry';
+}
+
 // Recalcular todas las estadísticas y marcador directamente desde el feed de eventos
-// (Garantiza 100% de coherencia matemática al deshacer o eliminar eventos)
+// (Garantiza 100% de coherencia matemática al deshacer o sincronizar desde la nube)
 function recalculateDtStatsFromEvents() {
   const newQuarters = {
     1: createDefaultQuarterStats(),
@@ -1925,36 +1943,40 @@ function recalculateDtStatsFromEvents() {
   let awayTotalGoals = 0;
 
   (dtMatchState.events || []).forEach(evt => {
-    const q = evt.quarter || 1;
+    const q = parseInt(evt.quarter, 10) || 1;
     if (!newQuarters[q]) newQuarters[q] = createDefaultQuarterStats();
-    const teamStats = newQuarters[q][evt.team];
+    const team = (evt.team === 'away') ? 'away' : 'home';
+    const teamStats = newQuarters[q][team];
     if (!teamStats) return;
 
-    if (evt.type === 'entry') {
+    const type = deduceEventType(evt);
+    evt.type = type; // Auto-sanar tipo de evento si vino de Google Sheets
+
+    if (type === 'entry') {
       teamStats.entries++;
-    } else if (evt.type === 'corner') {
+    } else if (type === 'corner') {
       teamStats.corners++;
       if (evt.endedInGoal) {
         teamStats.cornerGoals++;
         teamStats.goals++;
-        if (evt.team === 'home') homeTotalGoals++; else awayTotalGoals++;
+        if (team === 'home') homeTotalGoals++; else awayTotalGoals++;
       }
-    } else if (evt.type === 'stroke') {
+    } else if (type === 'stroke') {
       teamStats.strokes++;
       if (evt.endedInGoal) {
         teamStats.strokeGoals++;
         teamStats.goals++;
-        if (evt.team === 'home') homeTotalGoals++; else awayTotalGoals++;
+        if (team === 'home') homeTotalGoals++; else awayTotalGoals++;
       }
-    } else if (evt.type === 'fieldGoal') {
+    } else if (type === 'fieldGoal') {
       teamStats.fieldGoals++;
       teamStats.goals++;
-      if (evt.team === 'home') homeTotalGoals++; else awayTotalGoals++;
-    } else if (evt.type === 'cardGreen') {
+      if (team === 'home') homeTotalGoals++; else awayTotalGoals++;
+    } else if (type === 'cardGreen') {
       teamStats.green++;
-    } else if (evt.type === 'cardYellow') {
+    } else if (type === 'cardYellow') {
       teamStats.yellow++;
-    } else if (evt.type === 'cardRed') {
+    } else if (type === 'cardRed') {
       teamStats.red++;
     }
   });
@@ -2143,32 +2165,79 @@ async function fetchDtMatchFromCloud() {
   }
 }
 
-function mergeCloudEventsIntoMatchState(cloudEvents) {
-  if (!dtMatchState || !Array.isArray(cloudEvents) || cloudEvents.length === 0) return;
-
-  const localIds = new Set((dtMatchState.events || []).map(e => e.id));
-  let addedAny = false;
-
-  cloudEvents.forEach(cEvt => {
-    if (!localIds.has(cEvt.id)) {
-      if (!dtMatchState.events) dtMatchState.events = [];
-      dtMatchState.events.push(cEvt);
-      localIds.add(cEvt.id);
-      addedAny = true;
-    }
-  });
-
-  if (addedAny) {
-    recalculateDtStatsFromEvents();
-    saveDtMatchesStore();
-    renderDtView();
-    updateDtCloudSyncStatus('connected', '🔄 Sincronizado');
-    setTimeout(() => updateDtCloudSyncStatus('connected', 'Sheets en vivo'), 3000);
+function formatCloudTimeString(val) {
+  if (!val) return '';
+  const str = val.toString().trim();
+  if (str.includes('T') && (str.includes('Z') || str.includes('.'))) {
+    try {
+      const d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+    } catch (e) {}
   }
+  return str;
+}
+
+function normalizeCloudEvent(cEvt) {
+  if (!cEvt) return null;
+  const type = deduceEventType(cEvt);
+  const label = (cEvt.label || '').toString();
+  const isGoal = cEvt.endedInGoal === true || cEvt.endedInGoal === 'true' || 
+                 (label.toLowerCase().includes('gol') && (label.toLowerCase().includes('córner') || label.toLowerCase().includes('penal') || label.toLowerCase().includes('jugada')));
+
+  const team = (cEvt.team === 'away' || (cEvt.team && cEvt.team.toLowerCase().includes('rival'))) ? 'away' : 'home';
+  const quarter = parseInt(cEvt.quarter, 10) || 1;
+
+  let clockTime = formatCloudTimeString(cEvt.clockTime);
+  let timeDisplay = formatCloudTimeString(cEvt.timeDisplay);
+
+  return {
+    id: cEvt.id || ('evt_cloud_' + Math.random().toString(36).substr(2, 6)),
+    quarter: quarter >= 1 && quarter <= 4 ? quarter : 1,
+    clockTime: clockTime,
+    timeDisplay: timeDisplay,
+    type: type,
+    team: team,
+    endedInGoal: isGoal,
+    player: cEvt.player || '',
+    label: label || getIncidentLabel(type, isGoal, team, cEvt.player)
+  };
+}
+
+function mergeCloudEventsIntoMatchState(cloudEvents) {
+  if (!dtMatchState || !Array.isArray(cloudEvents)) return;
+
+  const normalizedCloud = cloudEvents.map(normalizeCloudEvent).filter(Boolean);
+  const localQueue = getDtSyncQueue();
+  const pendingIds = new Set(localQueue.map(q => q.event && q.event.id).filter(Boolean));
+
+  // Si no hay acciones pendientes en la cola local, la planilla en la nube es la fuente de verdad
+  if (localQueue.length === 0) {
+    dtMatchState.events = normalizedCloud;
+  } else {
+    const cloudIds = new Set(normalizedCloud.map(e => e.id));
+    const merged = [...normalizedCloud];
+    (dtMatchState.events || []).forEach(localEvt => {
+      if (pendingIds.has(localEvt.id) && !cloudIds.has(localEvt.id)) {
+        merged.push(localEvt);
+      }
+    });
+    dtMatchState.events = merged;
+  }
+
+  recalculateDtStatsFromEvents();
+  saveDtMatchesStore();
+  renderDtView();
+  updateDtCloudSyncStatus('connected', 'Sheets en vivo');
 }
 
 function startDtCloudPolling() {
   if (dtCloudSyncPollingInterval) clearInterval(dtCloudSyncPollingInterval);
+  // Llamada inmediata para no esperar los 4 segundos
+  fetchDtMatchFromCloud();
+  processDtSyncQueue();
+
   dtCloudSyncPollingInterval = setInterval(() => {
     fetchDtMatchFromCloud();
     processDtSyncQueue();
@@ -2353,9 +2422,31 @@ function initDtModule() {
 
   // 3. Conexión & Modal Google Sheets
   const btnOpenSheets = document.getElementById('btnDtOpenSheetsConfig');
+  const btnQuickSync = document.getElementById('btnDtQuickSync');
   const badgeSync = document.getElementById('dtCloudSyncBadge');
   if (btnOpenSheets) btnOpenSheets.addEventListener('click', openDtSheetsConfigModal);
-  if (badgeSync) badgeSync.addEventListener('click', openDtSheetsConfigModal);
+  if (btnQuickSync) {
+    btnQuickSync.addEventListener('click', () => {
+      if (isDtAuthenticated()) {
+        fetchDtMatchFromCloud();
+        processDtSyncQueue();
+        if (navigator.vibrate) navigator.vibrate(25);
+        showToast('🔄 Sincronizando con Google Sheets...');
+      }
+    });
+  }
+  if (badgeSync) {
+    badgeSync.addEventListener('click', () => {
+      if (isDtAuthenticated()) {
+        fetchDtMatchFromCloud();
+        processDtSyncQueue();
+        if (navigator.vibrate) navigator.vibrate(25);
+        showToast('🔄 Sincronizando con Google Sheets...');
+      } else {
+        openDtSheetsConfigModal();
+      }
+    });
+  }
 
   const btnCloseSheets = document.getElementById('btnCloseDtSheetsConfig');
   const btnCloseSheetsBottom = document.getElementById('btnCloseDtSheetsBottom');
@@ -2561,6 +2652,20 @@ function initDtModule() {
     showView('dt');
     showToast(`⏱️ Botonera DT: ${round} vs ${rival || 'Rival'}`);
   };
+
+  // 13. Sincronización automática al reactivar la pestaña o desbloquear el celular
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && currentActiveView === 'dt' && isDtAuthenticated()) {
+      fetchDtMatchFromCloud();
+      processDtSyncQueue();
+    }
+  });
+  window.addEventListener('focus', () => {
+    if (currentActiveView === 'dt' && isDtAuthenticated()) {
+      fetchDtMatchFromCloud();
+      processDtSyncQueue();
+    }
+  });
 }
 
 // Registro centralizado de incidencias

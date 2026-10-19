@@ -389,6 +389,17 @@ function fetchIncidentRows(sheet) {
     var isHome = (row[4] || '').toString().toLowerCase().indexOf('regatas') !== -1;
     var isGoal = (row[7] || '').toString().toLowerCase().indexOf('sí') !== -1 || (row[7] || '').toString().toLowerCase().indexOf('si') !== -1;
     var qNum = parseInt((row[2] || '1').toString().replace(/[^0-9]/g, ''), 10) || 1;
+    var lbl = (row[5] || '').toString();
+
+    var evtType = 'entry';
+    var lowerLbl = lbl.toLowerCase();
+    if (lowerLbl.indexOf('ingreso') !== -1 || lowerLbl.indexOf('área') !== -1 || lowerLbl.indexOf('area') !== -1) evtType = 'entry';
+    else if (lowerLbl.indexOf('córner') !== -1 || lowerLbl.indexOf('corner') !== -1) evtType = 'corner';
+    else if (lowerLbl.indexOf('penal') !== -1 || lowerLbl.indexOf('stroke') !== -1) evtType = 'stroke';
+    else if (lowerLbl.indexOf('jugada') !== -1) evtType = 'fieldGoal';
+    else if (lowerLbl.indexOf('verde') !== -1) evtType = 'cardGreen';
+    else if (lowerLbl.indexOf('amarilla') !== -1) evtType = 'cardYellow';
+    else if (lowerLbl.indexOf('roja') !== -1) evtType = 'cardRed';
 
     return {
       id: row[0],
@@ -396,9 +407,10 @@ function fetchIncidentRows(sheet) {
       quarter: qNum,
       clockTime: row[3],
       team: isHome ? 'home' : 'away',
-      label: row[5],
+      label: lbl,
       player: row[6],
-      endedInGoal: isGoal
+      endedInGoal: isGoal,
+      type: evtType
     };
   });
 }
