@@ -1972,16 +1972,20 @@ const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio
 const DT_WEBHOOK_URL_KEY = 'regatas_dt_webhook_url_v1';
 const DT_SYNC_QUEUE_KEY = 'regatas_dt_sync_queue_v1';
 
+// URL global por defecto: si está configurada, todos los celulares y computadoras
+// se conectan automáticamente en vivo sin necesidad de pegar la URL manualmente.
+const DEFAULT_DT_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxPdnHYI0eYdBQKxtGX-pM24GGnP5Nys-ab_XJEnJ4jA76t9N8OOqfacOFtBA2RioM/exec';
+
 let dtCloudSyncPollingInterval = null;
 let dtIsProcessingSyncQueue = false;
 let dtIsPollingCloud = false;
 
 function getDtWebhookUrl() {
   try {
-    return localStorage.getItem(DT_WEBHOOK_URL_KEY) || '';
-  } catch (e) {
-    return '';
-  }
+    const saved = localStorage.getItem(DT_WEBHOOK_URL_KEY);
+    if (saved && saved.trim()) return saved.trim();
+  } catch (e) {}
+  return DEFAULT_DT_WEBHOOK_URL || '';
 }
 
 function setDtWebhookUrl(url) {
