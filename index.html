@@ -16,13 +16,17 @@
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png?v=2">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=2">
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+  <meta name="apple-mobile-web-app-title" content="Regatas Hockey">
+
+  <!-- Manifest PWA -->
+  <link rel="manifest" href="manifest.json">
   
   <!-- Tipografía Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261019_quarter_stats_v1">
+  <link rel="stylesheet" href="styles.css?v=20261019_pwa_player_v1">
 </head>
 <body>
 
@@ -76,6 +80,19 @@
             <span class="drawer-item-title">Evaluaciones Físicas</span>
             <span class="drawer-item-desc">Broad Jump, CMJ, Yo-Yo test, velocidad y fuerza</span>
           </div>
+        </button>
+      </div>
+
+      <!-- Sección: APLICACIÓN MÓVIL / PWA -->
+      <div class="drawer-section drawer-section-pwa" id="drawerSectionInstall">
+        <span class="drawer-section-label">APLICACIÓN MÓVIL</span>
+        <button type="button" class="drawer-nav-item drawer-item-install" id="drawerBtnInstallPwa">
+          <span class="drawer-item-icon">📲</span>
+          <div class="drawer-item-info">
+            <span class="drawer-item-title">Instalar App en Celular</span>
+            <span class="drawer-item-desc">Tener el escudo de Regatas en la pantalla de inicio</span>
+          </div>
+          <span class="drawer-badge-pwa" id="drawerBadgePwa">Instalar</span>
         </button>
       </div>
 
@@ -1018,6 +1035,88 @@
   </div>
 
   <!-- ====================================================================
+       MODAL DE ASIGNACIÓN DE JUGADORA A INCIDENCIAS (GOLES / TARJETAS)
+       ==================================================================== -->
+  <div class="modal-overlay dt-modal-overlay" id="modalPlayerAssign">
+    <div class="modal-box dt-player-assign-box">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon" id="playerAssignModalIcon">🥅</span>
+          <div>
+            <h3 class="modal-title" id="playerAssignModalTitle">¡GOL DE REGATAS!</h3>
+            <span class="modal-subtitle" id="playerAssignModalSubtitle">¿Quién convirtió el gol?</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btnClosePlayerAssign">&times;</button>
+      </div>
+
+      <div class="player-assign-body">
+        <!-- Buscador rápido de jugadora si la lista es larga -->
+        <div class="player-assign-search-wrap">
+          <span class="player-assign-search-icon">🔍</span>
+          <input type="text" id="inputFilterAssignPlayer" class="player-assign-search" placeholder="Filtrar por nombre o apellido..." autocomplete="off">
+        </div>
+
+        <!-- Lista táctil de jugadoras convocadas -->
+        <div class="player-assign-grid" id="playerAssignGrid">
+          <!-- Renderizado dinámicamente con las convocadas -->
+        </div>
+
+        <!-- Opción manual para escribir otro nombre / N° -->
+        <div class="player-assign-custom-box">
+          <span class="player-assign-custom-label">¿Otra jugadora o no está en la lista?</span>
+          <div class="player-assign-custom-row">
+            <input type="text" id="inputCustomPlayerName" class="player-assign-input" placeholder="Nombre o N°..." autocomplete="off">
+            <button type="button" class="btn-assign-custom" id="btnAssignCustomPlayer">Asignar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="player-assign-footer">
+        <button type="button" class="btn-player-assign-skip" id="btnSkipPlayerAssign">
+          ⚡ Omitir / Sin especificar jugadora
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL DE INSTRUCCIONES DE INSTALACIÓN EN IPHONE / IOS
+       ==================================================================== -->
+  <div class="modal-overlay dt-modal-overlay" id="modalIosInstall">
+    <div class="modal-box dt-modal-box ios-install-box">
+      <div class="ios-install-icon">📲</div>
+      <h3 class="ios-install-title">Cómo instalar en tu iPhone</h3>
+      <p class="ios-install-desc">
+        Para tener la App oficial con el escudo de Regatas Andino en tu pantalla de inicio como una aplicación nativa:
+      </p>
+      
+      <div class="ios-install-steps">
+        <div class="ios-step-item">
+          <span class="ios-step-num">1</span>
+          <div class="ios-step-text">
+            En Safari, tocá el botón <strong>Compartir</strong> (el ícono del cuadrado con flecha hacia arriba <span class="ios-icon-glyph">⎋</span> en la barra inferior).
+          </div>
+        </div>
+        <div class="ios-step-item">
+          <span class="ios-step-num">2</span>
+          <div class="ios-step-text">
+            Deslizá hacia abajo y seleccioná <strong>"Agregar a pantalla de inicio"</strong> (ícono con el signo <strong style="color: #38bdf8;">+</strong>).
+          </div>
+        </div>
+        <div class="ios-step-item">
+          <span class="ios-step-num">3</span>
+          <div class="ios-step-text">
+            Tocá <strong>"Agregar"</strong> arriba a la derecha. ¡Listo! Ya tenés la app lista en tu celular.
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn-primary" id="btnCloseIosInstall" style="width: 100%;">¡Entendido!</button>
+    </div>
+  </div>
+
+  <!-- ====================================================================
        MODAL RESUMEN TÁCTICO & ESTADÍSTICAS DEL DT
        ==================================================================== -->
   <div class="modal-overlay dt-modal-overlay" id="modalDtSummary">
@@ -1097,7 +1196,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261019_auto_sync_v3"></script>
-  <script src="app.js?v=20261019_auto_sync_v3"></script>
+  <script src="data.js?v=20261019_pwa_player_v1"></script>
+  <script src="app.js?v=20261019_pwa_player_v1"></script>
 </body>
 </html>

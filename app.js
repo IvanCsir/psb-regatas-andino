@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEvents();
   setupPhysicalSection();
   initDtModule();
+  setupPwa();
 
   // Sincronizaciones en vivo
   syncWithGoogleSheets(); // Citaciones
@@ -150,6 +151,14 @@ function setupViewSwitching() {
     drawerBtnFisico.addEventListener('click', () => {
       closeNavDrawer();
       showView('fisico');
+    });
+  }
+
+  const drawerBtnInstall = document.getElementById('drawerBtnInstallPwa');
+  if (drawerBtnInstall) {
+    drawerBtnInstall.addEventListener('click', () => {
+      closeNavDrawer();
+      triggerPwaInstall();
     });
   }
 
@@ -2768,15 +2777,15 @@ function initDtModule() {
   if (btnHomeStroke) btnHomeStroke.addEventListener('click', () => openIncidentOptionModal('stroke', 'home'));
 
   const btnHomeGoal = document.getElementById('btnHomeFieldGoal');
-  if (btnHomeGoal) btnHomeGoal.addEventListener('click', () => logIncident('fieldGoal', 'home'));
+  if (btnHomeGoal) btnHomeGoal.addEventListener('click', () => openPlayerAssignModal({ type: 'fieldGoal', team: 'home', endedInGoal: true }));
 
   // Tarjetas Regatas
   const btnHomeGreen = document.getElementById('btnHomeCardGreen');
-  if (btnHomeGreen) btnHomeGreen.addEventListener('click', () => logCard('cardGreen', 'home'));
+  if (btnHomeGreen) btnHomeGreen.addEventListener('click', () => openPlayerAssignModal({ type: 'cardGreen', team: 'home', endedInGoal: false }));
   const btnHomeYellow = document.getElementById('btnHomeCardYellow');
-  if (btnHomeYellow) btnHomeYellow.addEventListener('click', () => logCard('cardYellow', 'home'));
+  if (btnHomeYellow) btnHomeYellow.addEventListener('click', () => openPlayerAssignModal({ type: 'cardYellow', team: 'home', endedInGoal: false }));
   const btnHomeRed = document.getElementById('btnHomeCardRed');
-  if (btnHomeRed) btnHomeRed.addEventListener('click', () => logCard('cardRed', 'home'));
+  if (btnHomeRed) btnHomeRed.addEventListener('click', () => openPlayerAssignModal({ type: 'cardRed', team: 'home', endedInGoal: false }));
 
   // 8. Botones Tácticos Rival (En Contra)
   const btnAwayEntry = document.getElementById('btnAwayEntry');
@@ -2806,6 +2815,36 @@ function initDtModule() {
   if (btnChoiceMiss) btnChoiceMiss.addEventListener('click', () => confirmIncidentOption(false));
   const btnChoiceCancel = document.getElementById('btnChoiceCancel');
   if (btnChoiceCancel) btnChoiceCancel.addEventListener('click', closeIncidentOptionModal);
+
+  // 9.5 Modal de Asignación de Jugadora a Incidencias
+  const btnCloseAssign = document.getElementById('btnClosePlayerAssign');
+  if (btnCloseAssign) btnCloseAssign.addEventListener('click', closePlayerAssignModal);
+
+  const btnSkipAssign = document.getElementById('btnSkipPlayerAssign');
+  if (btnSkipAssign) btnSkipAssign.addEventListener('click', () => confirmPlayerAssign(''));
+
+  const btnCustomAssign = document.getElementById('btnAssignCustomPlayer');
+  const inputCustom = document.getElementById('inputCustomPlayerName');
+  if (btnCustomAssign) {
+    btnCustomAssign.addEventListener('click', () => {
+      const val = inputCustom ? inputCustom.value.trim() : '';
+      confirmPlayerAssign(val);
+    });
+  }
+  if (inputCustom) {
+    inputCustom.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        confirmPlayerAssign(inputCustom.value.trim());
+      }
+    });
+  }
+
+  const inputFilterAssign = document.getElementById('inputFilterAssignPlayer');
+  if (inputFilterAssign) {
+    inputFilterAssign.addEventListener('input', (e) => {
+      renderPlayerAssignGrid(e.target.value);
+    });
+  }
 
   // 10. Herramientas Inferiores (Undo, Resumen, Feed, WhatsApp, Reset)
   const btnUndo = document.getElementById('btnDtUndo');
@@ -2849,6 +2888,13 @@ function initDtModule() {
   if (modalOption) {
     modalOption.addEventListener('click', (e) => {
       if (e.target === modalOption) closeIncidentOptionModal();
+    });
+  }
+
+  const modalPlayerAssign = document.getElementById('modalPlayerAssign');
+  if (modalPlayerAssign) {
+    modalPlayerAssign.addEventListener('click', (e) => {
+      if (e.target === modalPlayerAssign) closePlayerAssignModal();
     });
   }
 
@@ -2923,23 +2969,150 @@ function getIncidentLabel(type, endedInGoal, team, player = '') {
   const playerSuffix = player ? ` (${player})` : '';
 
   if (type === 'entry') return `Ingreso al área (${teamLabel})`;
-  if (type === 'corner') return endedInGoal ? `¡GOL de Córner Corto! (${teamLabel})` : `Córner Corto (${teamLabel})`;
-  if (type === 'stroke') return endedInGoal ? `¡GOL de Penal! (${teamLabel})` : `Penal ejecutado (${teamLabel})`;
-  if (type === 'fieldGoal') return `¡GOL de Jugada! (${teamLabel})`;
-  if (type === 'cardGreen') return `Tarjeta Verde 🟩 (${teamLabel})${playerSuffix}`;
-  if (type === 'cardYellow') return `Tarjeta Amarilla 🟨 (${teamLabel})${playerSuffix}`;
-  if (type === 'cardRed') return `Tarjeta Roja 🟥 (${teamLabel})${playerSuffix}`;
+  if (type === 'corner') return endedInGoal ? `¡GOL de Córner Corto! (${teamLabel}${playerSuffix})` : `Córner Corto (${teamLabel})`;
+  if (type === 'stroke') return endedInGoal ? `¡GOL de Penal! (${teamLabel}${playerSuffix})` : `Penal ejecutado (${teamLabel})`;
+  if (type === 'fieldGoal') return `¡GOL de Jugada! (${teamLabel}${playerSuffix})`;
+  if (type === 'cardGreen') return `Tarjeta Verde 🟩 (${teamLabel}${playerSuffix})`;
+  if (type === 'cardYellow') return `Tarjeta Amarilla 🟨 (${teamLabel}${playerSuffix})`;
+  if (type === 'cardRed') return `Tarjeta Roja 🟥 (${teamLabel}${playerSuffix})`;
   return 'Incidencia';
 }
 
 function logCard(cardType, team) {
-  let player = '';
   if (team === 'home') {
-    const pName = prompt('Nombre o número de la jugadora sancionada (opcional):', '');
-    if (pName !== null) player = pName.trim();
+    openPlayerAssignModal({ type: cardType, team: 'home', endedInGoal: false });
+    return;
   }
-  logIncident(cardType, team, false, player);
+  logIncident(cardType, team, false, '');
 }
+
+// ============================================================================
+// ASIGNACIÓN DE JUGADORA A INCIDENCIAS (GOLES Y TARJETAS)
+// ============================================================================
+
+let dtPendingPlayerIncident = null;
+
+function getActiveMatchSquad() {
+  if (!matchData) loadData();
+  const divKey = (dtMatchState && dtMatchState.division === 'intermedia') ? 'intermedia' : 'primera';
+  let list = [];
+  if (matchData && matchData[divKey] && Array.isArray(matchData[divKey].players)) {
+    list = matchData[divKey].players;
+  } else if (DEFAULT_MATCH_DATA && DEFAULT_MATCH_DATA[divKey] && Array.isArray(DEFAULT_MATCH_DATA[divKey].players)) {
+    list = DEFAULT_MATCH_DATA[divKey].players;
+  }
+  return list.filter(p => p && p.trim()).sort((a, b) => a.localeCompare(b));
+}
+
+function openPlayerAssignModal(incidentData) {
+  dtPendingPlayerIncident = incidentData;
+  const modal = document.getElementById('modalPlayerAssign');
+  const icon = document.getElementById('playerAssignModalIcon');
+  const title = document.getElementById('playerAssignModalTitle');
+  const subtitle = document.getElementById('playerAssignModalSubtitle');
+  const searchInput = document.getElementById('inputFilterAssignPlayer');
+  const customInput = document.getElementById('inputCustomPlayerName');
+
+  if (searchInput) searchInput.value = '';
+  if (customInput) customInput.value = '';
+
+  const isGoal = !!incidentData.endedInGoal;
+  const type = incidentData.type;
+
+  if (type === 'fieldGoal') {
+    if (icon) icon.textContent = '⚽';
+    if (title) title.textContent = '¡GOL DE JUGADA!';
+    if (subtitle) subtitle.textContent = '¿Quién convirtió el gol de Regatas?';
+  } else if (type === 'corner') {
+    if (icon) icon.textContent = '🏑';
+    if (title) title.textContent = '¡GOL DE CÓRNER CORTO!';
+    if (subtitle) subtitle.textContent = '¿Quién convirtió el gol de jugada fija?';
+  } else if (type === 'stroke') {
+    if (icon) icon.textContent = '🎯';
+    if (title) title.textContent = '¡GOL DE PENAL!';
+    if (subtitle) subtitle.textContent = '¿Quién ejecutó y convirtió el penal?';
+  } else if (type === 'cardGreen') {
+    if (icon) icon.textContent = '🟩';
+    if (title) title.textContent = 'TARJETA VERDE (2 MIN)';
+    if (subtitle) subtitle.textContent = '¿Quién recibió la sanción temporal?';
+  } else if (type === 'cardYellow') {
+    if (icon) icon.textContent = '🟨';
+    if (title) title.textContent = 'TARJETA AMARILLA (5 MIN)';
+    if (subtitle) subtitle.textContent = '¿Quién recibió la tarjeta en Regatas?';
+  } else if (type === 'cardRed') {
+    if (icon) icon.textContent = '🟥';
+    if (title) title.textContent = 'TARJETA ROJA (EXPULSIÓN)';
+    if (subtitle) subtitle.textContent = '¿Quién fue expulsada de Regatas?';
+  } else {
+    if (icon) icon.textContent = isGoal ? '🥅' : '👤';
+    if (title) title.textContent = isGoal ? '¡GOL DE REGATAS!' : 'ASIGNAR JUGADORA';
+    if (subtitle) subtitle.textContent = isGoal ? '¿Quién convirtió el gol?' : 'Seleccioná la jugadora';
+  }
+
+  renderPlayerAssignGrid('');
+  if (modal) modal.classList.add('active');
+  if (navigator.vibrate) navigator.vibrate(25);
+}
+
+function renderPlayerAssignGrid(filter = '') {
+  const grid = document.getElementById('playerAssignGrid');
+  if (!grid) return;
+
+  const players = getActiveMatchSquad();
+  const cleanFilter = (filter || '').toLowerCase().trim();
+
+  const filtered = cleanFilter
+    ? players.filter(p => p.toLowerCase().includes(cleanFilter))
+    : players;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 14px;">No se encontraron jugadoras con "${escapeHtml(filter)}". Podés ingresar el nombre abajo.</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(name => {
+    const parts = name.trim().split(/\s+/);
+    let initials = '';
+    if (parts.length >= 2) {
+      initials = (parts[0][0] + parts[1][0]).toUpperCase();
+    } else if (parts[0]) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return `
+      <button type="button" class="player-assign-chip" data-player="${escapeHtml(name)}">
+        <span class="player-chip-avatar">${initials}</span>
+        <span class="player-chip-name">${escapeHtml(name)}</span>
+      </button>
+    `;
+  }).join('');
+
+  grid.querySelectorAll('.player-assign-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const pName = chip.getAttribute('data-player');
+      confirmPlayerAssign(pName);
+    });
+  });
+}
+
+function confirmPlayerAssign(playerName = '') {
+  if (dtPendingPlayerIncident) {
+    const { type, team, endedInGoal } = dtPendingPlayerIncident;
+    dtPendingPlayerIncident = null;
+    closePlayerAssignModal();
+    logIncident(type, team, endedInGoal, (playerName || '').trim());
+  } else {
+    closePlayerAssignModal();
+  }
+}
+
+function closePlayerAssignModal() {
+  const modal = document.getElementById('modalPlayerAssign');
+  if (modal) modal.classList.remove('active');
+  dtPendingPlayerIncident = null;
+}
+window.confirmPlayerAssign = confirmPlayerAssign;
+window.closePlayerAssignModal = closePlayerAssignModal;
 
 // Modal de Opción A: Córner Corto / Penal
 function openIncidentOptionModal(type, team) {
@@ -2966,10 +3139,16 @@ function openIncidentOptionModal(type, team) {
 
 function confirmIncidentOption(isGoal) {
   if (dtPendingOptionAction) {
-    logIncident(dtPendingOptionAction.type, dtPendingOptionAction.team, isGoal);
-    dtPendingOptionAction = null;
+    const action = { ...dtPendingOptionAction };
+    closeIncidentOptionModal();
+    if (isGoal && action.team === 'home') {
+      openPlayerAssignModal({ type: action.type, team: 'home', endedInGoal: true });
+    } else {
+      logIncident(action.type, action.team, isGoal);
+    }
+  } else {
+    closeIncidentOptionModal();
   }
-  closeIncidentOptionModal();
 }
 
 function closeIncidentOptionModal() {
@@ -3175,6 +3354,67 @@ function openDtSummaryModal() {
         </tbody>
       </table>
     </div>
+
+    <!-- Goleadoras Asignadas de Regatas -->
+    ${(() => {
+      const scorersMap = {};
+      (dtMatchState.events || []).forEach(evt => {
+        if (evt.team === 'home' && evt.endedInGoal && evt.player) {
+          scorersMap[evt.player] = (scorersMap[evt.player] || 0) + 1;
+        }
+      });
+      const scorersList = Object.entries(scorersMap).sort((a, b) => b[1] - a[1]);
+      if (scorersList.length === 0) return '';
+      return `
+        <div class="dt-summary-scorers-box">
+          <div class="dt-summary-scorers-header">
+            <span class="dt-summary-scorers-title">⚽ GOLEADORAS DE REGATAS</span>
+            <span style="font-size: 0.72rem; color: #34d399; font-weight: 800;">${tot.home.goals} goles</span>
+          </div>
+          <div class="dt-summary-scorers-list">
+            ${scorersList.map(([name, gCount]) => `
+              <div class="dt-summary-scorer-row">
+                <span class="dt-summary-scorer-name">👤 ${escapeHtml(name)}</span>
+                <span class="dt-summary-scorer-badge">${gCount} gol${gCount === 1 ? '' : 'es'}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    })()}
+
+    <!-- Sanciones y Tarjetas de Regatas -->
+    ${(() => {
+      const cardsMap = {};
+      (dtMatchState.events || []).forEach(evt => {
+        if (evt.team === 'home' && ['cardGreen', 'cardYellow', 'cardRed'].includes(evt.type) && evt.player) {
+          if (!cardsMap[evt.player]) cardsMap[evt.player] = [];
+          cardsMap[evt.player].push({ type: evt.type, q: evt.quarter });
+        }
+      });
+      const cardsList = Object.entries(cardsMap);
+      if (cardsList.length === 0) return '';
+      return `
+        <div class="dt-summary-scorers-box">
+          <div class="dt-summary-scorers-header">
+            <span class="dt-summary-scorers-title" style="color: #fbbf24;">🟨 SANCIONES Y TARJETAS REGATAS</span>
+          </div>
+          <div class="dt-summary-scorers-list">
+            ${cardsList.map(([name, cArr]) => `
+              <div class="dt-summary-scorer-row">
+                <span class="dt-summary-scorer-name">👤 ${escapeHtml(name)}</span>
+                <div style="display: flex; gap: 4px;">
+                  ${cArr.map(c => {
+                    const icon = c.type === 'cardGreen' ? '🟩' : (c.type === 'cardYellow' ? '🟨' : '🟥');
+                    return `<span class="dt-summary-card-badge">${icon} ${c.q}°C</span>`;
+                  }).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    })()}
   `;
 
   container.scrollTop = 0;
@@ -3215,6 +3455,22 @@ function shareDtMatchWhatsApp() {
 
   const calcEff = (goals, total) => total > 0 ? Math.round((goals / total) * 100) + '%' : '0%';
 
+  // Desglose de Goleadoras y Tarjetas para WhatsApp
+  const scorersMap = {};
+  const cardsMap = {};
+  (dtMatchState.events || []).forEach(evt => {
+    if (evt.team === 'home' && evt.endedInGoal && evt.player) {
+      scorersMap[evt.player] = (scorersMap[evt.player] || 0) + 1;
+    }
+    if (evt.team === 'home' && ['cardGreen', 'cardYellow', 'cardRed'].includes(evt.type) && evt.player) {
+      if (!cardsMap[evt.player]) cardsMap[evt.player] = [];
+      cardsMap[evt.player].push({ type: evt.type, q: evt.quarter });
+    }
+  });
+
+  const scorersList = Object.entries(scorersMap).sort((a, b) => b[1] - a[1]);
+  const cardsList = Object.entries(cardsMap);
+
   const lines = [
     `🏑 *REPORTE TÁCTICO EN VIVO - REGATAS ANDINO B*`,
     `🏆 Categoría: *${divName}*`,
@@ -3233,10 +3489,28 @@ function shareDtMatchWhatsApp() {
     `• 1°C: Goles ${qStats[1]?.home?.goals || 0}-${qStats[1]?.away?.goals || 0} | Área ${qStats[1]?.home?.entries || 0}-${qStats[1]?.away?.entries || 0} | CC ${qStats[1]?.home?.corners || 0}-${qStats[1]?.away?.corners || 0}`,
     `• 2°C: Goles ${qStats[2]?.home?.goals || 0}-${qStats[2]?.away?.goals || 0} | Área ${qStats[2]?.home?.entries || 0}-${qStats[2]?.away?.entries || 0} | CC ${qStats[2]?.home?.corners || 0}-${qStats[2]?.away?.corners || 0}`,
     `• 3°C: Goles ${qStats[3]?.home?.goals || 0}-${qStats[3]?.away?.goals || 0} | Área ${qStats[3]?.home?.entries || 0}-${qStats[3]?.away?.entries || 0} | CC ${qStats[3]?.home?.corners || 0}-${qStats[3]?.away?.corners || 0}`,
-    `• 4°C: Goles ${qStats[4]?.home?.goals || 0}-${qStats[4]?.away?.goals || 0} | Área ${qStats[4]?.home?.entries || 0}-${qStats[4]?.away?.entries || 0} | CC ${qStats[4]?.home?.corners || 0}-${qStats[4]?.away?.corners || 0}`,
-    ``,
-    `_Generado desde la Web Oficial de Citaciones Regatas Andino B_`
+    `• 4°C: Goles ${qStats[4]?.home?.goals || 0}-${qStats[4]?.away?.goals || 0} | Área ${qStats[4]?.home?.entries || 0}-${qStats[4]?.away?.entries || 0} | CC ${qStats[4]?.home?.corners || 0}-${qStats[4]?.away?.corners || 0}`
   ];
+
+  if (scorersList.length > 0) {
+    lines.push(``);
+    lines.push(`⚽ *GOLEADORAS REGATAS:*`);
+    scorersList.forEach(([name, count]) => {
+      lines.push(`• 👤 ${name}: ${count} gol${count === 1 ? '' : 'es'}`);
+    });
+  }
+
+  if (cardsList.length > 0) {
+    lines.push(``);
+    lines.push(`🟨 *SANCIONES REGATAS:*`);
+    cardsList.forEach(([name, cArr]) => {
+      const cStr = cArr.map(c => `${c.type === 'cardGreen' ? '🟩' : (c.type === 'cardYellow' ? '🟨' : '🟥')} (${c.q}°C)`).join(', ');
+      lines.push(`• 👤 ${name}: ${cStr}`);
+    });
+  }
+
+  lines.push(``);
+  lines.push(`_Generado desde la Web Oficial de Citaciones Regatas Andino B_`);
 
   const fullText = lines.join('\n');
 
@@ -3378,6 +3652,9 @@ function renderDtView() {
         else if (evt.type === 'cardRed') icon = '🟥';
 
         const teamClass = evt.team === 'home' ? 'home-event' : 'away-event';
+        const playerBadge = (evt.player && evt.player.trim())
+          ? `<span class="dt-feed-player-badge">👤 ${escapeHtml(evt.player)}</span>`
+          : '';
 
         return `
           <div class="dt-feed-item ${teamClass}">
@@ -3385,6 +3662,7 @@ function renderDtView() {
               <span class="dt-feed-icon">${icon}</span>
               <div class="dt-feed-info">
                 <span class="dt-feed-label">${escapeHtml(evt.label)}</span>
+                ${playerBadge}
                 <span class="dt-feed-meta">${evt.quarter}° Cuarto • ${evt.clockTime || ''} (${evt.timeDisplay})</span>
               </div>
             </div>
@@ -4088,3 +4366,102 @@ function shareStatsWhatsApp() {
   const waUrl = `https://wa.me/?text=${encodeURIComponent(fullText)}`;
   window.open(waUrl, '_blank');
 }
+
+// ============================================================================
+// PWA: SERVICE WORKER & INSTALACIÓN EN PANTALLA DE INICIO
+// ============================================================================
+
+let deferredInstallPrompt = null;
+
+function setupPwa() {
+  // 1. Registro del Service Worker
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => {
+          console.log('[PWA] Service Worker registrado exitosamente:', reg.scope);
+        })
+        .catch((err) => {
+          console.warn('[PWA] Error registrando Service Worker:', err);
+        });
+    });
+  }
+
+  // 2. Captura del evento beforeinstallprompt (Android / Chrome / Edge)
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    console.log('[PWA] Evento beforeinstallprompt capturado');
+
+    const badge = document.getElementById('drawerBadgePwa');
+    if (badge) badge.textContent = 'Instalar';
+  });
+
+  // 3. Detección de instalación completada
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    showToast('🏆 ¡App de Regatas instalada en tu pantalla de inicio!');
+    const badge = document.getElementById('drawerBadgePwa');
+    if (badge) badge.textContent = 'Instalada';
+  });
+
+  // 4. Modal de instrucciones iOS
+  const btnCloseIos = document.getElementById('btnCloseIosInstall');
+  if (btnCloseIos) {
+    btnCloseIos.addEventListener('click', closeIosInstallModal);
+  }
+  const modalIos = document.getElementById('modalIosInstall');
+  if (modalIos) {
+    modalIos.addEventListener('click', (e) => {
+      if (e.target === modalIos) closeIosInstallModal();
+    });
+  }
+}
+
+function isIosDevice() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+}
+
+function isAppStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function triggerPwaInstall() {
+  if (isAppStandalone()) {
+    showToast('✅ Ya estás usando la App instalada de Regatas Andino');
+    return;
+  }
+
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        showToast('📲 Instalando App de Regatas...');
+      }
+      deferredInstallPrompt = null;
+    });
+    return;
+  }
+
+  if (isIosDevice()) {
+    openIosInstallModal();
+    return;
+  }
+
+  showToast('ℹ️ Para instalar: tocá los 3 puntos ⋮ en tu navegador y seleccioná "Instalar aplicación"');
+}
+
+function openIosInstallModal() {
+  const modal = document.getElementById('modalIosInstall');
+  if (modal) modal.classList.add('active');
+}
+
+function closeIosInstallModal() {
+  const modal = document.getElementById('modalIosInstall');
+  if (modal) modal.classList.remove('active');
+}
+
+window.triggerPwaInstall = triggerPwaInstall;
+window.openIosInstallModal = openIosInstallModal;
+window.closeIosInstallModal = closeIosInstallModal;
+

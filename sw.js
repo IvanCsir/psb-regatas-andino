@@ -1,0 +1,95 @@
+// Service Worker - Regatas Andino Hockey PWA
+// Cache Version
+const CACHE_NAME = 'regatas-hockey-v20261019-1';
+
+// Recursos críticos para funcionamiento offline
+const STATIC_ASSETS = [
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './data.js',
+  './manifest.json',
+  './escudo-regatas-andino.png',
+  './foto-plantel.jpg',
+  './apple-touch-icon.png',
+  './favicon.ico',
+  './favicon-16x16.png',
+  './favicon-32x32.png',
+  './favicon-48x48.png',
+  './favicon-192x192.png',
+  './favicon-512x512.png'
+];
+
+// Instalación: precachear recursos estáticos
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS).catch((err) => {
+        console.warn('[SW] Algunos recursos no pudieron precachearse:', err);
+      });
+    }).then(() => self.skipWaiting())
+  );
+});
+
+// Activación: limpiar caches viejos y tomar control inmediato
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Estrategia de Fetch:
+// 1. Llamadas a APIs externas (Google Script webhook, Google Sheets, AMH): Network Only / Network First
+// 2. Recursos locales estáticos (HTML, CSS, JS, imágenes): Stale-While-Revalidate o Cache First con fallback
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // No interceptar peticiones que no sean GET (como los POST del webhook de incidencias)
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  // APIs dinámicas y hojas de cálculo: Red primero
+  if (
+    url.hostname.includes('script.google.com') ||
+    url.hostname.includes('docs.google.com') ||
+    url.hostname.includes('15.235.75.172')
+  ) {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return new Response(JSON.stringify({ status: 'offline', message: 'Sin conexión a internet' }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
+    return;
+  }
+
+  // Recursos estáticos locales: Stale-While-Revalidate
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+        }
+        return networkResponse;
+      }).catch(() => {
+        // Si falla la red y no hay cache, retornar página principal si es navegación
+        if (request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+      });
+
+      return cachedResponse || fetchPromise;
+    })
+  );
+});
