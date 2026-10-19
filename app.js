@@ -3463,6 +3463,11 @@ function handleStatsViewOpen() {
   loadDtMatchesStore();
   populateStatsMatchFilter();
   renderAnalyticsDashboard(statsCurrentSelectedFilter);
+
+  // Sincronización automática silenciosa en segundo plano con Google Sheets
+  if (getDtWebhookUrl()) {
+    syncAllMatchesFromCloud({ silent: true });
+  }
 }
 
 // Llenado del selector de partidos a analizar
@@ -3953,21 +3958,24 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
 }
 
 // Sincronización de todos los partidos e incidencias desde Google Sheets
-async function syncAllMatchesFromCloud() {
+async function syncAllMatchesFromCloud(options = {}) {
+  const isSilent = Boolean(options && options.silent === true);
   const webhookUrl = getDtWebhookUrl();
   if (!webhookUrl) {
-    showToast('⚠️ No hay URL de Google Sheets configurada.');
+    if (!isSilent) showToast('⚠️ No hay URL de Google Sheets configurada.');
     return;
   }
 
   const btnSync = document.getElementById('btnSyncAllMatchesCloud');
   const originalText = btnSync ? btnSync.innerHTML : '';
-  if (btnSync) {
+  if (btnSync && !isSilent) {
     btnSync.disabled = true;
     btnSync.innerHTML = '<span>⏳</span> Sincronizando partidos desde Google Sheets...';
   }
 
-  showToast('🔄 Descargando incidencias de todas las fechas...');
+  if (!isSilent) {
+    showToast('🔄 Descargando incidencias de todas las fechas...');
+  }
 
   try {
     // 1. Consultar lista de hojas disponibles en el libro de Sheets
@@ -4021,12 +4029,16 @@ async function syncAllMatchesFromCloud() {
     saveDtMatchesStore();
     populateStatsMatchFilter();
     renderAnalyticsDashboard(statsCurrentSelectedFilter);
-    showToast(`✅ Sincronización exitosa: ${updatedCount} fecha(s) actualizada(s).`);
+    if (!isSilent) {
+      showToast(`✅ Sincronización exitosa: ${updatedCount} fecha(s) actualizada(s).`);
+    }
   } catch (e) {
     console.error('Error general sincronizando partidos de Sheets:', e);
-    showToast('⚠️ Error al conectar con Google Sheets.');
+    if (!isSilent) {
+      showToast('⚠️ Error al conectar con Google Sheets.');
+    }
   } finally {
-    if (btnSync) {
+    if (btnSync && !isSilent) {
       btnSync.disabled = false;
       btnSync.innerHTML = originalText || '<span>🔄</span> Sincronizar Google Sheets';
     }
