@@ -343,6 +343,267 @@
 
     </div> <!-- /viewFisico -->
 
+    <!-- ====================================================================
+         VISTA 4: BOTONERA DE INCIDENCIAS EN VIVO (ACCESO DT PROTEGIDO)
+         ==================================================================== -->
+    <div id="viewDT" class="view-panel" style="display: none;">
+      
+      <!-- Botón Superior Volver -->
+      <div class="view-return-bar">
+        <button class="btn-return-citacion" id="btnReturnToCitacionFromDT">
+          <span>←</span> Volver a Citación
+        </button>
+      </div>
+
+      <!-- Pantalla Bloqueada: Solicitar Contraseña -->
+      <section class="dt-auth-card" id="dtAuthGateCard">
+        <div class="dt-auth-lock-icon">🔒</div>
+        <h2 class="dt-auth-title">BOTONERA DE INCIDENCIAS DT</h2>
+        <p class="dt-auth-desc">Panel de registro táctico en vivo exclusivo para el Cuerpo Técnico de Regatas Andino B.</p>
+        
+        <div class="dt-auth-form">
+          <label for="inputDtGatePassword" class="dt-auth-label">Contraseña de Acceso:</label>
+          <div class="dt-auth-input-group">
+            <input type="password" id="inputDtGatePassword" class="dt-auth-input" placeholder="Ingresá la clave..." autocomplete="current-password">
+            <button type="button" class="btn-dt-unlock" id="btnDtGateSubmit">
+              <span>Desbloquear</span> ➔
+            </button>
+          </div>
+          <div class="dt-auth-error" id="dtGateErrorMsg" style="display: none;">
+            ⚠️ Contraseña incorrecta. Verificá con el cuerpo técnico.
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel Desbloqueado: Botonera en Vivo -->
+      <section class="dt-live-panel" id="dtLivePanel" style="display: none;">
+        
+        <!-- Header del Partido & Cuarto -->
+        <div class="dt-match-header-card">
+          <div class="dt-top-actions">
+            <!-- Selector de División -->
+            <div class="dt-division-pills">
+              <button type="button" class="dt-div-pill active" id="dtPillPrimera" data-div="primera">1ra División</button>
+              <button type="button" class="dt-div-pill" id="dtPillIntermedia" data-div="intermedia">Intermedia</button>
+            </div>
+            
+            <button type="button" class="btn-dt-lock-session" id="btnDtLockSession" title="Bloquear / Cerrar Sesión DT">
+              🔒 Bloquear
+            </button>
+          </div>
+
+          <!-- Marcador Principal -->
+          <div class="dt-scoreboard-wrapper">
+            <div class="dt-team-box dt-team-home">
+              <img src="escudo-regatas-andino.png" alt="Regatas Andino" class="dt-team-crest">
+              <div class="dt-team-names">
+                <span class="dt-team-sub">LOCAL</span>
+                <h4 class="dt-team-name">REGATAS</h4>
+              </div>
+              <div class="dt-score-number" id="dtScoreHome">0</div>
+            </div>
+
+            <div class="dt-scoreboard-divider">
+              <span class="dt-vs-badge">VS</span>
+            </div>
+
+            <div class="dt-team-box dt-team-away">
+              <div class="dt-score-number" id="dtScoreAway">0</div>
+              <div class="dt-team-names dt-names-right">
+                <span class="dt-team-sub">VISITANTE</span>
+                <h4 class="dt-team-name" id="dtAwayTeamName">RIVAL</h4>
+              </div>
+              <button type="button" class="btn-edit-rival-name" id="btnEditRivalName" title="Cambiar nombre del rival">✏️</button>
+            </div>
+          </div>
+
+          <!-- Selector de Cuartos y Cronómetro Táctico -->
+          <div class="dt-quarter-clock-bar">
+            <div class="dt-quarters-selector" id="dtQuarterSelector">
+              <button type="button" class="dt-quarter-btn active" data-q="1">1° C</button>
+              <button type="button" class="dt-quarter-btn" data-q="2">2° C</button>
+              <button type="button" class="dt-quarter-btn" data-q="3">3° C</button>
+              <button type="button" class="dt-quarter-btn" data-q="4">4° C</button>
+            </div>
+
+            <!-- Cronómetro rápido del DT (15:00) -->
+            <div class="dt-clock-widget">
+              <div class="dt-clock-display" id="dtClockDisplay">15:00</div>
+              <div class="dt-clock-controls">
+                <button type="button" class="dt-clock-btn" id="btnDtClockToggle" title="Iniciar / Pausar">▶</button>
+                <button type="button" class="dt-clock-btn" id="btnDtClockReset" title="Reiniciar Cuarto">↺</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botonera Táctica (2 Columnas) -->
+        <div class="dt-keypad-grid">
+          
+          <!-- Columna A FAVOR (Regatas Andino - Azul) -->
+          <div class="dt-keypad-col dt-col-home">
+            <div class="dt-col-header">
+              <span class="dt-col-dot home-dot"></span>
+              <h5>REGATAS (A FAVOR)</h5>
+            </div>
+
+            <!-- Ingreso al Área -->
+            <button type="button" class="dt-action-btn btn-action-entry" id="btnHomeEntry">
+              <div class="dt-btn-icon">📥</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Ingreso al Área</span>
+                <span class="dt-btn-count" id="countHomeEntry">0 en cuarto (0 total)</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Córner Corto -->
+            <button type="button" class="dt-action-btn btn-action-corner" id="btnHomeCorner">
+              <div class="dt-btn-icon">🏑</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Córner Corto</span>
+                <span class="dt-btn-count" id="countHomeCorner">0 obtenidos (0 goles)</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Penal -->
+            <button type="button" class="dt-action-btn btn-action-stroke" id="btnHomeStroke">
+              <div class="dt-btn-icon">🎯</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Penal (Stroke)</span>
+                <span class="dt-btn-count" id="countHomeStroke">0 obtenidos (0 goles)</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Gol de Jugada -->
+            <button type="button" class="dt-action-btn btn-action-goal" id="btnHomeFieldGoal">
+              <div class="dt-btn-icon">⚽</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Gol de Jugada</span>
+                <span class="dt-btn-count" id="countHomeFieldGoal">0 de jugada</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Tarjetas Disciplinarias -->
+            <div class="dt-cards-strip">
+              <span class="dt-strip-label">Tarjetas:</span>
+              <div class="dt-card-btns">
+                <button type="button" class="dt-card-btn card-green" id="btnHomeCardGreen" title="Tarjeta Verde (2 min)">
+                  🟩 <span id="countHomeCardGreen">0</span>
+                </button>
+                <button type="button" class="dt-card-btn card-yellow" id="btnHomeCardYellow" title="Tarjeta Amarilla (5 min)">
+                  🟨 <span id="countHomeCardYellow">0</span>
+                </button>
+                <button type="button" class="dt-card-btn card-red" id="btnHomeCardRed" title="Tarjeta Roja (Expulsión)">
+                  🟥 <span id="countHomeCardRed">0</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna EN CONTRA (Rival - Rojo) -->
+          <div class="dt-keypad-col dt-col-away">
+            <div class="dt-col-header">
+              <span class="dt-col-dot away-dot"></span>
+              <h5>RIVAL (EN CONTRA)</h5>
+            </div>
+
+            <!-- Ingreso al Área Rival -->
+            <button type="button" class="dt-action-btn btn-action-entry away-btn" id="btnAwayEntry">
+              <div class="dt-btn-icon">📥</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Ingreso al Área</span>
+                <span class="dt-btn-count" id="countAwayEntry">0 en cuarto (0 total)</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Córner Corto Rival -->
+            <button type="button" class="dt-action-btn btn-action-corner away-btn" id="btnAwayCorner">
+              <div class="dt-btn-icon">🏑</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Córner Corto</span>
+                <span class="dt-btn-count" id="countAwayCorner">0 obtenidos (0 goles)</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Penal Rival -->
+            <button type="button" class="dt-action-btn btn-action-stroke away-btn" id="btnAwayStroke">
+              <div class="dt-btn-icon">🎯</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Penal (Stroke)</span>
+                <span class="dt-btn-count" id="countAwayStroke">0 obtenidos (0 goles)</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Gol de Jugada Rival -->
+            <button type="button" class="dt-action-btn btn-action-goal away-btn" id="btnAwayFieldGoal">
+              <div class="dt-btn-icon">⚽</div>
+              <div class="dt-btn-body">
+                <span class="dt-btn-title">Gol de Jugada</span>
+                <span class="dt-btn-count" id="countAwayFieldGoal">0 de jugada</span>
+              </div>
+              <span class="dt-btn-plus">+1</span>
+            </button>
+
+            <!-- Tarjetas Disciplinarias Rival -->
+            <div class="dt-cards-strip">
+              <span class="dt-strip-label">Tarjetas:</span>
+              <div class="dt-card-btns">
+                <button type="button" class="dt-card-btn card-green" id="btnAwayCardGreen" title="Tarjeta Verde (2 min)">
+                  🟩 <span id="countAwayCardGreen">0</span>
+                </button>
+                <button type="button" class="dt-card-btn card-yellow" id="btnAwayCardYellow" title="Tarjeta Amarilla (5 min)">
+                  🟨 <span id="countAwayCardYellow">0</span>
+                </button>
+                <button type="button" class="dt-card-btn card-red" id="btnAwayCardRed" title="Tarjeta Roja (Expulsión)">
+                  🟥 <span id="countAwayCardRed">0</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Barra Inferior de Acciones del DT -->
+        <div class="dt-control-dock">
+          <button type="button" class="dt-bottom-tool-btn btn-undo" id="btnDtUndo" title="Deshacer último evento">
+            <span>↩</span> Deshacer Último
+          </button>
+          <button type="button" class="dt-bottom-tool-btn btn-stats" id="btnDtOpenSummary" title="Ver resumen táctico y estadísticas">
+            <span>📊</span> Ver Resumen
+          </button>
+          <button type="button" class="dt-bottom-tool-btn btn-feed" id="btnDtToggleFeed" title="Ver historial de eventos">
+            <span>📋</span> Feed (<span id="dtFeedCount">0</span>)
+          </button>
+          <button type="button" class="dt-bottom-tool-btn btn-share" id="btnDtShareWhatsapp" title="Compartir estadísticas por WhatsApp">
+            <span>📲</span> WhatsApp
+          </button>
+          <button type="button" class="dt-bottom-tool-btn btn-reset" id="btnDtResetMatch" title="Reiniciar partido">
+            <span>🔄</span> Nuevo
+          </button>
+        </div>
+
+        <!-- Feed desplegable de eventos en vivo -->
+        <div class="dt-feed-wrapper" id="dtFeedWrapper" style="display: none;">
+          <div class="dt-feed-header">
+            <h4>📋 HISTORIAL DE INCIDENCIAS EN VIVO</h4>
+            <span class="dt-feed-badge" id="dtFeedQuarterLabel">Todos los cuartos</span>
+          </div>
+          <div class="dt-feed-list" id="dtFeedList">
+            <!-- Eventos renderizados dinámicamente -->
+          </div>
+        </div>
+
+      </section>
+
+    </div> <!-- /viewDT -->
+
   </div> <!-- /container -->
 
   <!-- ====================================================================
@@ -360,6 +621,10 @@
     <button type="button" class="nav-dock-btn" id="dockBtnFisico" data-view="fisico" title="Evaluaciones Físicas">
       <span class="dock-icon">⚡</span>
       <span class="dock-label">Físico</span>
+    </button>
+    <button type="button" class="nav-dock-btn" id="dockBtnDT" data-view="dt" title="Botonera de Incidencias en Vivo">
+      <span class="dock-icon">⏱️</span>
+      <span class="dock-label">DT Live</span>
     </button>
   </nav>
 
@@ -439,6 +704,69 @@
           <button type="button" class="btn-secondary" id="btnCloseModalBottom" style="width: 100%;">Cerrar</button>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL RÁPIDO: CÓRNER CORTO / PENAL (OPCIÓN A)
+       ==================================================================== -->
+  <div class="modal-overlay dt-modal-overlay" id="modalIncidentOption">
+    <div class="modal-box dt-modal-box">
+      <div class="dt-choice-header">
+        <span class="dt-choice-icon" id="choiceModalIcon">🏑</span>
+        <h3 id="choiceModalTitle">Córner Corto</h3>
+        <p id="choiceModalSubtitle">¿Terminó en gol esta jugada fija?</p>
+      </div>
+      
+      <div class="dt-choice-buttons">
+        <button type="button" class="btn-choice-option choice-goal" id="btnChoiceGoal">
+          <span class="choice-opt-icon">🥅</span>
+          <div class="choice-opt-text">
+            <strong>¡SÍ, FUE GOL!</strong>
+            <span>Suma jugada fija + Gol en el marcador</span>
+          </div>
+        </button>
+
+        <button type="button" class="btn-choice-option choice-miss" id="btnChoiceMiss">
+          <span class="choice-opt-icon">❌</span>
+          <div class="choice-opt-text">
+            <strong>NO FUE GOL</strong>
+            <span>Atajado / Desviado / Sin conversión</span>
+          </div>
+        </button>
+      </div>
+
+      <button type="button" class="btn-choice-cancel" id="btnChoiceCancel">
+        Cancelar
+      </button>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL RESUMEN TÁCTICO & ESTADÍSTICAS DEL DT
+       ==================================================================== -->
+  <div class="modal-overlay dt-modal-overlay" id="modalDtSummary">
+    <div class="modal-box dt-summary-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">📊</span>
+          <h3 class="modal-title">ESTADÍSTICAS DEL PARTIDO</h3>
+        </div>
+        <button class="btn-close-modal" id="btnCloseDtSummary">&times;</button>
+      </div>
+
+      <div class="dt-summary-content" id="dtSummaryContent">
+        <!-- Renderizado dinámicamente -->
+      </div>
+
+      <div class="dt-summary-actions">
+        <button type="button" class="btn-share-modal-wa" id="btnModalShareWhatsApp">
+          <span>📲</span> Compartir por WhatsApp
+        </button>
+        <button type="button" class="btn-close-summary-bottom" id="btnCloseDtSummaryBottom">
+          Cerrar
+        </button>
       </div>
     </div>
   </div>

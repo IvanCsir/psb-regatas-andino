@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupViewSwitching();
   setupEvents();
   setupPhysicalSection();
+  initDtModule();
 
   // Sincronizaciones en vivo
   syncWithGoogleSheets(); // Citaciones
@@ -74,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // NAVEGACIÓN DISCRETA ENTRE CITACIÓN, TORNEO Y EVALUACIONES FÍSICAS
 // ============================================================================
 
-let currentActiveView = 'citacion'; // 'citacion' | 'torneo' | 'fisico'
+let currentActiveView = 'citacion'; // 'citacion' | 'torneo' | 'fisico' | 'dt'
 
 function setupViewSwitching() {
   // Botones del Dock Inferior
@@ -107,18 +108,25 @@ function setupViewSwitching() {
   if (btnReturnFromFisico) {
     btnReturnFromFisico.addEventListener('click', () => showView('citacion'));
   }
+
+  const btnReturnFromDT = document.getElementById('btnReturnToCitacionFromDT');
+  if (btnReturnFromDT) {
+    btnReturnFromDT.addEventListener('click', () => showView('citacion'));
+  }
 }
 
 function showView(viewName) {
   const viewCitacion = document.getElementById('viewCitacion');
   const viewTorneo = document.getElementById('viewTorneo');
   const viewFisico = document.getElementById('viewFisico');
+  const viewDT = document.getElementById('viewDT');
 
   currentActiveView = viewName;
 
   if (viewCitacion) viewCitacion.style.display = viewName === 'citacion' ? 'flex' : 'none';
   if (viewTorneo) viewTorneo.style.display = viewName === 'torneo' ? 'flex' : 'none';
   if (viewFisico) viewFisico.style.display = viewName === 'fisico' ? 'flex' : 'none';
+  if (viewDT) viewDT.style.display = viewName === 'dt' ? 'flex' : 'none';
 
   // Actualizar estado activo en la barra de navegación inferior
   document.querySelectorAll('.nav-dock-btn').forEach(btn => {
@@ -131,6 +139,8 @@ function showView(viewName) {
     if (physicalPlayers.length > 0 && !selectedPlayerId) {
       renderPhysicalSuggestions();
     }
+  } else if (viewName === 'dt') {
+    handleDtViewOpen();
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1617,3 +1627,846 @@ async function syncWithGoogleSheets(manual = false) {
     }
   }
 }
+
+// ============================================================================
+// VISTA 4: BOTONERA DE INCIDENCIAS DT EN VIVO (HOCKEY LIVE TRACKER)
+// ============================================================================
+
+const DT_MATCH_STORAGE_KEY = 'regatas_dt_match_v2';
+const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok';
+
+let dtClockInterval = null;
+let dtPendingOptionAction = null; // { type: 'corner'|'stroke', team: 'home'|'away' }
+
+function createDefaultQuarterStats() {
+  return {
+    home: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0, goals: 0 },
+    away: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0, goals: 0 }
+  };
+}
+
+let dtMatchState = {
+  division: 'primera', // 'primera' | 'intermedia'
+  rivalName: 'MURIALDO B',
+  currentQuarter: 1, // 1..4
+  timer: {
+    seconds: 15 * 60,
+    isRunning: false
+  },
+  score: { home: 0, away: 0 },
+  quarters: {
+    1: createDefaultQuarterStats(),
+    2: createDefaultQuarterStats(),
+    3: createDefaultQuarterStats(),
+    4: createDefaultQuarterStats()
+  },
+  events: []
+};
+
+// Carga y guardado de estado en LocalStorage
+function loadDtMatchState() {
+  try {
+    const saved = localStorage.getItem(DT_MATCH_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.quarters && parsed.events) {
+        dtMatchState = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Error cargando estado DT:', e);
+  }
+
+  // Asegurar nombre de rival por defecto si no está cargado
+  if (!dtMatchState.rivalName) {
+    const curDiv = dtMatchState.division || 'primera';
+    const divMeta = matchData && matchData[curDiv];
+    dtMatchState.rivalName = (divMeta && divMeta.rival) ? divMeta.rival : 'MURIALDO B';
+  }
+
+  recalculateDtStatsFromEvents();
+}
+
+function saveDtMatchState() {
+  try {
+    localStorage.setItem(DT_MATCH_STORAGE_KEY, JSON.stringify(dtMatchState));
+  } catch (e) {
+    console.warn('Error guardando estado DT:', e);
+  }
+}
+
+// Recalcular todas las estadísticas y marcador directamente desde el feed de eventos
+// (Garantiza 100% de coherencia matemática al deshacer o eliminar eventos)
+function recalculateDtStatsFromEvents() {
+  const newQuarters = {
+    1: createDefaultQuarterStats(),
+    2: createDefaultQuarterStats(),
+    3: createDefaultQuarterStats(),
+    4: createDefaultQuarterStats()
+  };
+
+  let homeTotalGoals = 0;
+  let awayTotalGoals = 0;
+
+  (dtMatchState.events || []).forEach(evt => {
+    const q = evt.quarter || 1;
+    if (!newQuarters[q]) newQuarters[q] = createDefaultQuarterStats();
+    const teamStats = newQuarters[q][evt.team];
+    if (!teamStats) return;
+
+    if (evt.type === 'entry') {
+      teamStats.entries++;
+    } else if (evt.type === 'corner') {
+      teamStats.corners++;
+      if (evt.endedInGoal) {
+        teamStats.cornerGoals++;
+        teamStats.goals++;
+        if (evt.team === 'home') homeTotalGoals++; else awayTotalGoals++;
+      }
+    } else if (evt.type === 'stroke') {
+      teamStats.strokes++;
+      if (evt.endedInGoal) {
+        teamStats.strokeGoals++;
+        teamStats.goals++;
+        if (evt.team === 'home') homeTotalGoals++; else awayTotalGoals++;
+      }
+    } else if (evt.type === 'fieldGoal') {
+      teamStats.fieldGoals++;
+      teamStats.goals++;
+      if (evt.team === 'home') homeTotalGoals++; else awayTotalGoals++;
+    } else if (evt.type === 'cardGreen') {
+      teamStats.green++;
+    } else if (evt.type === 'cardYellow') {
+      teamStats.yellow++;
+    } else if (evt.type === 'cardRed') {
+      teamStats.red++;
+    }
+  });
+
+  dtMatchState.quarters = newQuarters;
+  dtMatchState.score = { home: homeTotalGoals, away: awayTotalGoals };
+}
+
+// Comprobación de autenticación DT
+function isDtAuthenticated() {
+  return sessionStorage.getItem(DT_AUTH_SESSION_KEY) === 'true';
+}
+
+function handleDtViewOpen() {
+  const gateCard = document.getElementById('dtAuthGateCard');
+  const livePanel = document.getElementById('dtLivePanel');
+  const passInput = document.getElementById('inputDtGatePassword');
+  const errorMsg = document.getElementById('dtGateErrorMsg');
+
+  if (isDtAuthenticated()) {
+    if (gateCard) gateCard.style.display = 'none';
+    if (livePanel) livePanel.style.display = 'flex';
+    renderDtView();
+  } else {
+    if (livePanel) livePanel.style.display = 'none';
+    if (gateCard) gateCard.style.display = 'block';
+    if (errorMsg) errorMsg.style.display = 'none';
+    if (passInput) {
+      passInput.value = '';
+      setTimeout(() => passInput.focus(), 150);
+    }
+  }
+}
+
+function verifyDtPassword() {
+  const passInput = document.getElementById('inputDtGatePassword');
+  const errorMsg = document.getElementById('dtGateErrorMsg');
+  const entered = (passInput ? passInput.value : '').trim().toLowerCase();
+
+  if (entered === REQUIRED_PASSWORD) {
+    sessionStorage.setItem(DT_AUTH_SESSION_KEY, 'true');
+    handleDtViewOpen();
+    showToast('🔓 Acceso concedido a la Botonera DT');
+  } else {
+    if (errorMsg) errorMsg.style.display = 'block';
+    if (passInput) passInput.select();
+  }
+}
+
+function lockDtSession() {
+  sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
+  pauseDtClock();
+  handleDtViewOpen();
+  showToast('🔒 Sesión de DT bloqueada');
+}
+
+// Cronómetro del Cuarto (15:00 hacia abajo)
+function formatClockTime(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function updateDtClockDisplay() {
+  const display = document.getElementById('dtClockDisplay');
+  const btnToggle = document.getElementById('btnDtClockToggle');
+  if (display) {
+    display.textContent = formatClockTime(dtMatchState.timer.seconds);
+  }
+  if (btnToggle) {
+    btnToggle.textContent = dtMatchState.timer.isRunning ? '⏸' : '▶';
+  }
+}
+
+function startDtClock() {
+  if (dtClockInterval) clearInterval(dtClockInterval);
+  dtMatchState.timer.isRunning = true;
+  dtClockInterval = setInterval(() => {
+    if (dtMatchState.timer.seconds > 0) {
+      dtMatchState.timer.seconds--;
+      updateDtClockDisplay();
+    } else {
+      pauseDtClock();
+      showToast(`⏰ ¡Fin del ${dtMatchState.currentQuarter}° Cuarto!`);
+    }
+  }, 1000);
+  updateDtClockDisplay();
+}
+
+function pauseDtClock() {
+  dtMatchState.timer.isRunning = false;
+  if (dtClockInterval) {
+    clearInterval(dtClockInterval);
+    dtClockInterval = null;
+  }
+  updateDtClockDisplay();
+}
+
+function resetDtClock() {
+  pauseDtClock();
+  dtMatchState.timer.seconds = 15 * 60;
+  updateDtClockDisplay();
+}
+
+// Inicialización de Eventos y Botones del Módulo DT
+function initDtModule() {
+  loadDtMatchState();
+
+  // 1. Auth Gate
+  const btnSubmit = document.getElementById('btnDtGateSubmit');
+  const inputPass = document.getElementById('inputDtGatePassword');
+  if (btnSubmit) btnSubmit.addEventListener('click', verifyDtPassword);
+  if (inputPass) {
+    inputPass.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') verifyDtPassword();
+    });
+  }
+
+  // 2. Cerrar sesión / Bloquear
+  const btnLock = document.getElementById('btnDtLockSession');
+  if (btnLock) btnLock.addEventListener('click', lockDtSession);
+
+  // 3. Selector de Categoría (Primera / Intermedia)
+  const pillP = document.getElementById('dtPillPrimera');
+  const pillI = document.getElementById('dtPillIntermedia');
+  if (pillP) {
+    pillP.addEventListener('click', () => {
+      dtMatchState.division = 'primera';
+      saveDtMatchState();
+      renderDtView();
+    });
+  }
+  if (pillI) {
+    pillI.addEventListener('click', () => {
+      dtMatchState.division = 'intermedia';
+      saveDtMatchState();
+      renderDtView();
+    });
+  }
+
+  // 4. Edición rápida del nombre del Rival
+  const btnEditRival = document.getElementById('btnEditRivalName');
+  if (btnEditRival) {
+    btnEditRival.addEventListener('click', () => {
+      const cur = dtMatchState.rivalName || 'RIVAL';
+      const nuevo = prompt('Ingresá el nombre del club rival:', cur);
+      if (nuevo && nuevo.trim()) {
+        dtMatchState.rivalName = nuevo.trim().toUpperCase();
+        saveDtMatchState();
+        renderDtView();
+      }
+    });
+  }
+
+  // 5. Selector de Cuarto (1C, 2C, 3C, 4C)
+  const qBtns = document.querySelectorAll('.dt-quarter-btn');
+  qBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const q = parseInt(btn.getAttribute('data-q'), 10);
+      if (q && q >= 1 && q <= 4) {
+        dtMatchState.currentQuarter = q;
+        resetDtClock();
+        saveDtMatchState();
+        renderDtView();
+        showToast(`📍 Cambiaste al ${q}° Cuarto`);
+      }
+    });
+  });
+
+  // 6. Cronómetro
+  const btnToggleClock = document.getElementById('btnDtClockToggle');
+  if (btnToggleClock) {
+    btnToggleClock.addEventListener('click', () => {
+      if (dtMatchState.timer.isRunning) pauseDtClock(); else startDtClock();
+    });
+  }
+  const btnResetClock = document.getElementById('btnDtClockReset');
+  if (btnResetClock) btnResetClock.addEventListener('click', resetDtClock);
+
+  // 7. Botones Tácticos Regatas (A Favor)
+  const btnHomeEntry = document.getElementById('btnHomeEntry');
+  if (btnHomeEntry) btnHomeEntry.addEventListener('click', () => logIncident('entry', 'home'));
+
+  const btnHomeCorner = document.getElementById('btnHomeCorner');
+  if (btnHomeCorner) btnHomeCorner.addEventListener('click', () => openIncidentOptionModal('corner', 'home'));
+
+  const btnHomeStroke = document.getElementById('btnHomeStroke');
+  if (btnHomeStroke) btnHomeStroke.addEventListener('click', () => openIncidentOptionModal('stroke', 'home'));
+
+  const btnHomeGoal = document.getElementById('btnHomeFieldGoal');
+  if (btnHomeGoal) btnHomeGoal.addEventListener('click', () => logIncident('fieldGoal', 'home'));
+
+  // Tarjetas Regatas
+  const btnHomeGreen = document.getElementById('btnHomeCardGreen');
+  if (btnHomeGreen) btnHomeGreen.addEventListener('click', () => logCard('cardGreen', 'home'));
+  const btnHomeYellow = document.getElementById('btnHomeCardYellow');
+  if (btnHomeYellow) btnHomeYellow.addEventListener('click', () => logCard('cardYellow', 'home'));
+  const btnHomeRed = document.getElementById('btnHomeCardRed');
+  if (btnHomeRed) btnHomeRed.addEventListener('click', () => logCard('cardRed', 'home'));
+
+  // 8. Botones Tácticos Rival (En Contra)
+  const btnAwayEntry = document.getElementById('btnAwayEntry');
+  if (btnAwayEntry) btnAwayEntry.addEventListener('click', () => logIncident('entry', 'away'));
+
+  const btnAwayCorner = document.getElementById('btnAwayCorner');
+  if (btnAwayCorner) btnAwayCorner.addEventListener('click', () => openIncidentOptionModal('corner', 'away'));
+
+  const btnAwayStroke = document.getElementById('btnAwayStroke');
+  if (btnAwayStroke) btnAwayStroke.addEventListener('click', () => openIncidentOptionModal('stroke', 'away'));
+
+  const btnAwayGoal = document.getElementById('btnAwayFieldGoal');
+  if (btnAwayGoal) btnAwayGoal.addEventListener('click', () => logIncident('fieldGoal', 'away'));
+
+  // Tarjetas Rival
+  const btnAwayGreen = document.getElementById('btnAwayCardGreen');
+  if (btnAwayGreen) btnAwayGreen.addEventListener('click', () => logCard('cardGreen', 'away'));
+  const btnAwayYellow = document.getElementById('btnAwayCardYellow');
+  if (btnAwayYellow) btnAwayYellow.addEventListener('click', () => logCard('cardYellow', 'away'));
+  const btnAwayRed = document.getElementById('btnAwayCardRed');
+  if (btnAwayRed) btnAwayRed.addEventListener('click', () => logCard('cardRed', 'away'));
+
+  // 9. Modal de Opción A (Córner / Penal)
+  const btnChoiceGoal = document.getElementById('btnChoiceGoal');
+  if (btnChoiceGoal) btnChoiceGoal.addEventListener('click', () => confirmIncidentOption(true));
+  const btnChoiceMiss = document.getElementById('btnChoiceMiss');
+  if (btnChoiceMiss) btnChoiceMiss.addEventListener('click', () => confirmIncidentOption(false));
+  const btnChoiceCancel = document.getElementById('btnChoiceCancel');
+  if (btnChoiceCancel) btnChoiceCancel.addEventListener('click', closeIncidentOptionModal);
+
+  // 10. Herramientas Inferiores (Undo, Resumen, Feed, WhatsApp, Reset)
+  const btnUndo = document.getElementById('btnDtUndo');
+  if (btnUndo) btnUndo.addEventListener('click', undoLastIncident);
+
+  const btnSummary = document.getElementById('btnDtOpenSummary');
+  if (btnSummary) btnSummary.addEventListener('click', openDtSummaryModal);
+
+  const btnToggleFeed = document.getElementById('btnDtToggleFeed');
+  if (btnToggleFeed) {
+    btnToggleFeed.addEventListener('click', () => {
+      const feed = document.getElementById('dtFeedWrapper');
+      if (feed) {
+        feed.style.display = feed.style.display === 'none' ? 'block' : 'none';
+      }
+    });
+  }
+
+  const btnShareWa = document.getElementById('btnDtShareWhatsapp');
+  if (btnShareWa) btnShareWa.addEventListener('click', shareDtMatchWhatsApp);
+
+  const btnReset = document.getElementById('btnDtResetMatch');
+  if (btnReset) btnReset.addEventListener('click', resetDtMatchWithConfirm);
+
+  // 11. Modal Resumen Actions
+  const btnCloseSummary = document.getElementById('btnCloseDtSummary');
+  if (btnCloseSummary) btnCloseSummary.addEventListener('click', closeDtSummaryModal);
+  const btnCloseSummaryBottom = document.getElementById('btnCloseDtSummaryBottom');
+  if (btnCloseSummaryBottom) btnCloseSummaryBottom.addEventListener('click', closeDtSummaryModal);
+  const btnModalShareWa = document.getElementById('btnModalShareWhatsApp');
+  if (btnModalShareWa) btnModalShareWa.addEventListener('click', shareDtMatchWhatsApp);
+}
+
+// Registro centralizado de incidencias
+function logIncident(type, team, endedInGoal = false, player = '') {
+  const clockStr = formatClockTime(dtMatchState.timer.seconds);
+  const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const evt = {
+    id: 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    quarter: dtMatchState.currentQuarter || 1,
+    clockTime: clockStr,
+    timeDisplay: timeStr,
+    type,
+    team,
+    endedInGoal: !!endedInGoal,
+    player: player || '',
+    label: getIncidentLabel(type, endedInGoal, team, player)
+  };
+
+  if (!dtMatchState.events) dtMatchState.events = [];
+  dtMatchState.events.push(evt);
+
+  recalculateDtStatsFromEvents();
+  saveDtMatchState();
+
+  // Vibración háptica en móviles si está disponible
+  if (navigator.vibrate) {
+    navigator.vibrate(endedInGoal ? [60, 50, 60] : 45);
+  }
+
+  showToast(`${evt.team === 'home' ? '🔵' : '🔴'} ${evt.label}`);
+  renderDtView();
+}
+
+function getIncidentLabel(type, endedInGoal, team, player = '') {
+  const teamLabel = team === 'home' ? 'Regatas' : (dtMatchState.rivalName || 'Rival');
+  const playerSuffix = player ? ` (${player})` : '';
+
+  if (type === 'entry') return `Ingreso al área (${teamLabel})`;
+  if (type === 'corner') return endedInGoal ? `¡GOL de Córner Corto! (${teamLabel})` : `Córner Corto (${teamLabel})`;
+  if (type === 'stroke') return endedInGoal ? `¡GOL de Penal! (${teamLabel})` : `Penal ejecutado (${teamLabel})`;
+  if (type === 'fieldGoal') return `¡GOL de Jugada! (${teamLabel})`;
+  if (type === 'cardGreen') return `Tarjeta Verde 🟩 (${teamLabel})${playerSuffix}`;
+  if (type === 'cardYellow') return `Tarjeta Amarilla 🟨 (${teamLabel})${playerSuffix}`;
+  if (type === 'cardRed') return `Tarjeta Roja 🟥 (${teamLabel})${playerSuffix}`;
+  return 'Incidencia';
+}
+
+function logCard(cardType, team) {
+  let player = '';
+  if (team === 'home') {
+    const pName = prompt('Nombre o número de la jugadora sancionada (opcional):', '');
+    if (pName !== null) player = pName.trim();
+  }
+  logIncident(cardType, team, false, player);
+}
+
+// Modal de Opción A: Córner Corto / Penal
+function openIncidentOptionModal(type, team) {
+  dtPendingOptionAction = { type, team };
+
+  const modal = document.getElementById('modalIncidentOption');
+  const icon = document.getElementById('choiceModalIcon');
+  const title = document.getElementById('choiceModalTitle');
+  const subtitle = document.getElementById('choiceModalSubtitle');
+  const teamName = team === 'home' ? 'Regatas Andino' : (dtMatchState.rivalName || 'Rival');
+
+  if (type === 'corner') {
+    if (icon) icon.textContent = '🏑';
+    if (title) title.textContent = `Córner Corto - ${teamName}`;
+    if (subtitle) subtitle.textContent = '¿Terminó en gol esta jugada fija?';
+  } else {
+    if (icon) icon.textContent = '🎯';
+    if (title) title.textContent = `Penal (Stroke) - ${teamName}`;
+    if (subtitle) subtitle.textContent = '¿Terminó en gol este penal?';
+  }
+
+  if (modal) modal.classList.add('active');
+}
+
+function confirmIncidentOption(isGoal) {
+  if (dtPendingOptionAction) {
+    logIncident(dtPendingOptionAction.type, dtPendingOptionAction.team, isGoal);
+    dtPendingOptionAction = null;
+  }
+  closeIncidentOptionModal();
+}
+
+function closeIncidentOptionModal() {
+  const modal = document.getElementById('modalIncidentOption');
+  if (modal) modal.classList.remove('active');
+  dtPendingOptionAction = null;
+}
+
+// Deshacer último evento (Undo)
+function undoLastIncident() {
+  if (!dtMatchState.events || dtMatchState.events.length === 0) {
+    showToast('ℹ️ No hay incidencias registradas para deshacer');
+    return;
+  }
+
+  const popped = dtMatchState.events.pop();
+  recalculateDtStatsFromEvents();
+  saveDtMatchState();
+
+  if (navigator.vibrate) navigator.vibrate(30);
+  showToast(`↩ Deshecho: ${popped.label}`);
+  renderDtView();
+}
+
+// Eliminar evento específico desde el Feed
+function deleteEventById(eventId) {
+  if (!dtMatchState.events) return;
+  const idx = dtMatchState.events.findIndex(e => e.id === eventId);
+  if (idx !== -1) {
+    const removed = dtMatchState.events.splice(idx, 1)[0];
+    recalculateDtStatsFromEvents();
+    saveDtMatchState();
+    showToast(`🗑️ Evento eliminado: ${removed.label}`);
+    renderDtView();
+  }
+}
+
+// Reiniciar Partido
+function resetDtMatchWithConfirm() {
+  const divName = dtMatchState.division === '2' || dtMatchState.division === 'intermedia' ? 'Intermedia' : '1ra División';
+  if (confirm(`¿Reiniciar el partido de ${divName}? Se borrarán todas las incidencias y el marcador volverá a 0-0.`)) {
+    dtMatchState.currentQuarter = 1;
+    dtMatchState.score = { home: 0, away: 0 };
+    dtMatchState.events = [];
+    dtMatchState.quarters = {
+      1: createDefaultQuarterStats(),
+      2: createDefaultQuarterStats(),
+      3: createDefaultQuarterStats(),
+      4: createDefaultQuarterStats()
+    };
+    resetDtClock();
+    saveDtMatchState();
+    renderDtView();
+    showToast('🔄 Partido reiniciado exitosamente');
+  }
+}
+
+// Modal de Resumen y Estadísticas
+function openDtSummaryModal() {
+  const modal = document.getElementById('modalDtSummary');
+  const container = document.getElementById('dtSummaryContent');
+  if (!container) return;
+
+  const rival = dtMatchState.rivalName || 'RIVAL';
+  const qStats = dtMatchState.quarters || {};
+
+  // Acumulados totales
+  const tot = {
+    home: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0, goals: 0 },
+    away: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0, goals: 0 }
+  };
+
+  [1, 2, 3, 4].forEach(q => {
+    const cur = qStats[q] || createDefaultQuarterStats();
+    ['home', 'away'].forEach(tm => {
+      tot[tm].entries += cur[tm].entries || 0;
+      tot[tm].corners += cur[tm].corners || 0;
+      tot[tm].cornerGoals += cur[tm].cornerGoals || 0;
+      tot[tm].strokes += cur[tm].strokes || 0;
+      tot[tm].strokeGoals += cur[tm].strokeGoals || 0;
+      tot[tm].fieldGoals += cur[tm].fieldGoals || 0;
+      tot[tm].green += cur[tm].green || 0;
+      tot[tm].yellow += cur[tm].yellow || 0;
+      tot[tm].red += cur[tm].red || 0;
+      tot[tm].goals += cur[tm].goals || 0;
+    });
+  });
+
+  const calcEff = (goals, total) => total > 0 ? Math.round((goals / total) * 100) + '%' : '0%';
+
+  container.innerHTML = `
+    <div style="background: rgba(3, 13, 45, 0.85); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; text-align: center;">
+      <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 800; text-transform: uppercase;">Marcador Final</span>
+      <div style="font-size: 2.2rem; font-weight: 900; margin: 4px 0;">
+        <span style="color: var(--color-regatas-cyan);">REGATAS ${tot.home.goals}</span>
+        <span style="color: var(--text-muted); font-size: 1.5rem; margin: 0 8px;">-</span>
+        <span style="color: #f87171;">${tot.away.goals} ${escapeHtml(rival)}</span>
+      </div>
+      <span style="font-size: 0.75rem; color: var(--text-muted);">${dtMatchState.division === 'intermedia' ? 'Intermedia' : '1ra División'} • Clausura 2026</span>
+    </div>
+
+    <!-- Tabla Comparativa Total -->
+    <div class="dt-summary-table-wrap">
+      <table class="dt-summary-table">
+        <thead>
+          <tr>
+            <th style="text-align: left;">MÉTRICA TÁCTICA</th>
+            <th style="color: var(--color-regatas-cyan);">REGATAS</th>
+            <th style="color: #f87171;">${escapeHtml(rival)}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="team-name-cell">📥 Ingresos al Área</td>
+            <td><strong>${tot.home.entries}</strong></td>
+            <td><strong>${tot.away.entries}</strong></td>
+          </tr>
+          <tr>
+            <td class="team-name-cell">🏑 Córner Cortos Obtenidos</td>
+            <td><strong>${tot.home.corners}</strong></td>
+            <td><strong>${tot.away.corners}</strong></td>
+          </tr>
+          <tr>
+            <td class="team-name-cell">🥅 Goles de Córner Corto</td>
+            <td><strong>${tot.home.cornerGoals}</strong></td>
+            <td><strong>${tot.away.cornerGoals}</strong></td>
+          </tr>
+          <tr>
+            <td class="team-name-cell">🎯 Efectividad de Córner Corto</td>
+            <td><strong style="color: #34d399;">${calcEff(tot.home.cornerGoals, tot.home.corners)}</strong></td>
+            <td><strong style="color: #34d399;">${calcEff(tot.away.cornerGoals, tot.away.corners)}</strong></td>
+          </tr>
+          <tr>
+            <td class="team-name-cell">🎯 Penales Obtenidos (Goles)</td>
+            <td><strong>${tot.home.strokes} (${tot.home.strokeGoals})</strong></td>
+            <td><strong>${tot.away.strokes} (${tot.away.strokeGoals})</strong></td>
+          </tr>
+          <tr>
+            <td class="team-name-cell">⚽ Goles de Jugada</td>
+            <td><strong>${tot.home.fieldGoals}</strong></td>
+            <td><strong>${tot.away.fieldGoals}</strong></td>
+          </tr>
+          <tr>
+            <td class="team-name-cell">🟨 Tarjetas (🟩 / 🟨 / 🟥)</td>
+            <td>${tot.home.green} / ${tot.home.yellow} / ${tot.home.red}</td>
+            <td>${tot.away.green} / ${tot.away.yellow} / ${tot.away.red}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Desglose por Cuartos -->
+    <div class="dt-summary-table-wrap">
+      <table class="dt-summary-table">
+        <thead>
+          <tr>
+            <th style="text-align: left;">CUARTO</th>
+            <th>GOLES</th>
+            <th>ÁREA</th>
+            <th>CÓRNER CORTO</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[1, 2, 3, 4].map(q => {
+            const h = qStats[q]?.home || {};
+            const a = qStats[q]?.away || {};
+            return `
+              <tr>
+                <td class="team-name-cell"><strong>${q}° Cuarto</strong></td>
+                <td><span style="color: var(--color-regatas-cyan);">${h.goals || 0}</span> - <span style="color: #f87171;">${a.goals || 0}</span></td>
+                <td>${h.entries || 0} vs ${a.entries || 0}</td>
+                <td>${h.corners || 0} (${h.cornerGoals || 0}) vs ${a.corners || 0} (${a.cornerGoals || 0})</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  if (modal) modal.classList.add('active');
+}
+
+function closeDtSummaryModal() {
+  const modal = document.getElementById('modalDtSummary');
+  if (modal) modal.classList.remove('active');
+}
+
+// Compartir Resumen por WhatsApp
+function shareDtMatchWhatsApp() {
+  const rival = dtMatchState.rivalName || 'RIVAL';
+  const qStats = dtMatchState.quarters || {};
+  const divName = dtMatchState.division === 'intermedia' ? 'Intermedia' : '1ra División';
+
+  const tot = {
+    home: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0, goals: 0 },
+    away: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0, goals: 0 }
+  };
+
+  [1, 2, 3, 4].forEach(q => {
+    const cur = qStats[q] || createDefaultQuarterStats();
+    ['home', 'away'].forEach(tm => {
+      tot[tm].entries += cur[tm].entries || 0;
+      tot[tm].corners += cur[tm].corners || 0;
+      tot[tm].cornerGoals += cur[tm].cornerGoals || 0;
+      tot[tm].strokes += cur[tm].strokes || 0;
+      tot[tm].strokeGoals += cur[tm].strokeGoals || 0;
+      tot[tm].fieldGoals += cur[tm].fieldGoals || 0;
+      tot[tm].green += cur[tm].green || 0;
+      tot[tm].yellow += cur[tm].yellow || 0;
+      tot[tm].red += cur[tm].red || 0;
+      tot[tm].goals += cur[tm].goals || 0;
+    });
+  });
+
+  const calcEff = (goals, total) => total > 0 ? Math.round((goals / total) * 100) + '%' : '0%';
+
+  const lines = [
+    `🏑 *REPORTE TÁCTICO EN VIVO - REGATAS ANDINO B*`,
+    `🏆 Categoría: *${divName}*`,
+    `⚔️ Rival: *${rival}*`,
+    `🏁 Resultado Final: *REGATAS ${tot.home.goals} - ${tot.away.goals} ${rival}*`,
+    ``,
+    `📊 *ESTADÍSTICAS GENERALES:*`,
+    `• 📥 Ingresos al Área: Regatas ${tot.home.entries} vs ${tot.away.entries} ${rival}`,
+    `• 🏑 Córner Corto: Regatas ${tot.home.corners} (${tot.home.cornerGoals} goles, ${calcEff(tot.home.cornerGoals, tot.home.corners)}) vs ${rival} ${tot.away.corners} (${tot.away.cornerGoals} goles, ${calcEff(tot.away.cornerGoals, tot.away.corners)})`,
+    `• 🎯 Penales: Regatas ${tot.home.strokes} (${tot.home.strokeGoals} goles) vs ${rival} ${tot.away.strokes} (${tot.away.strokeGoals} goles)`,
+    `• ⚽ Goles de Jugada: Regatas ${tot.home.fieldGoals} vs ${tot.away.fieldGoals} ${rival}`,
+    `• 🟨 Tarjetas Regatas: 🟩 ${tot.home.green} | 🟨 ${tot.home.yellow} | 🟥 ${tot.home.red}`,
+    `• 🟨 Tarjetas ${rival}: 🟩 ${tot.away.green} | 🟨 ${tot.away.yellow} | 🟥 ${tot.away.red}`,
+    ``,
+    `📋 *DETALLE POR CUARTOS:*`,
+    `• 1°C: Goles ${qStats[1]?.home?.goals || 0}-${qStats[1]?.away?.goals || 0} | Área ${qStats[1]?.home?.entries || 0}-${qStats[1]?.away?.entries || 0} | CC ${qStats[1]?.home?.corners || 0}-${qStats[1]?.away?.corners || 0}`,
+    `• 2°C: Goles ${qStats[2]?.home?.goals || 0}-${qStats[2]?.away?.goals || 0} | Área ${qStats[2]?.home?.entries || 0}-${qStats[2]?.away?.entries || 0} | CC ${qStats[2]?.home?.corners || 0}-${qStats[2]?.away?.corners || 0}`,
+    `• 3°C: Goles ${qStats[3]?.home?.goals || 0}-${qStats[3]?.away?.goals || 0} | Área ${qStats[3]?.home?.entries || 0}-${qStats[3]?.away?.entries || 0} | CC ${qStats[3]?.home?.corners || 0}-${qStats[3]?.away?.corners || 0}`,
+    `• 4°C: Goles ${qStats[4]?.home?.goals || 0}-${qStats[4]?.away?.goals || 0} | Área ${qStats[4]?.home?.entries || 0}-${qStats[4]?.away?.entries || 0} | CC ${qStats[4]?.home?.corners || 0}-${qStats[4]?.away?.corners || 0}`,
+    ``,
+    `_Generado desde la Web Oficial de Citaciones Regatas Andino B_`
+  ];
+
+  const fullText = lines.join('\n');
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(fullText).then(() => {
+      showToast('📋 ¡Reporte copiado al portapapeles!');
+    }).catch(() => {});
+  }
+
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(fullText)}`;
+  window.open(waUrl, '_blank');
+}
+
+// Renderizado de la Pantalla DT en Vivo
+function renderDtView() {
+  if (!isDtAuthenticated()) return;
+
+  const rival = dtMatchState.rivalName || 'RIVAL';
+  const curQ = dtMatchState.currentQuarter || 1;
+  const qData = (dtMatchState.quarters && dtMatchState.quarters[curQ]) || createDefaultQuarterStats();
+
+  // Acumulados totales
+  const tot = {
+    home: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0 },
+    away: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, fieldGoals: 0, green: 0, yellow: 0, red: 0 }
+  };
+
+  [1, 2, 3, 4].forEach(q => {
+    const cur = (dtMatchState.quarters && dtMatchState.quarters[q]) || createDefaultQuarterStats();
+    ['home', 'away'].forEach(tm => {
+      tot[tm].entries += cur[tm].entries || 0;
+      tot[tm].corners += cur[tm].corners || 0;
+      tot[tm].cornerGoals += cur[tm].cornerGoals || 0;
+      tot[tm].strokes += cur[tm].strokes || 0;
+      tot[tm].strokeGoals += cur[tm].strokeGoals || 0;
+      tot[tm].fieldGoals += cur[tm].fieldGoals || 0;
+      tot[tm].green += cur[tm].green || 0;
+      tot[tm].yellow += cur[tm].yellow || 0;
+      tot[tm].red += cur[tm].red || 0;
+    });
+  });
+
+  // 1. Selector de División
+  const pillP = document.getElementById('dtPillPrimera');
+  const pillI = document.getElementById('dtPillIntermedia');
+  if (pillP) pillP.classList.toggle('active', dtMatchState.division === 'primera');
+  if (pillI) pillI.classList.toggle('active', dtMatchState.division === 'intermedia');
+
+  // 2. Marcador y Nombres
+  const awayName = document.getElementById('dtAwayTeamName');
+  if (awayName) awayName.textContent = rival;
+
+  const scoreH = document.getElementById('dtScoreHome');
+  const scoreA = document.getElementById('dtScoreAway');
+  if (scoreH) scoreH.textContent = dtMatchState.score.home;
+  if (scoreA) scoreA.textContent = dtMatchState.score.away;
+
+  // 3. Cuartos
+  document.querySelectorAll('.dt-quarter-btn').forEach(btn => {
+    const q = parseInt(btn.getAttribute('data-q'), 10);
+    btn.classList.toggle('active', q === curQ);
+  });
+
+  // 4. Cronómetro
+  updateDtClockDisplay();
+
+  // 5. Contadores Regatas
+  const cHomeEntry = document.getElementById('countHomeEntry');
+  if (cHomeEntry) cHomeEntry.textContent = `${qData.home.entries} en cuarto (${tot.home.entries} total)`;
+
+  const cHomeCorner = document.getElementById('countHomeCorner');
+  if (cHomeCorner) cHomeCorner.textContent = `${qData.home.corners} en cuarto (${tot.home.corners} total • ${tot.home.cornerGoals} goles)`;
+
+  const cHomeStroke = document.getElementById('countHomeStroke');
+  if (cHomeStroke) cHomeStroke.textContent = `${qData.home.strokes} en cuarto (${tot.home.strokes} total • ${tot.home.strokeGoals} goles)`;
+
+  const cHomeGoal = document.getElementById('countHomeFieldGoal');
+  if (cHomeGoal) cHomeGoal.textContent = `${qData.home.fieldGoals} en cuarto (${tot.home.fieldGoals} de jugada)`;
+
+  const cHomeGrn = document.getElementById('countHomeCardGreen');
+  if (cHomeGrn) cHomeGrn.textContent = tot.home.green;
+  const cHomeYel = document.getElementById('countHomeCardYellow');
+  if (cHomeYel) cHomeYel.textContent = tot.home.yellow;
+  const cHomeRed = document.getElementById('countHomeCardRed');
+  if (cHomeRed) cHomeRed.textContent = tot.home.red;
+
+  // 6. Contadores Rival
+  const cAwayEntry = document.getElementById('countAwayEntry');
+  if (cAwayEntry) cAwayEntry.textContent = `${qData.away.entries} en cuarto (${tot.away.entries} total)`;
+
+  const cAwayCorner = document.getElementById('countAwayCorner');
+  if (cAwayCorner) cAwayCorner.textContent = `${qData.away.corners} en cuarto (${tot.away.corners} total • ${tot.away.cornerGoals} goles)`;
+
+  const cAwayStroke = document.getElementById('countAwayStroke');
+  if (cAwayStroke) cAwayStroke.textContent = `${qData.away.strokes} en cuarto (${tot.away.strokes} total • ${tot.away.strokeGoals} goles)`;
+
+  const cAwayGoal = document.getElementById('countAwayFieldGoal');
+  if (cAwayGoal) cAwayGoal.textContent = `${qData.away.fieldGoals} en cuarto (${tot.away.fieldGoals} de jugada)`;
+
+  const cAwayGrn = document.getElementById('countAwayCardGreen');
+  if (cAwayGrn) cAwayGrn.textContent = tot.away.green;
+  const cAwayYel = document.getElementById('countAwayCardYellow');
+  if (cAwayYel) cAwayYel.textContent = tot.away.yellow;
+  const cAwayRed = document.getElementById('countAwayCardRed');
+  if (cAwayRed) cAwayRed.textContent = tot.away.red;
+
+  // 7. Feed de Eventos
+  const feedCount = document.getElementById('dtFeedCount');
+  const evts = dtMatchState.events || [];
+  if (feedCount) feedCount.textContent = evts.length;
+
+  const feedList = document.getElementById('dtFeedList');
+  if (feedList) {
+    if (evts.length === 0) {
+      feedList.innerHTML = `<div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.78rem;">No hay incidencias registradas aún. Tocá cualquier botón para comenzar el partido.</div>`;
+    } else {
+      // Orden cronológico inverso (los más recientes arriba)
+      const reversed = [...evts].reverse();
+      feedList.innerHTML = reversed.map(evt => {
+        let icon = '📌';
+        if (evt.type === 'entry') icon = '📥';
+        else if (evt.type === 'corner') icon = evt.endedInGoal ? '🥅🏑' : '🏑';
+        else if (evt.type === 'stroke') icon = evt.endedInGoal ? '🥅🎯' : '🎯';
+        else if (evt.type === 'fieldGoal') icon = '⚽';
+        else if (evt.type === 'cardGreen') icon = '🟩';
+        else if (evt.type === 'cardYellow') icon = '🟨';
+        else if (evt.type === 'cardRed') icon = '🟥';
+
+        const teamClass = evt.team === 'home' ? 'home-event' : 'away-event';
+
+        return `
+          <div class="dt-feed-item ${teamClass}">
+            <div class="dt-feed-left">
+              <span class="dt-feed-icon">${icon}</span>
+              <div class="dt-feed-info">
+                <span class="dt-feed-label">${escapeHtml(evt.label)}</span>
+                <span class="dt-feed-meta">${evt.quarter}° Cuarto • ${evt.clockTime || ''} (${evt.timeDisplay})</span>
+              </div>
+            </div>
+            <button type="button" class="btn-feed-delete-event" onclick="deleteEventById('${evt.id}')" title="Eliminar este evento">✕</button>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+}
+
