@@ -4946,35 +4946,48 @@ body {
 }
 
 /* ============================================================================
-   SECCIÓN PWA Y APP MÓVIL
+   BOTÓN PWA INSTALACIÓN AL FINAL DE TODO (SIN TEXTO)
    ============================================================================ */
-.drawer-section-pwa {
-  border-top: 1px solid rgba(56, 189, 248, 0.15);
-  margin-top: 4px;
-  padding-top: 10px;
+.nav-drawer-footer {
+  padding: 12px 16px;
+  background: rgba(2, 8, 28, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.drawer-item-install {
-  border-color: rgba(56, 189, 248, 0.25) !important;
-  background: rgba(14, 165, 233, 0.08) !important;
-}
-
-.drawer-item-install:hover {
-  background: rgba(14, 165, 233, 0.16) !important;
-  border-color: var(--color-regatas-cyan) !important;
-}
-
-.drawer-badge-pwa {
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: linear-gradient(135deg, #0284c7, #00a2ff);
+.btn-drawer-install-icon {
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
   color: #ffffff;
-  padding: 4px 9px;
-  border-radius: 999px;
-  margin-left: auto;
-  box-shadow: 0 2px 8px rgba(0, 162, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 162, 255, 0.25);
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+  outline: none;
+}
+
+.btn-drawer-install-icon:hover {
+  background: rgba(14, 165, 233, 0.25);
+  border-color: var(--color-regatas-cyan);
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 6px 18px rgba(0, 162, 255, 0.45);
+}
+
+.btn-drawer-install-icon:active {
+  transform: scale(0.92);
+  background: rgba(14, 165, 233, 0.4);
 }
 
 /* Modal de Instrucciones iOS */
