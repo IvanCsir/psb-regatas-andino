@@ -379,16 +379,26 @@
       <section class="dt-live-panel" id="dtLivePanel" style="display: none;">
         
         <!-- Header del Partido & Cuarto -->
-        <div class="dt-match-header-card">
           <div class="dt-top-actions">
-            <!-- Categoría Oficial: 1ra División -->
-            <div class="dt-single-division-tag">
-              <span class="dt-div-tag-dot"></span> 1RA DIVISIÓN
+            <!-- Categoría Oficial: 1ra División e Indicador de Nube -->
+            <div class="dt-top-left-badges">
+              <div class="dt-single-division-tag">
+                <span class="dt-div-tag-dot"></span> 1RA DIVISIÓN
+              </div>
+              <div class="dt-cloud-badge" id="dtCloudSyncBadge" title="Estado de sincronización en vivo con Google Sheets">
+                <span class="dt-cloud-dot" id="dtCloudDot"></span>
+                <span id="dtCloudStatusText">Sheets</span>
+              </div>
             </div>
             
-            <button type="button" class="btn-dt-lock-session" id="btnDtLockSession" title="Bloquear / Cerrar Sesión DT">
-              🔒 Bloquear
-            </button>
+            <div class="dt-top-right-actions">
+              <button type="button" class="btn-dt-sheets-action" id="btnDtOpenSheetsConfig" title="Configurar conexión o abrir Google Sheets">
+                📊 Sheets
+              </button>
+              <button type="button" class="btn-dt-lock-session" id="btnDtLockSession" title="Bloquear / Cerrar Sesión DT">
+                🔒 Bloquear
+              </button>
+            </div>
           </div>
 
           <!-- Selector de Partido Sincronizado con Fixture Oficial -->
@@ -776,6 +786,57 @@
         </button>
         <button type="button" class="btn-close-summary-bottom" id="btnCloseDtSummaryBottom">
           Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL CONEXIÓN & SINCRONIZACIÓN GOOGLE SHEETS
+       ==================================================================== -->
+  <div class="modal-overlay dt-modal-overlay" id="modalDtSheetsConfig">
+    <div class="modal-box dt-sheets-modal-box">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <span class="modal-icon">📊</span>
+          <h3 class="modal-title">CONEXIÓN GOOGLE SHEETS</h3>
+        </div>
+        <button class="btn-close-modal" id="btnCloseDtSheetsConfig">&times;</button>
+      </div>
+
+      <div class="dt-sheets-modal-body">
+        <div class="dt-sheets-status-card">
+          <div class="dt-sheets-status-header">
+            <span class="dt-sheets-status-dot" id="modalSheetsStatusDot"></span>
+            <strong id="modalSheetsStatusTitle">Sincronización en Tiempo Real</strong>
+          </div>
+          <p id="modalSheetsStatusDesc" style="font-size: 0.78rem; color: var(--text-secondary); margin: 6px 0 0 0;">
+            Cada botón que toques se guardará en tu planilla y sincronizará celulares conectados.
+          </p>
+        </div>
+
+        <div class="dt-sheets-field-group">
+          <label for="inputDtWebhookUrl" class="dt-sheets-label">URL de la Aplicación Web (Apps Script /exec):</label>
+          <input type="url" id="inputDtWebhookUrl" class="dt-sheets-input" placeholder="https://script.google.com/macros/s/.../exec">
+          <span class="dt-sheets-hint">Pegá aquí la URL que obtuviste al implementar el script en tu Google Sheets.</span>
+        </div>
+
+        <div class="dt-sheets-actions-group">
+          <button type="button" class="btn-sheets-action btn-save-webhook" id="btnSaveWebhookUrl">
+            💾 Guardar Conexión
+          </button>
+          <button type="button" class="btn-sheets-action btn-push-full" id="btnPushFullMatchToSheets">
+            ☁️ Subir Partido Actual Completo
+          </button>
+          <a href="https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit" target="_blank" rel="noopener" class="btn-sheets-action btn-open-external-sheet">
+            ↗️ Abrir Planilla en Google Drive
+          </a>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 12px 16px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn-close-summary-bottom" id="btnCloseDtSheetsBottom">
+          Listo
         </button>
       </div>
     </div>

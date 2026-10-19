@@ -134,13 +134,17 @@ function showView(viewName) {
   });
 
   if (viewName === 'torneo') {
+    stopDtCloudPolling();
     renderTournamentView();
   } else if (viewName === 'fisico') {
+    stopDtCloudPolling();
     if (physicalPlayers.length > 0 && !selectedPlayerId) {
       renderPhysicalSuggestions();
     }
   } else if (viewName === 'dt') {
     handleDtViewOpen();
+  } else {
+    stopDtCloudPolling();
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1928,6 +1932,261 @@ function recalculateDtStatsFromEvents() {
   dtMatchState.score = { home: homeTotalGoals, away: awayTotalGoals };
 }
 
+// ============================================================================
+// SINCRONIZACIÓN EN VIVO CON GOOGLE SHEETS (MULTI-CELULAR)
+// ============================================================================
+
+const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
+const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';
+const DT_WEBHOOK_URL_KEY = 'regatas_dt_webhook_url_v1';
+const DT_SYNC_QUEUE_KEY = 'regatas_dt_sync_queue_v1';
+
+let dtCloudSyncPollingInterval = null;
+let dtIsProcessingSyncQueue = false;
+let dtIsPollingCloud = false;
+
+function getDtWebhookUrl() {
+  try {
+    return localStorage.getItem(DT_WEBHOOK_URL_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function setDtWebhookUrl(url) {
+  try {
+    if (url && url.trim()) {
+      localStorage.setItem(DT_WEBHOOK_URL_KEY, url.trim());
+    } else {
+      localStorage.removeItem(DT_WEBHOOK_URL_KEY);
+    }
+  } catch (e) {}
+  updateDtCloudSyncStatus();
+}
+
+function updateDtCloudSyncStatus(state, text) {
+  const badge = document.getElementById('dtCloudSyncBadge');
+  const label = document.getElementById('dtCloudStatusText');
+  const modalDot = document.getElementById('modalSheetsStatusDot');
+  const modalTitle = document.getElementById('modalSheetsStatusTitle');
+  const modalDesc = document.getElementById('modalSheetsStatusDesc');
+
+  const webhook = getDtWebhookUrl();
+
+  if (!state) {
+    if (!webhook) {
+      state = 'disconnected';
+      text = 'Conectar Sheets';
+    } else {
+      state = 'connected';
+      text = 'Sheets en vivo';
+    }
+  }
+
+  if (badge) {
+    badge.classList.remove('connected', 'syncing', 'error');
+    if (state === 'connected') badge.classList.add('connected');
+    else if (state === 'syncing') badge.classList.add('syncing');
+    else if (state === 'error' || state === 'disconnected') badge.classList.add('error');
+  }
+
+  if (label) label.textContent = text || 'Sheets';
+
+  if (modalDot && modalTitle && modalDesc) {
+    if (state === 'connected') {
+      modalDot.style.background = '#34d399';
+      modalTitle.textContent = 'Conectado a Google Sheets';
+      modalDesc.textContent = 'Cada botón que toques se guardará en tu hoja de cálculo y se sincronizará con otros celulares.';
+    } else if (state === 'syncing') {
+      modalDot.style.background = '#fbbf24';
+      modalTitle.textContent = 'Transmitiendo jugadas...';
+      modalDesc.textContent = text || 'Guardando cambios en Google Sheets...';
+    } else {
+      modalDot.style.background = '#f87171';
+      modalTitle.textContent = 'Sin conexión configurada';
+      modalDesc.textContent = 'Pegá abajo la URL de Apps Script de tu Google Sheets para activar la sincronización en vivo.';
+    }
+  }
+}
+
+function getDtSyncQueue() {
+  try {
+    const raw = localStorage.getItem(DT_SYNC_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveDtSyncQueue(queue) {
+  try {
+    localStorage.setItem(DT_SYNC_QUEUE_KEY, JSON.stringify(queue || []));
+  } catch (e) {}
+}
+
+function enqueueDtSyncAction(item) {
+  const queue = getDtSyncQueue();
+  queue.push(item);
+  saveDtSyncQueue(queue);
+  processDtSyncQueue();
+}
+
+async function processDtSyncQueue() {
+  if (dtIsProcessingSyncQueue) return;
+  const webhookUrl = getDtWebhookUrl();
+  if (!webhookUrl) {
+    updateDtCloudSyncStatus('disconnected', 'Conectar Sheets');
+    return;
+  }
+
+  const queue = getDtSyncQueue();
+  if (queue.length === 0) {
+    updateDtCloudSyncStatus('connected', 'Sheets en vivo');
+    return;
+  }
+
+  dtIsProcessingSyncQueue = true;
+  updateDtCloudSyncStatus('syncing', `Guardando (${queue.length})...`);
+
+  while (queue.length > 0) {
+    const currentItem = queue[0];
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(currentItem)
+      });
+      queue.shift();
+      saveDtSyncQueue(queue);
+    } catch (err) {
+      console.warn('Error enviando acción a Google Sheets:', err);
+      break;
+    }
+  }
+
+  dtIsProcessingSyncQueue = false;
+  if (queue.length === 0) {
+    updateDtCloudSyncStatus('connected', 'Sheets en vivo');
+  } else {
+    updateDtCloudSyncStatus('syncing', `Pendientes (${queue.length})`);
+  }
+}
+
+// Polling multi-dispositivo: lectura periódica de incidencias de otros celulares
+async function fetchDtMatchFromCloud() {
+  if (dtIsPollingCloud || !isDtAuthenticated() || currentActiveView !== 'dt') return;
+  const webhookUrl = getDtWebhookUrl();
+  if (!webhookUrl || !dtMatchState) return;
+
+  dtIsPollingCloud = true;
+  const round = dtMatchState.round || 'Fecha 12';
+  const rival = (dtMatchState.rivalName || 'Rival').toUpperCase();
+  const sheetName = `${round} - ${rival}`;
+
+  try {
+    const url = `${webhookUrl}${webhookUrl.includes('?') ? '&' : '?'}sheet=${encodeURIComponent(sheetName)}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.status === 'ok' && Array.isArray(data.events)) {
+        mergeCloudEventsIntoMatchState(data.events);
+      }
+    }
+  } catch (e) {
+    // Sin conexión temporal
+  } finally {
+    dtIsPollingCloud = false;
+  }
+}
+
+function mergeCloudEventsIntoMatchState(cloudEvents) {
+  if (!dtMatchState || !Array.isArray(cloudEvents) || cloudEvents.length === 0) return;
+
+  const localIds = new Set((dtMatchState.events || []).map(e => e.id));
+  let addedAny = false;
+
+  cloudEvents.forEach(cEvt => {
+    if (!localIds.has(cEvt.id)) {
+      if (!dtMatchState.events) dtMatchState.events = [];
+      dtMatchState.events.push(cEvt);
+      localIds.add(cEvt.id);
+      addedAny = true;
+    }
+  });
+
+  if (addedAny) {
+    recalculateDtStatsFromEvents();
+    saveDtMatchesStore();
+    renderDtView();
+    updateDtCloudSyncStatus('connected', '🔄 Sincronizado');
+    setTimeout(() => updateDtCloudSyncStatus('connected', 'Sheets en vivo'), 3000);
+  }
+}
+
+function startDtCloudPolling() {
+  if (dtCloudSyncPollingInterval) clearInterval(dtCloudSyncPollingInterval);
+  dtCloudSyncPollingInterval = setInterval(() => {
+    fetchDtMatchFromCloud();
+    processDtSyncQueue();
+  }, 4000);
+}
+
+function stopDtCloudPolling() {
+  if (dtCloudSyncPollingInterval) {
+    clearInterval(dtCloudSyncPollingInterval);
+    dtCloudSyncPollingInterval = null;
+  }
+}
+
+async function pushFullCurrentMatchToSheets() {
+  const webhookUrl = getDtWebhookUrl();
+  if (!webhookUrl) {
+    alert('Primero pegá y guardá la URL de la Aplicación Web de Apps Script.');
+    return;
+  }
+
+  showToast('☁️ Enviando partido completo a Google Sheets...');
+  updateDtCloudSyncStatus('syncing', 'Subiendo partido...');
+
+  const payload = {
+    action: 'sync_full_match',
+    round: dtMatchState.round,
+    rival: dtMatchState.rivalName,
+    sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`,
+    matchState: dtMatchState
+  };
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    updateDtCloudSyncStatus('connected', 'Sheets en vivo');
+    showToast(`✅ ¡Pestaña "${payload.sheetName}" actualizada en Google Sheets!`);
+    closeDtSheetsConfigModal();
+  } catch (err) {
+    console.error('Error al subir partido a Sheets:', err);
+    updateDtCloudSyncStatus('error', 'Error al enviar');
+    showToast('⚠️ No se pudo conectar con Sheets. Verificá la URL.');
+  }
+}
+
+function openDtSheetsConfigModal() {
+  const modal = document.getElementById('modalDtSheetsConfig');
+  const input = document.getElementById('inputDtWebhookUrl');
+  if (input) {
+    input.value = getDtWebhookUrl();
+  }
+  updateDtCloudSyncStatus();
+  if (modal) modal.classList.add('active');
+}
+
+function closeDtSheetsConfigModal() {
+  const modal = document.getElementById('modalDtSheetsConfig');
+  if (modal) modal.classList.remove('active');
+}
+
 // Comprobación de autenticación DT
 function isDtAuthenticated() {
   return sessionStorage.getItem(DT_AUTH_SESSION_KEY) === 'true';
@@ -1943,7 +2202,11 @@ function handleDtViewOpen() {
     if (gateCard) gateCard.style.display = 'none';
     if (livePanel) livePanel.style.display = 'flex';
     renderDtView();
+    updateDtCloudSyncStatus();
+    startDtCloudPolling();
+    processDtSyncQueue();
   } else {
+    stopDtCloudPolling();
     if (livePanel) livePanel.style.display = 'none';
     if (gateCard) gateCard.style.display = 'block';
     if (errorMsg) errorMsg.style.display = 'none';
@@ -1972,6 +2235,7 @@ function verifyDtPassword() {
 function lockDtSession() {
   sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
   pauseDtClock();
+  stopDtCloudPolling();
   handleDtViewOpen();
   showToast('🔒 Sesión de DT bloqueada');
 }
@@ -2042,7 +2306,46 @@ function initDtModule() {
   const btnLock = document.getElementById('btnDtLockSession');
   if (btnLock) btnLock.addEventListener('click', lockDtSession);
 
-  // 3. Selector de Partido Sincronizado con Fixture Oficial
+  // 3. Conexión & Modal Google Sheets
+  const btnOpenSheets = document.getElementById('btnDtOpenSheetsConfig');
+  const badgeSync = document.getElementById('dtCloudSyncBadge');
+  if (btnOpenSheets) btnOpenSheets.addEventListener('click', openDtSheetsConfigModal);
+  if (badgeSync) badgeSync.addEventListener('click', openDtSheetsConfigModal);
+
+  const btnCloseSheets = document.getElementById('btnCloseDtSheetsConfig');
+  const btnCloseSheetsBottom = document.getElementById('btnCloseDtSheetsBottom');
+  if (btnCloseSheets) btnCloseSheets.addEventListener('click', closeDtSheetsConfigModal);
+  if (btnCloseSheetsBottom) btnCloseSheetsBottom.addEventListener('click', closeDtSheetsConfigModal);
+
+  const modalSheets = document.getElementById('modalDtSheetsConfig');
+  if (modalSheets) {
+    modalSheets.addEventListener('click', (e) => {
+      if (e.target === modalSheets) closeDtSheetsConfigModal();
+    });
+  }
+
+  const btnSaveWebhook = document.getElementById('btnSaveWebhookUrl');
+  if (btnSaveWebhook) {
+    btnSaveWebhook.addEventListener('click', () => {
+      const input = document.getElementById('inputDtWebhookUrl');
+      const val = input ? input.value : '';
+      setDtWebhookUrl(val);
+      if (val && val.trim()) {
+        showToast('✅ Conexión con Google Sheets guardada');
+        processDtSyncQueue();
+      } else {
+        showToast('ℹ️ Conexión con Google Sheets desactivada');
+      }
+      closeDtSheetsConfigModal();
+    });
+  }
+
+  const btnPushFull = document.getElementById('btnPushFullMatchToSheets');
+  if (btnPushFull) {
+    btnPushFull.addEventListener('click', pushFullCurrentMatchToSheets);
+  }
+
+  // 4. Selector de Partido Sincronizado con Fixture Oficial
   const selectMatch = document.getElementById('selectDtMatch');
   if (selectMatch) {
     selectMatch.addEventListener('change', (e) => {
@@ -2222,6 +2525,16 @@ function logIncident(type, team, endedInGoal = false, player = '') {
   recalculateDtStatsFromEvents();
   saveDtMatchState();
 
+  // Sincronización en vivo con Google Sheets en segundo plano
+  enqueueDtSyncAction({
+    action: 'log_incident',
+    event: evt,
+    matchState: dtMatchState,
+    round: dtMatchState.round,
+    rival: dtMatchState.rivalName,
+    sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+  });
+
   // Vibración háptica en móviles si está disponible
   if (navigator.vibrate) {
     navigator.vibrate(endedInGoal ? [60, 50, 60] : 45);
@@ -2302,6 +2615,14 @@ function undoLastIncident() {
   recalculateDtStatsFromEvents();
   saveDtMatchState();
 
+  enqueueDtSyncAction({
+    action: 'undo_incident',
+    matchState: dtMatchState,
+    round: dtMatchState.round,
+    rival: dtMatchState.rivalName,
+    sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+  });
+
   if (navigator.vibrate) navigator.vibrate(30);
   showToast(`↩ Deshecho: ${popped.label}`);
   renderDtView();
@@ -2315,6 +2636,16 @@ function deleteEventById(eventId) {
     const removed = dtMatchState.events.splice(idx, 1)[0];
     recalculateDtStatsFromEvents();
     saveDtMatchState();
+
+    enqueueDtSyncAction({
+      action: 'delete_incident',
+      eventId: eventId,
+      matchState: dtMatchState,
+      round: dtMatchState.round,
+      rival: dtMatchState.rivalName,
+      sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+    });
+
     showToast(`🗑️ Evento eliminado: ${removed.label}`);
     renderDtView();
   }
@@ -2335,6 +2666,15 @@ function resetDtMatchWithConfirm() {
     };
     resetDtClock();
     saveDtMatchesStore();
+
+    enqueueDtSyncAction({
+      action: 'reset_match',
+      matchState: dtMatchState,
+      round: dtMatchState.round,
+      rival: dtMatchState.rivalName,
+      sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+    });
+
     renderDtView();
     showToast('🔄 Partido reiniciado exitosamente');
   }

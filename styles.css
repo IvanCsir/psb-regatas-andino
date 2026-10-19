@@ -2637,6 +2637,21 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dt-top-left-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dt-top-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .dt-single-division-tag {
@@ -2662,6 +2677,76 @@ body {
   box-shadow: 0 0 6px rgba(52, 211, 153, 0.7);
 }
 
+.dt-cloud-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(3, 13, 45, 0.8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 4px 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dt-cloud-badge:hover {
+  border-color: var(--color-regatas-cyan);
+  color: #ffffff;
+}
+
+.dt-cloud-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+  transition: all 0.3s ease;
+}
+
+.dt-cloud-badge.connected .dt-cloud-dot {
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.7);
+}
+
+.dt-cloud-badge.syncing .dt-cloud-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, 0.7);
+  animation: pulseDot 1s infinite alternate;
+}
+
+.dt-cloud-badge.error .dt-cloud-dot {
+  background: #f87171;
+}
+
+@keyframes pulseDot {
+  0% { opacity: 0.4; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1.2); }
+}
+
+.btn-dt-sheets-action {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: var(--radius-full);
+  color: #34d399;
+  font-family: var(--font-main);
+  font-size: 0.70rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-dt-sheets-action:hover {
+  background: rgba(52, 211, 153, 0.25);
+  color: #ffffff;
+}
+
 .btn-dt-lock-session {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-subtle);
@@ -2679,6 +2764,134 @@ body {
   background: rgba(239, 68, 68, 0.2);
   color: #f87171;
   border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Modal Google Sheets Config */
+.dt-sheets-modal-box {
+  max-width: 480px;
+  width: 92%;
+}
+
+.dt-sheets-modal-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dt-sheets-status-card {
+  background: rgba(3, 13, 45, 0.7);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.dt-sheets-status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: #ffffff;
+}
+
+.dt-sheets-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34d399;
+}
+
+.dt-sheets-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dt-sheets-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--color-regatas-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.dt-sheets-input {
+  background: rgba(3, 13, 45, 0.9);
+  border: 1px solid var(--border-cyan);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  color: #ffffff;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.76rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dt-sheets-input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(0, 162, 255, 0.35);
+}
+
+.dt-sheets-hint {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.dt-sheets-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-sheets-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: none;
+  text-align: center;
+}
+
+.btn-save-webhook {
+  background: var(--color-regatas-cyan);
+  color: #030d2d;
+}
+
+.btn-save-webhook:hover {
+  background: #38bdf8;
+  box-shadow: 0 2px 10px rgba(0, 162, 255, 0.4);
+}
+
+.btn-push-full {
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+.btn-push-full:hover {
+  background: rgba(52, 211, 153, 0.28);
+  color: #ffffff;
+}
+
+.btn-open-external-sheet {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.btn-open-external-sheet:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 /* Selector de Partido Activo */
