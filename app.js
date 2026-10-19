@@ -1998,6 +1998,20 @@ function initDtModule() {
   if (btnCloseSummaryBottom) btnCloseSummaryBottom.addEventListener('click', closeDtSummaryModal);
   const btnModalShareWa = document.getElementById('btnModalShareWhatsApp');
   if (btnModalShareWa) btnModalShareWa.addEventListener('click', shareDtMatchWhatsApp);
+
+  const modalSummary = document.getElementById('modalDtSummary');
+  if (modalSummary) {
+    modalSummary.addEventListener('click', (e) => {
+      if (e.target === modalSummary) closeDtSummaryModal();
+    });
+  }
+
+  const modalOption = document.getElementById('modalIncidentOption');
+  if (modalOption) {
+    modalOption.addEventListener('click', (e) => {
+      if (e.target === modalOption) closeIncidentOptionModal();
+    });
+  }
 }
 
 // Registro centralizado de incidencias
@@ -2264,6 +2278,7 @@ function openDtSummaryModal() {
     </div>
   `;
 
+  container.scrollTop = 0;
   if (modal) modal.classList.add('active');
 }
 
