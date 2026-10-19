@@ -25,10 +25,179 @@ let selectedPlayerId = null;
 let currentPhysFilter = "all"; // 'all' | 'PS-B' | 'PS-C' | '5ta'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
-const REQUIRED_PASSWORD = 'ctandinob';
-const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok';
+
+// Seguridad & Hash SHA-256 de Cuerpo Técnico (clave oficial hasheada, nunca en texto plano)
+const CT_PASSWORD_HASH = '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf05279b26691a4d';
+const CT_AUTH_STORAGE_KEY = 'regatas_ct_auth_v2';
+const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok'; // compatibilidad retroactiva
 const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
 const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';
+
+// ============================================================================
+// FUNCIONES CRIPTOGRÁFICAS & SESIÓN UNIFICADA CUERPO TÉCNICO
+// ============================================================================
+
+async function sha256Hex(text) {
+  if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  return fallbackSha256(text);
+}
+
+function fallbackSha256(ascii) {
+  function rightRotate(value, amount) {
+    return (value >>> amount) | (value << (32 - amount));
+  }
+  var mathPow = Math.pow;
+  var maxWord = mathPow(2, 32);
+  var lengthProperty = 'length';
+  var i, j;
+  var result = '';
+  var words = [];
+  var asciiBitLength = ascii[lengthProperty] * 8;
+  var hash = [];
+  var k = [];
+  var primeCounter = 0;
+  var isComposite = {};
+  for (var candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (i = 0; i < 300; i += candidate) {
+        isComposite[i] = candidate;
+      }
+      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+    }
+  }
+  ascii += '\x80';
+  while (ascii[lengthProperty] % 64 - 56) ascii += '\x00';
+  for (i = 0; i < ascii[lengthProperty]; i++) {
+    j = ascii.charCodeAt(i);
+    if (j >> 8) return '';
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words[lengthProperty]] = (asciiBitLength / maxWord) | 0;
+  words[words[lengthProperty]] = asciiBitLength;
+  for (j = 0; j < words[lengthProperty];) {
+    var w = words.slice(j, j += 16);
+    var oldHash = hash;
+    hash = hash.slice(0, 8);
+    for (i = 0; i < 64; i++) {
+      var w15 = w[i - 15], w2 = w[i - 2];
+      var s0 = rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3);
+      var s1 = rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10);
+      var ch = (hash[4] & hash[5]) ^ (~hash[4] & hash[6]);
+      var maj = (hash[0] & hash[1]) ^ (hash[0] & hash[2]) ^ (hash[1] & hash[2]);
+      var temp1 = hash[7] + (rightRotate(hash[4], 6) ^ rightRotate(hash[4], 11) ^ rightRotate(hash[4], 25)) + ch + k[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + s0 + w[i - 7] + s1) | 0);
+      var temp2 = (rightRotate(hash[0], 2) ^ rightRotate(hash[0], 13) ^ rightRotate(hash[0], 22)) + maj;
+      hash = [(temp1 + temp2) | 0].concat(hash);
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+    for (i = 0; i < 8; i++) {
+      hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+  }
+  for (i = 0; i < 8; i++) {
+    for (var i2 = 3; i2 >= 0; i2--) {
+      var b = (hash[i] >>> (i2 * 8)) & 255;
+      result += ((b < 16) ? '0' : '') + b.toString(16);
+    }
+  }
+  return result;
+}
+
+async function verifyCtPassword(input) {
+  const clean = (input || '').trim().toLowerCase();
+  if (!clean) return false;
+  const hash = await sha256Hex(clean);
+  return hash === CT_PASSWORD_HASH;
+}
+
+function isCtAuthenticated() {
+  try {
+    return localStorage.getItem(CT_AUTH_STORAGE_KEY) === 'true' || 
+           sessionStorage.getItem(DT_AUTH_SESSION_KEY) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+function isDtAuthenticated() {
+  return isCtAuthenticated();
+}
+
+function setCtAuthenticated(authenticated = true) {
+  try {
+    if (authenticated) {
+      localStorage.setItem(CT_AUTH_STORAGE_KEY, 'true');
+      sessionStorage.setItem(DT_AUTH_SESSION_KEY, 'true');
+    } else {
+      localStorage.removeItem(CT_AUTH_STORAGE_KEY);
+      sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
+    }
+  } catch (e) {}
+  updateCtUiState();
+}
+
+function updateCtUiState() {
+  const isAuth = isCtAuthenticated();
+
+  // Actualizar indicadores del Menú Drawer
+  document.querySelectorAll('.drawer-badge-lock').forEach(badge => {
+    badge.textContent = isAuth ? '🔓' : '🔒';
+    badge.title = isAuth ? 'Sesión de Cuerpo Técnico activa' : 'Requiere contraseña de Cuerpo Técnico';
+    badge.style.color = isAuth ? '#34d399' : '';
+  });
+
+  // Modal de Edición de Citaciones
+  const editGate = document.getElementById('authGate');
+  const editBody = document.getElementById('editFormBody');
+  if (editGate && editBody) {
+    if (isAuth) {
+      editGate.style.display = 'none';
+      editBody.style.display = 'flex';
+    } else {
+      editGate.style.display = 'block';
+      editBody.style.display = 'none';
+    }
+  }
+
+  // Modal de Google Sheets
+  const sheetsGate = document.getElementById('sheetsAuthGate');
+  const sheetsBody = document.getElementById('sheetsAuthBody');
+  if (sheetsGate && sheetsBody) {
+    if (isAuth) {
+      sheetsGate.style.display = 'none';
+      sheetsBody.style.display = 'flex';
+    } else {
+      sheetsGate.style.display = 'block';
+      sheetsBody.style.display = 'none';
+    }
+  }
+
+  // Botonera DT
+  if (currentActiveView === 'dt') {
+    handleDtViewOpen();
+  }
+}
+
+function lockCtSession() {
+  setCtAuthenticated(false);
+  if (typeof pauseDtClock === 'function') pauseDtClock();
+  if (typeof stopDtCloudPolling === 'function') stopDtCloudPolling();
+  document.body.classList.remove('dt-sun-mode');
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', '#030d2d');
+
+  const dtSunBtn = document.getElementById('btnDtSunToggle');
+  if (dtSunBtn) dtSunBtn.classList.remove('active');
+
+  updateCtUiState();
+  showToast('🔒 Sesión de Cuerpo Técnico cerrada');
+}
 
 // Definición de Tests Físicos de la Planilla
 const TESTS_CONFIG = [
@@ -55,6 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPhysicalSection();
   initDtModule();
   initSunMode();
+  updateCtUiState();
   setupPwa();
 
   // Sincronizaciones en vivo
@@ -310,8 +480,6 @@ function showView(viewName) {
     stopDtCloudPolling();
     // Fuera de la vista DT, quitamos el modo sol para que solo afecte la botonera
     document.body.classList.remove('dt-sun-mode');
-    const sunModal = document.getElementById('dtSunFloatingModal');
-    if (sunModal) sunModal.style.display = 'none';
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) metaTheme.setAttribute('content', '#030d2d');
     handleStatsViewOpen();
@@ -319,8 +487,6 @@ function showView(viewName) {
     stopDtCloudPolling();
     // Fuera de la vista DT, quitamos el modo sol para que solo afecte la botonera
     document.body.classList.remove('dt-sun-mode');
-    const sunModal = document.getElementById('dtSunFloatingModal');
-    if (sunModal) sunModal.style.display = 'none';
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) metaTheme.setAttribute('content', '#030d2d');
   }
@@ -1180,21 +1346,29 @@ function setupEvents() {
 
   if (btnOpen) {
     btnOpen.addEventListener('click', () => {
-      authGate.style.display = 'block';
-      formBody.style.display = 'none';
-      authInput.value = '';
-      authError.style.display = 'none';
+      if (isCtAuthenticated()) {
+        authGate.style.display = 'none';
+        formBody.style.display = 'flex';
+      } else {
+        authGate.style.display = 'block';
+        formBody.style.display = 'none';
+        authInput.value = '';
+        authError.style.display = 'none';
+        setTimeout(() => authInput.focus(), 150);
+      }
       modal.classList.add('active');
-      setTimeout(() => authInput.focus(), 150);
     });
   }
 
-  const verifyPassword = () => {
+  const verifyPassword = async () => {
     const entered = (authInput.value || '').trim().toLowerCase();
-    if (entered === REQUIRED_PASSWORD) {
+    const ok = await verifyCtPassword(entered);
+    if (ok) {
+      setCtAuthenticated(true);
       authGate.style.display = 'none';
       formBody.style.display = 'flex';
       authError.style.display = 'none';
+      showToast('🔓 Sesión de Cuerpo Técnico iniciada');
     } else {
       authError.style.display = 'block';
       authInput.select();
@@ -1206,6 +1380,14 @@ function setupEvents() {
   if (authInput) {
     authInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') verifyPassword();
+    });
+  }
+
+  const btnLockEdit = document.getElementById('btnLockEditModal');
+  if (btnLockEdit) {
+    btnLockEdit.addEventListener('click', () => {
+      lockCtSession();
+      closeModal();
     });
   }
 
@@ -1285,15 +1467,16 @@ function closeSheetsAuthModal() {
   if (modal) modal.classList.remove('active');
 }
 
-function verifySheetsPassword() {
+async function verifySheetsPassword() {
   const input = document.getElementById('inputSheetsPassword');
   const error = document.getElementById('sheetsAuthErrorMsg');
   const gate = document.getElementById('sheetsAuthGate');
   const body = document.getElementById('sheetsAuthBody');
   const entered = (input ? input.value : '').trim().toLowerCase();
 
-  if (entered === REQUIRED_PASSWORD) {
-    sessionStorage.setItem(DT_AUTH_SESSION_KEY, 'true');
+  const ok = await verifyCtPassword(entered);
+  if (ok) {
+    setCtAuthenticated(true);
     if (error) error.style.display = 'none';
     if (gate) gate.style.display = 'none';
     if (body) body.style.display = 'flex';
@@ -1308,27 +1491,8 @@ function verifySheetsPassword() {
 }
 
 function lockSheetsSession() {
-  sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
-  if (typeof pauseDtClock === 'function' && typeof dtMatchState !== 'undefined' && dtMatchState) {
-    pauseDtClock();
-  }
-  if (typeof stopDtCloudPolling === 'function') {
-    stopDtCloudPolling();
-  }
-
-  const gate = document.getElementById('sheetsAuthGate');
-  const body = document.getElementById('sheetsAuthBody');
-  const input = document.getElementById('inputSheetsPassword');
-  const error = document.getElementById('sheetsAuthErrorMsg');
-
-  if (body) body.style.display = 'none';
-  if (gate) gate.style.display = 'block';
-  if (error) error.style.display = 'none';
-  if (input) {
-    input.value = '';
-    setTimeout(() => input.focus(), 150);
-  }
-  showToast('🔒 Sesión bloqueada');
+  lockCtSession();
+  closeSheetsAuthModal();
 }
 
 // ============================================================================
@@ -1954,17 +2118,10 @@ try {
 } catch (e) {}
 
 const DT_SUN_MODE_KEY = 'regatas_dt_sun_mode_pref_v1';
-const DT_SUN_MODAL_POS_KEY = 'regatas_dt_sun_modal_pos_v2';
-const DT_SUN_MODAL_MIN_KEY = 'regatas_dt_sun_modal_min_v1';
 
 let dtSunModeActive = false;
 try {
   dtSunModeActive = localStorage.getItem(DT_SUN_MODE_KEY) === 'true';
-} catch (e) {}
-
-let dtSunModalMinimized = false;
-try {
-  dtSunModalMinimized = localStorage.getItem(DT_SUN_MODAL_MIN_KEY) === 'true';
 } catch (e) {}
 
 // Feedback Háptico para móviles (confirmación física táctil bajo el sol)
@@ -1989,30 +2146,12 @@ function triggerDtHaptic(type = 'default') {
 
 function initSunMode() {
   applyDtSunMode();
-  setupDraggableSunModal();
 
-  const pillNight = document.getElementById('btnSunPillNight');
-  const pillSun = document.getElementById('btnSunPillSun');
-  const btnMin = document.getElementById('btnDtSunModalMin');
-
-  if (pillNight) {
-    pillNight.addEventListener('click', (e) => {
+  const btnToggle = document.getElementById('btnDtSunToggle');
+  if (btnToggle) {
+    btnToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      setDtSunMode(false);
-    });
-  }
-
-  if (pillSun) {
-    pillSun.addEventListener('click', (e) => {
-      e.stopPropagation();
-      setDtSunMode(true);
-    });
-  }
-
-  if (btnMin) {
-    btnMin.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleSunModalMinimized();
+      setDtSunMode(!dtSunModeActive);
     });
   }
 }
@@ -2027,38 +2166,11 @@ function setDtSunMode(active) {
   showToast(dtSunModeActive ? '☀️ Modo Cancha al Sol activado (Alto Contraste)' : '🌙 Modo Noche activado');
 }
 
-function toggleSunModalMinimized(force) {
-  dtSunModalMinimized = typeof force === 'boolean' ? force : !dtSunModalMinimized;
-  try {
-    localStorage.setItem(DT_SUN_MODAL_MIN_KEY, dtSunModalMinimized ? 'true' : 'false');
-  } catch (e) {}
-  applySunModalMinimized();
-  triggerDtHaptic('tap');
-}
-
-function applySunModalMinimized() {
-  const modal = document.getElementById('dtSunFloatingModal');
-  const btnMin = document.getElementById('btnDtSunModalMin');
-  const title = document.getElementById('dtSunModalTitle');
-  if (modal) {
-    modal.classList.toggle('minimized', !!dtSunModalMinimized);
-  }
-  if (btnMin) {
-    btnMin.textContent = dtSunModalMinimized ? '+' : '−';
-    btnMin.title = dtSunModalMinimized ? 'Expandir modalcito' : 'Minimizar modalcito';
-  }
-  if (title) {
-    title.textContent = dtSunModalMinimized 
-      ? (dtSunModeActive ? '☀️ Sol' : '🌙 Noche')
-      : '☀️ Cancha al Sol';
-  }
-}
-
 function applyDtSunMode() {
   const isSun = !!dtSunModeActive;
   
-  // Solo aplicar clase a body si estamos en la vista DT
-  if (currentActiveView === 'dt' && isDtAuthenticated()) {
+  // Solo aplicar clase a body si estamos en la vista DT y autenticados
+  if (currentActiveView === 'dt' && isCtAuthenticated()) {
     document.body.classList.toggle('dt-sun-mode', isSun);
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) metaTheme.setAttribute('content', isSun ? '#ffffff' : '#030d2d');
@@ -2069,132 +2181,15 @@ function applyDtSunMode() {
   const viewDt = document.getElementById('viewDT');
   if (viewDt) viewDt.classList.toggle('sun-mode-active', isSun);
 
-  const pillNight = document.getElementById('btnSunPillNight');
-  const pillSun = document.getElementById('btnSunPillSun');
-  if (pillNight) pillNight.classList.toggle('active', !isSun);
-  if (pillSun) pillSun.classList.toggle('active', isSun);
-
-  applySunModalMinimized();
-}
-
-function setupDraggableSunModal() {
-  const modal = document.getElementById('dtSunFloatingModal');
-  const dragBar = document.getElementById('dtSunModalDragBar');
-  if (!modal || !dragBar) return;
-
-  // Restaurar posición previa guardada
-  try {
-    const savedPos = JSON.parse(localStorage.getItem(DT_SUN_MODAL_POS_KEY));
-    if (savedPos && typeof savedPos.left === 'number' && typeof savedPos.top === 'number') {
-      const maxX = Math.max(10, window.innerWidth - 120);
-      const maxY = Math.max(10, window.innerHeight - 70);
-      const left = Math.min(Math.max(10, savedPos.left), maxX);
-      const top = Math.min(Math.max(10, savedPos.top), maxY);
-      modal.style.left = left + 'px';
-      modal.style.top = top + 'px';
-      modal.style.right = 'auto';
-      modal.style.bottom = 'auto';
-    }
-  } catch (e) {}
-
-  let isDragging = false;
-  let startX = 0, startY = 0;
-  let initLeft = 0, initTop = 0;
-  let hasMoved = false;
-
-  function onPointerDown(e) {
-    if (e.target.closest('button')) return;
-
-    isDragging = true;
-    hasMoved = false;
-    startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-    startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
-
-    const rect = modal.getBoundingClientRect();
-    initLeft = rect.left;
-    initTop = rect.top;
-
-    modal.classList.add('dragging');
-
-    if (e.pointerId && dragBar.setPointerCapture) {
-      try { dragBar.setPointerCapture(e.pointerId); } catch (err) {}
-    }
-
-    window.addEventListener('pointermove', onPointerMove, { passive: false });
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onPointerUp);
+  const btnToggle = document.getElementById('btnDtSunToggle');
+  if (btnToggle) {
+    btnToggle.classList.toggle('active', isSun);
+    const icon = btnToggle.querySelector('.sun-icon');
+    const text = btnToggle.querySelector('.sun-text');
+    if (icon) icon.textContent = isSun ? '🌙' : '☀️';
+    if (text) text.textContent = isSun ? 'Noche' : 'Modo Sol';
+    btnToggle.title = isSun ? 'Cambiar a Modo Noche' : 'Modo Cancha al Sol (Alto Contraste)';
   }
-
-  function onPointerMove(e) {
-    if (!isDragging) return;
-    const curX = e.clientX || 0;
-    const curY = e.clientY || 0;
-    handleMove(curX, curY, e);
-  }
-
-  function onTouchMove(e) {
-    if (!isDragging) return;
-    if (e.touches && e.touches[0]) {
-      handleMove(e.touches[0].clientX, e.touches[0].clientY, e);
-    }
-  }
-
-  function handleMove(curX, curY, e) {
-    const deltaX = curX - startX;
-    const deltaY = curY - startY;
-
-    if (!hasMoved && Math.hypot(deltaX, deltaY) > 5) {
-      hasMoved = true;
-    }
-
-    if (hasMoved) {
-      if (e.cancelable) e.preventDefault();
-
-      const modalWidth = modal.offsetWidth || 180;
-      const modalHeight = modal.offsetHeight || 60;
-      const minX = 8;
-      const maxX = Math.max(minX, window.innerWidth - modalWidth - 8);
-      const minY = 8;
-      const maxY = Math.max(minY, window.innerHeight - modalHeight - 8);
-
-      let newLeft = initLeft + deltaX;
-      let newTop = initTop + deltaY;
-
-      newLeft = Math.min(Math.max(minX, newLeft), maxX);
-      newTop = Math.min(Math.max(minY, newTop), maxY);
-
-      modal.style.left = newLeft + 'px';
-      modal.style.top = newTop + 'px';
-      modal.style.right = 'auto';
-      modal.style.bottom = 'auto';
-    }
-  }
-
-  function onPointerUp(e) {
-    if (!isDragging) return;
-    isDragging = false;
-    modal.classList.remove('dragging');
-
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
-    window.removeEventListener('touchmove', onTouchMove);
-    window.removeEventListener('touchend', onPointerUp);
-
-    if (hasMoved) {
-      const rect = modal.getBoundingClientRect();
-      try {
-        localStorage.setItem(DT_SUN_MODAL_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top }));
-      } catch (err) {}
-    } else {
-      if (dtSunModalMinimized && !e.target.closest('button')) {
-        toggleSunModalMinimized(false);
-      }
-    }
-  }
-
-  dragBar.addEventListener('pointerdown', onPointerDown);
-  dragBar.addEventListener('touchstart', onPointerDown, { passive: true });
 }
 
 function setDtTeamView(viewMode) {
@@ -2799,12 +2794,10 @@ function handleDtViewOpen() {
   const livePanel = document.getElementById('dtLivePanel');
   const passInput = document.getElementById('inputDtGatePassword');
   const errorMsg = document.getElementById('dtGateErrorMsg');
-  const sunModal = document.getElementById('dtSunFloatingModal');
 
-  if (isDtAuthenticated()) {
+  if (isCtAuthenticated()) {
     if (gateCard) gateCard.style.display = 'none';
     if (livePanel) livePanel.style.display = 'flex';
-    if (sunModal) sunModal.style.display = 'block';
     applyDtSunMode();
     renderDtView();
     updateDtCloudSyncStatus();
@@ -2812,7 +2805,6 @@ function handleDtViewOpen() {
     processDtSyncQueue();
   } else {
     stopDtCloudPolling();
-    if (sunModal) sunModal.style.display = 'none';
     document.body.classList.remove('dt-sun-mode');
     if (livePanel) livePanel.style.display = 'none';
     if (gateCard) gateCard.style.display = 'block';
@@ -2824,15 +2816,16 @@ function handleDtViewOpen() {
   }
 }
 
-function verifyDtPassword() {
+async function verifyDtPassword() {
   const passInput = document.getElementById('inputDtGatePassword');
   const errorMsg = document.getElementById('dtGateErrorMsg');
   const entered = (passInput ? passInput.value : '').trim().toLowerCase();
 
-  if (entered === REQUIRED_PASSWORD) {
-    sessionStorage.setItem(DT_AUTH_SESSION_KEY, 'true');
+  const ok = await verifyCtPassword(entered);
+  if (ok) {
+    setCtAuthenticated(true);
     handleDtViewOpen();
-    showToast('🔓 Acceso concedido a la Botonera DT');
+    showToast('⏱️ Acceso concedido a la Botonera DT');
   } else {
     if (errorMsg) errorMsg.style.display = 'block';
     if (passInput) passInput.select();
@@ -2840,16 +2833,7 @@ function verifyDtPassword() {
 }
 
 function lockDtSession() {
-  sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
-  pauseDtClock();
-  stopDtCloudPolling();
-  const sunModal = document.getElementById('dtSunFloatingModal');
-  if (sunModal) sunModal.style.display = 'none';
-  document.body.classList.remove('dt-sun-mode');
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) metaTheme.setAttribute('content', '#030d2d');
-  handleDtViewOpen();
-  showToast('🔒 Sesión de DT bloqueada');
+  lockCtSession();
 }
 
 // Cronómetro del Cuarto (15:00 hacia abajo)

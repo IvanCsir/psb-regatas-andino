@@ -467,29 +467,6 @@
          ==================================================================== -->
     <div id="viewDT" class="view-panel" style="display: none;">
       
-      <!-- ================================================================
-           MODALCITO FLOTANTE Y ARRASTRABLE: MODO CANCHA AL SOL (EXCLUSIVO DT)
-           Se puede arrastrar y soltar con el dedo/mouse en cualquier parte
-           ================================================================ -->
-      <aside class="dt-sun-floating-modal" id="dtSunFloatingModal" aria-label="Control Flotante Modo Cancha al Sol">
-        <div class="dt-sun-modal-drag-bar" id="dtSunModalDragBar" title="Mantené presionado y arrastrá para moverlo">
-          <span class="dt-sun-grip-dots">⠿</span>
-          <span class="dt-sun-modal-title" id="dtSunModalTitle">☀️ Cancha al Sol</span>
-          <button type="button" class="btn-dt-sun-modal-min" id="btnDtSunModalMin" title="Minimizar / Expandir modalcito">−</button>
-        </div>
-        <div class="dt-sun-modal-content" id="dtSunModalContent">
-          <div class="dt-sun-modal-desc">Alto contraste para el sol</div>
-          <div class="dt-sun-switch-pills">
-            <button type="button" class="dt-sun-pill-btn active" id="btnSunPillNight" data-mode="night">
-              <span>🌙</span> Noche
-            </button>
-            <button type="button" class="dt-sun-pill-btn" id="btnSunPillSun" data-mode="sun">
-              <span>☀️</span> Sol
-            </button>
-          </div>
-        </div>
-      </aside>
-
       <!-- Botón Superior Volver -->
       <div class="view-return-bar">
         <button class="btn-return-citacion" id="btnReturnToCitacionFromDT">
@@ -535,6 +512,10 @@
             </div>
             
             <div class="dt-top-right-actions">
+              <button type="button" class="btn-dt-sun-toggle" id="btnDtSunToggle" title="Modo Cancha al Sol (Alto Contraste)">
+                <span class="sun-icon">☀️</span>
+                <span class="sun-text">Modo Sol</span>
+              </button>
               <button type="button" class="btn-dt-sheets-action" id="btnDtQuickSync" title="Forzar sincronización inmediata con Google Sheets">
                 🔄 Sincronizar
               </button>
@@ -959,8 +940,9 @@
           </ul>
         </div>
 
-        <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
-          <button type="button" class="btn-secondary" id="btnCloseModalBottom" style="width: 100%;">Cerrar</button>
+        <div style="margin-top: 10px; display: flex; gap: 10px;">
+          <button type="button" class="btn-secondary" id="btnLockEditModal" style="flex: 1; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">🔒 Bloquear Sesión</button>
+          <button type="button" class="btn-secondary" id="btnCloseModalBottom" style="flex: 1;">Cerrar</button>
         </div>
 
       </div>
