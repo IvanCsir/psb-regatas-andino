@@ -545,7 +545,6 @@ function renderTournamentMatches(divData) {
           </div>
           <div class="match-item-result-group">
             <span class="pending-date-pill">📅 ${escapeHtml(m.fecha || 'A confirmar')}</span>
-            ${isPrimera ? `<button type="button" class="btn-match-to-dt" onclick="openDtForMatch('primera', '${escapeHtml(m.round)}', '${escapeHtml(m.rival)}')">⏱️ DT Live</button>` : ''}
           </div>
         </div>
       `;
@@ -579,7 +578,6 @@ function renderTournamentMatches(divData) {
         </div>
         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
           <span class="next-match-pill-pending">Por disputarse (X)</span>
-          ${isPrimera ? `<button type="button" class="btn-match-to-dt" style="margin-top: 0;" onclick="event.stopPropagation(); openDtForMatch('primera', '${escapeHtml(nextMatch.round)}', '${escapeHtml(nextMatch.rival)}')">⏱️ Botonera DT</button>` : ''}
         </div>
       </div>
     </div>
@@ -608,7 +606,6 @@ function renderTournamentMatches(divData) {
         <div class="match-item-result-group">
           <span class="match-item-score">${escapeHtml(m.score || '-')}</span>
           <span class="match-pill-result ${resClass}">${resLabel}</span>
-          ${isPrimera ? `<button type="button" class="btn-match-to-dt" onclick="openDtForMatch('primera', '${escapeHtml(m.round)}', '${escapeHtml(m.rival)}')">⏱️ DT Live</button>` : ''}
         </div>
       </div>
     `;
