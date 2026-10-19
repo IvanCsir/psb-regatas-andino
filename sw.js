@@ -71,7 +71,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Recursos estáticos locales: Stale-While-Revalidate
+  // 2. Navegación principal (HTML): Red primero (Network-First) para que siempre tenga la última versión de GitHub
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put('./index.html', responseToCache);
+          });
+        }
+        return networkResponse;
+      }).catch(() => {
+        // Si no hay internet (offline en la cancha), servir la versión guardada en caché
+        return caches.match('./index.html') || caches.match('./');
+      })
+    );
+    return;
+  }
+
+  // 3. Recursos estáticos locales (CSS, JS, imágenes): Stale-While-Revalidate (carga instantánea + actualización en segundo plano)
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request).then((networkResponse) => {
@@ -82,12 +101,7 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Si falla la red y no hay cache, retornar página principal si es navegación
-        if (request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
+      }).catch(() => {});
 
       return cachedResponse || fetchPromise;
     })

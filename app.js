@@ -4380,10 +4380,20 @@ function setupPwa() {
       navigator.serviceWorker.register('./sw.js')
         .then((reg) => {
           console.log('[PWA] Service Worker registrado exitosamente:', reg.scope);
+          reg.update().catch(() => {});
         })
         .catch((err) => {
           console.warn('[PWA] Error registrando Service Worker:', err);
         });
+    });
+
+    // Al desbloquear el celular o volver a la app desde otra pantalla
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (reg) reg.update().catch(() => {});
+        }).catch(() => {});
+      }
     });
   }
 
