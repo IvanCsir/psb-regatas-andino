@@ -134,12 +134,12 @@ const DEFAULT_TOURNAMENT_DATA = {
     nextMatch: {
       round: "Fecha 12",
       fecha: "24/10/2026",
-      rival: "MURIALDO",
+      rival: "MURIALDO B",
       homeAway: "Local",
       status: "Pendiente"
     },
     pendingMatches: [
-      { round: "Fecha 12", fecha: "24/10/2026", rival: "MURIALDO", homeAway: "Local", status: "Pendiente" },
+      { round: "Fecha 12", fecha: "24/10/2026", rival: "MURIALDO B", homeAway: "Local", status: "Pendiente" },
       { round: "Fecha 13", fecha: "25/10/2026", rival: "LICEO", homeAway: "Visitante", status: "Pendiente" },
       { round: "Fecha 14", fecha: "07/11/2026", rival: "ALEMAN", homeAway: "Local", status: "Pendiente" },
       { round: "Fecha 15", fecha: "14/11/2026", rival: "LOS TORDOS", homeAway: "Visitante", status: "Pendiente" }

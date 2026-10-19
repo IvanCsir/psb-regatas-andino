@@ -1743,7 +1743,7 @@ function createDefaultMatchState(round, rivalName, homeAway, fecha) {
 
 let dtMatchesStore = {};
 let dtCurrentMatchKey = 'primera_fecha_12';
-let dtMatchState = createDefaultMatchState('Fecha 12', 'MURIALDO', 'Local', '24/10/2026');
+let dtMatchState = createDefaultMatchState('Fecha 12', 'MURIALDO B', 'Local', '24/10/2026');
 
 function ensureMatchStateExists(matchKey, meta = {}) {
   if (!matchKey) matchKey = 'primera_fecha_12';
@@ -2107,6 +2107,17 @@ async function processDtSyncQueue() {
   }
 }
 
+// Nombre canónico de la pestaña de Google Sheets para cada partido
+function getDtMatchSheetName(matchState) {
+  const m = matchState || dtMatchState;
+  if (!m) return 'Fecha 12 - MURIALDO B';
+  const round = (m.round || 'Fecha 12').trim();
+  let rival = (m.rivalName || 'MURIALDO B').trim().toUpperCase();
+  // Normalizar para que nunca difiera "MURIALDO" de "MURIALDO B"
+  if (rival === 'MURIALDO') rival = 'MURIALDO B';
+  return `${round} - ${rival}`;
+}
+
 // Polling multi-dispositivo: lectura periódica de incidencias de otros celulares
 async function fetchDtMatchFromCloud() {
   if (dtIsPollingCloud || !isDtAuthenticated() || currentActiveView !== 'dt') return;
@@ -2114,9 +2125,7 @@ async function fetchDtMatchFromCloud() {
   if (!webhookUrl || !dtMatchState) return;
 
   dtIsPollingCloud = true;
-  const round = dtMatchState.round || 'Fecha 12';
-  const rival = (dtMatchState.rivalName || 'Rival').toUpperCase();
-  const sheetName = `${round} - ${rival}`;
+  const sheetName = getDtMatchSheetName(dtMatchState);
 
   try {
     const url = `${webhookUrl}${webhookUrl.includes('?') ? '&' : '?'}sheet=${encodeURIComponent(sheetName)}`;
@@ -2180,6 +2189,7 @@ async function pushFullCurrentMatchToSheets() {
     return;
   }
 
+  const sheetName = getDtMatchSheetName(dtMatchState);
   showToast('☁️ Enviando partido completo a Google Sheets...');
   updateDtCloudSyncStatus('syncing', 'Subiendo partido...');
 
@@ -2187,7 +2197,7 @@ async function pushFullCurrentMatchToSheets() {
     action: 'sync_full_match',
     round: dtMatchState.round,
     rival: dtMatchState.rivalName,
-    sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`,
+    sheetName: sheetName,
     matchState: dtMatchState
   };
 
@@ -2583,7 +2593,7 @@ function logIncident(type, team, endedInGoal = false, player = '') {
     matchState: dtMatchState,
     round: dtMatchState.round,
     rival: dtMatchState.rivalName,
-    sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+    sheetName: getDtMatchSheetName(dtMatchState)
   });
 
   // Vibración háptica en móviles si está disponible
@@ -2671,7 +2681,7 @@ function undoLastIncident() {
     matchState: dtMatchState,
     round: dtMatchState.round,
     rival: dtMatchState.rivalName,
-    sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+    sheetName: getDtMatchSheetName(dtMatchState)
   });
 
   if (navigator.vibrate) navigator.vibrate(30);
@@ -2694,7 +2704,7 @@ function deleteEventById(eventId) {
       matchState: dtMatchState,
       round: dtMatchState.round,
       rival: dtMatchState.rivalName,
-      sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+      sheetName: getDtMatchSheetName(dtMatchState)
     });
 
     showToast(`🗑️ Evento eliminado: ${removed.label}`);
@@ -2723,7 +2733,7 @@ function resetDtMatchWithConfirm() {
       matchState: dtMatchState,
       round: dtMatchState.round,
       rival: dtMatchState.rivalName,
-      sheetName: `${dtMatchState.round} - ${dtMatchState.rivalName}`
+      sheetName: getDtMatchSheetName(dtMatchState)
     });
 
     renderDtView();
