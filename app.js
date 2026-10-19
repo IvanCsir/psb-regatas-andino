@@ -1647,9 +1647,40 @@ const DT_MATCHES_STORE_KEY = 'regatas_dt_matches_v3';
 const DT_ACTIVE_MATCH_KEY = 'regatas_dt_cur_match_v3';
 const DT_LEGACY_MATCH_KEY = 'regatas_dt_match_v2';
 const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok';
+const DT_TEAM_VIEW_KEY = 'regatas_dt_team_view_pref_v1';
 
 let dtClockInterval = null;
 let dtPendingOptionAction = null; // { type: 'corner'|'stroke', team: 'home'|'away' }
+let dtCurrentTeamView = 'home';
+try {
+  const savedView = localStorage.getItem(DT_TEAM_VIEW_KEY);
+  if (savedView && ['home', 'away', 'both'].includes(savedView)) {
+    dtCurrentTeamView = savedView;
+  }
+} catch (e) {}
+
+function setDtTeamView(viewMode) {
+  if (!['home', 'away', 'both'].includes(viewMode)) viewMode = 'home';
+  dtCurrentTeamView = viewMode;
+  try {
+    localStorage.setItem(DT_TEAM_VIEW_KEY, viewMode);
+  } catch (e) {}
+
+  const grid = document.getElementById('dtKeypadGrid');
+  if (grid) {
+    grid.setAttribute('data-team-view', viewMode);
+  }
+
+  const btnHome = document.getElementById('btnDtTabHome');
+  const btnAway = document.getElementById('btnDtTabAway');
+  const btnBoth = document.getElementById('btnDtTabBoth');
+
+  if (btnHome) btnHome.classList.toggle('active', viewMode === 'home');
+  if (btnAway) btnAway.classList.toggle('active', viewMode === 'away');
+  if (btnBoth) btnBoth.classList.toggle('active', viewMode === 'both');
+
+  if (navigator.vibrate) navigator.vibrate(20);
+}
 
 function createDefaultQuarterStats() {
   return {
@@ -2345,6 +2376,15 @@ function initDtModule() {
     btnPushFull.addEventListener('click', pushFullCurrentMatchToSheets);
   }
 
+  // 3.5 Selector Móvil de Vista de Equipos (Regatas / Rival / Ambos)
+  const tabHome = document.getElementById('btnDtTabHome');
+  const tabAway = document.getElementById('btnDtTabAway');
+  const tabBoth = document.getElementById('btnDtTabBoth');
+  if (tabHome) tabHome.addEventListener('click', () => setDtTeamView('home'));
+  if (tabAway) tabAway.addEventListener('click', () => setDtTeamView('away'));
+  if (tabBoth) tabBoth.addEventListener('click', () => setDtTeamView('both'));
+  setDtTeamView(dtCurrentTeamView);
+
   // 4. Selector de Partido Sincronizado con Fixture Oficial
   const selectMatch = document.getElementById('selectDtMatch');
   if (selectMatch) {
@@ -2382,6 +2422,7 @@ function initDtModule() {
         resetDtClock();
         saveDtMatchState();
         renderDtView();
+        if (navigator.vibrate) navigator.vibrate(25);
         showToast(`📍 Cambiaste al ${q}° Cuarto`);
       }
     });
@@ -2391,11 +2432,17 @@ function initDtModule() {
   const btnToggleClock = document.getElementById('btnDtClockToggle');
   if (btnToggleClock) {
     btnToggleClock.addEventListener('click', () => {
+      if (navigator.vibrate) navigator.vibrate(20);
       if (dtMatchState.timer.isRunning) pauseDtClock(); else startDtClock();
     });
   }
   const btnResetClock = document.getElementById('btnDtClockReset');
-  if (btnResetClock) btnResetClock.addEventListener('click', resetDtClock);
+  if (btnResetClock) {
+    btnResetClock.addEventListener('click', () => {
+      if (navigator.vibrate) navigator.vibrate(20);
+      resetDtClock();
+    });
+  }
 
   // 7. Botones Tácticos Regatas (A Favor)
   const btnHomeEntry = document.getElementById('btnHomeEntry');
@@ -2923,6 +2970,9 @@ function renderDtView() {
   // Marcador y Nombres
   const awayName = document.getElementById('dtAwayTeamName');
   if (awayName) awayName.textContent = rival;
+
+  const dtTabAwayText = document.getElementById('dtTabAwayText');
+  if (dtTabAwayText) dtTabAwayText.textContent = `🔴 ${rival}`;
 
   const scoreH = document.getElementById('dtScoreHome');
   const scoreA = document.getElementById('dtScoreAway');

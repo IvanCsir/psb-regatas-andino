@@ -49,16 +49,20 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
-  padding: 14px 12px 50px 12px;
+  padding: max(14px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(95px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   background-image: 
     radial-gradient(circle at 50% 0%, #0d276b 0%, var(--bg-deep-blue) 65%),
     radial-gradient(circle at 50% 100%, #061747 0%, var(--bg-deep-blue) 75%);
   background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* Contenedor Principal Centrado */
 .container {
-  max-width: 480px;
+  max-width: 540px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -2431,20 +2435,21 @@ body {
    ========================================================================== */
 .bottom-nav-dock {
   position: fixed;
-  bottom: 14px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(7, 21, 66, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 162, 255, 0.35);
+  background: rgba(5, 17, 54, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 162, 255, 0.4);
   border-radius: var(--radius-full);
   padding: 5px 8px;
   display: flex;
   align-items: center;
   gap: 4px;
   z-index: 1000;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 162, 255, 0.2);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.7), 0 0 25px rgba(0, 162, 255, 0.25);
+  max-width: calc(100vw - 20px);
 }
 
 .nav-dock-btn {
@@ -2454,7 +2459,7 @@ body {
   font-family: var(--font-main);
   font-size: 0.76rem;
   font-weight: 700;
-  padding: 7px 14px;
+  padding: 8px 14px;
   border-radius: var(--radius-full);
   cursor: pointer;
   display: inline-flex;
@@ -2462,10 +2467,11 @@ body {
   gap: 6px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-dock-btn .dock-icon {
-  font-size: 1rem;
+  font-size: 1.05rem;
 }
 
 .nav-dock-btn:hover {
@@ -2473,38 +2479,50 @@ body {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.nav-dock-btn:active {
+  transform: scale(0.93);
+}
+
 .nav-dock-btn.active {
   background: linear-gradient(135deg, var(--color-regatas-cyan), var(--color-regatas-blue));
   color: #ffffff;
   font-weight: 800;
-  box-shadow: 0 4px 14px rgba(0, 162, 255, 0.45);
+  box-shadow: 0 4px 16px rgba(0, 162, 255, 0.45);
 }
 
-/* Ajuste móvil para botón editar y dock inferior */
-@media (max-width: 480px) {
+/* En pantallas móviles: Botón de Cuerpo Técnico arriba a la derecha para no obstruir el dock ni los dedos */
+@media (max-width: 640px) {
   .bottom-left-bar {
-    left: 10px;
-    bottom: 12px;
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(12px + env(safe-area-inset-right, 0px));
+    bottom: auto;
+    left: auto;
+    z-index: 990;
   }
   .btn-edit-mode {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
+    background: rgba(5, 17, 54, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 162, 255, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   }
   .btn-edit-mode .edit-icon {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
   }
   .bottom-nav-dock {
-    bottom: 12px;
     padding: 4px 6px;
     gap: 3px;
   }
   .nav-dock-btn {
-    padding: 6px 8px;
-    font-size: 0.68rem;
-    gap: 3px;
+    padding: 7px 10px;
+    font-size: 0.70rem;
+    gap: 4px;
   }
   .nav-dock-btn .dock-icon {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
   }
 }
 
@@ -3760,38 +3778,454 @@ body {
   cursor: pointer;
 }
 
-/* Ajustes Responsive Mobile */
-@media (max-width: 540px) {
-  .dt-keypad-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
+/* ==========================================================================
+   DISEÑO ERGONÓMICO MÓVIL: BOTONERA DT Y APP GENERAL
+   ========================================================================== */
+
+/* Barra de Alternancia de Equipos (A Favor / En Contra / Ambos) */
+.dt-team-toggle-bar {
+  display: flex;
+  background: rgba(4, 15, 48, 0.92);
+  border: 1px solid rgba(0, 162, 255, 0.35);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  margin-bottom: 2px;
+}
+
+.dt-team-toggle-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px 6px;
+  color: var(--text-secondary);
+  font-family: var(--font-main);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dt-team-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+.dt-toggle-text {
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.dt-toggle-sub {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* Pestaña Activa: Regatas */
+.dt-team-toggle-btn.active#btnDtTabHome {
+  background: linear-gradient(135deg, rgba(0, 162, 255, 0.24), rgba(30, 136, 229, 0.42));
+  border-color: var(--color-regatas-cyan);
+  color: #ffffff;
+  box-shadow: 0 2px 14px rgba(0, 162, 255, 0.38);
+}
+.dt-team-toggle-btn.active#btnDtTabHome .dt-toggle-sub {
+  color: var(--color-regatas-cyan);
+  font-weight: 800;
+}
+
+/* Pestaña Activa: Rival */
+.dt-team-toggle-btn.active#btnDtTabAway {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.24), rgba(220, 38, 38, 0.42));
+  border-color: #f87171;
+  color: #ffffff;
+  box-shadow: 0 2px 14px rgba(239, 68, 68, 0.38);
+}
+.dt-team-toggle-btn.active#btnDtTabAway .dt-toggle-sub {
+  color: #f87171;
+  font-weight: 800;
+}
+
+/* Pestaña Activa: Ambos (2 Columnas) */
+.dt-team-toggle-btn.active#btnDtTabBoth {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(255, 255, 255, 0.15);
+}
+.dt-team-toggle-btn.active#btnDtTabBoth .dt-toggle-sub {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+/* Modos de visualización del Keypad */
+.dt-keypad-grid {
+  display: grid;
+  transition: all 0.2s ease;
+}
+
+.dt-keypad-grid[data-team-view="home"] {
+  grid-template-columns: 1fr;
+}
+.dt-keypad-grid[data-team-view="home"] .dt-col-away {
+  display: none !important;
+}
+
+.dt-keypad-grid[data-team-view="away"] {
+  grid-template-columns: 1fr;
+}
+.dt-keypad-grid[data-team-view="away"] .dt-col-home {
+  display: none !important;
+}
+
+.dt-keypad-grid[data-team-view="both"] {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* En Modo 1 Columna (vista óptima para celulares con pulgar):
+   Botones amplios, táctiles y fáciles de tocar durante el partido */
+.dt-keypad-grid[data-team-view="home"] .dt-action-btn,
+.dt-keypad-grid[data-team-view="away"] .dt-action-btn {
+  min-height: 64px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.dt-keypad-grid[data-team-view="home"] .dt-action-btn .dt-btn-title,
+.dt-keypad-grid[data-team-view="away"] .dt-action-btn .dt-btn-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.dt-keypad-grid[data-team-view="home"] .dt-action-btn .dt-btn-count,
+.dt-keypad-grid[data-team-view="away"] .dt-action-btn .dt-btn-count {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.dt-keypad-grid[data-team-view="home"] .dt-action-btn .dt-btn-plus,
+.dt-keypad-grid[data-team-view="away"] .dt-action-btn .dt-btn-plus {
+  width: 36px;
+  height: 36px;
+  font-size: 1.05rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Tarjetas en modo 1 columna */
+.dt-keypad-grid[data-team-view="home"] .dt-cards-strip,
+.dt-keypad-grid[data-team-view="away"] .dt-cards-strip {
+  padding: 10px 14px;
+}
+
+.dt-keypad-grid[data-team-view="home"] .dt-card-btn,
+.dt-keypad-grid[data-team-view="away"] .dt-card-btn {
+  flex: 1;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 0.86rem;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+}
+
+/* Efectos de Presión Táctil */
+.dt-action-btn:active {
+  transform: scale(0.96);
+  filter: brightness(1.22);
+}
+
+.dt-card-btn:active {
+  transform: scale(0.92);
+}
+
+/* Despacho Inferior de DT (Dock de Acciones) */
+.dt-control-dock {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dt-bottom-tool-btn {
+  min-height: 40px;
+  padding: 8px 10px;
+  font-size: 0.72rem;
+}
+
+/* Espacio inferior de seguridad para que la botonera nunca choque con la barra flotante */
+.dt-live-panel {
+  padding-bottom: 95px !important;
+}
+
+/* Ajustes Responsive para Pantallas Pequeñas (< 560px) */
+@media (max-width: 560px) {
+  .dt-match-header-card {
+    padding: 12px 10px;
+    gap: 10px;
   }
+
+  .dt-top-actions {
+    gap: 6px;
+  }
+
+  .dt-single-division-tag {
+    font-size: 0.68rem;
+    padding: 3px 9px;
+  }
+
+  .dt-cloud-badge {
+    font-size: 0.65rem;
+    padding: 3px 8px;
+  }
+
+  .btn-dt-sheets-action,
+  .btn-dt-lock-session {
+    font-size: 0.66rem;
+    padding: 4px 8px;
+  }
+
+  .dt-match-picker-bar {
+    padding: 6px 10px;
+  }
+
+  .dt-match-select {
+    font-size: 0.78rem;
+  }
+
+  /* Marcador Compacto & Nítido */
   .dt-scoreboard-wrapper {
-    padding: 10px;
+    padding: 10px 8px;
+    gap: 6px;
   }
-  .dt-score-number {
-    font-size: 1.8rem;
-  }
+
   .dt-team-crest {
     width: 32px;
     height: 32px;
   }
+
   .dt-team-name {
-    font-size: 0.78rem;
+    font-size: 0.82rem;
   }
-  .dt-action-btn {
-    min-height: 54px;
-    padding: 10px 8px;
+
+  .dt-team-sub {
+    font-size: 0.58rem;
   }
-  .dt-action-btn .dt-btn-icon {
-    font-size: 1.25rem;
+
+  .dt-score-number {
+    font-size: 2rem;
+    min-width: 32px;
+    padding: 0 4px;
   }
-  .dt-btn-title {
-    font-size: 0.78rem;
+
+  /* Barra de Cuartos y Reloj */
+  .dt-quarter-clock-bar {
+    gap: 6px;
   }
+
+  .dt-quarters-selector {
+    gap: 4px;
+    flex: 1;
+  }
+
+  .dt-quarter-btn {
+    padding: 6px 6px;
+    font-size: 0.72rem;
+    flex: 1;
+    text-align: center;
+  }
+
+  .dt-clock-widget {
+    padding: 4px 6px;
+    gap: 6px;
+  }
+
+  .dt-clock-display {
+    font-size: 0.95rem;
+  }
+
+  .dt-clock-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+
+  /* Barra de control inferior */
+  .dt-control-dock {
+    padding: 8px 6px;
+    gap: 4px;
+  }
+
   .dt-bottom-tool-btn {
-    font-size: 0.70rem;
     padding: 7px 6px;
+    font-size: 0.68rem;
+    gap: 3px;
+  }
+
+  /* Modales Estilo Bottom-Sheet para Celulares */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-box,
+  .dt-modal-box,
+  .dt-summary-modal-box,
+  .dt-sheets-modal-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 22px 22px 0 0 !important;
+    border-bottom: none !important;
+    animation: slideUpModal 0.25s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
+    max-height: 90vh !important;
+    margin: 0 !important;
+  }
+
+  @keyframes slideUpModal {
+    from { transform: translateY(100%); opacity: 0.6; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Botones Táctiles Grandes de Córner Corto / Penal */
+  .dt-choice-buttons {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .btn-choice-option {
+    padding: 14px 12px;
+    min-height: 60px;
+    border-radius: var(--radius-md);
+  }
+
+  .btn-choice-option .choice-opt-icon {
+    font-size: 2.2rem;
+  }
+
+  .choice-opt-text strong {
+    font-size: 0.96rem;
+  }
+
+  .btn-choice-cancel {
+    padding: 10px;
+    font-size: 0.85rem;
+    width: 100%;
+  }
+
+  /* Modal de Resumen Táctico */
+  .dt-summary-modal-box {
+    max-height: 88vh !important;
+  }
+
+  .dt-summary-content {
+    padding: 14px 12px;
+  }
+
+  .dt-summary-actions {
+    padding: 12px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .btn-share-modal-wa {
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+    font-size: 0.9rem;
+  }
+
+  .btn-close-summary-bottom {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+  }
+}
+
+/* ==========================================================================
+   MEJORAS MÓVILES EN LA APP GENERAL (CITACIÓN, TORNEO, FÍSICO)
+   ========================================================================== */
+
+/* Tabla de Posiciones con Columnas Congeladas (Sticky) para Móviles */
+.standings-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  position: relative;
+}
+
+.standings-table th.th-pos,
+.standings-table td.td-pos {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #061747;
+}
+
+.standings-table th.th-team,
+.standings-table td.td-team {
+  position: sticky;
+  left: 28px;
+  z-index: 2;
+  background: #061747;
+  border-right: 1px solid rgba(0, 162, 255, 0.25);
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.standings-table tbody tr.row-regatas td.td-pos,
+.standings-table tbody tr.row-regatas td.td-team {
+  background: #092561 !important;
+}
+
+/* Ajustes Visuales Móviles en Citación y Físico */
+@media (max-width: 480px) {
+  .clash-team {
+    width: 44%;
+  }
+  .team-badge-circle {
+    width: 74px;
+    height: 74px;
+  }
+  .team-name-title {
+    font-size: 0.82rem;
+  }
+  .schedule-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .schedule-hour {
+    font-size: 1.45rem;
+  }
+  .phys-filter-chips {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .phys-filter-chips::-webkit-scrollbar {
+    display: none;
   }
 }
 

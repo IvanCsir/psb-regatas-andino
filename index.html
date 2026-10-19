@@ -2,10 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#030d2d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
   <title>Citaciones - Regatas Andino Hockey</title>
   
   <!-- Tipografía Google Fonts -->
@@ -457,8 +459,27 @@
           </div>
         </div>
 
-        <!-- Botonera Táctica (2 Columnas) -->
-        <div class="dt-keypad-grid">
+        <!-- Selector Móvil de Vistas de Equipo (A Favor / En Contra / Ambos) -->
+        <div class="dt-team-toggle-bar" id="dtTeamToggleBar">
+          <button type="button" class="dt-team-toggle-btn active" id="btnDtTabHome" data-tab="home">
+            <span class="dt-toggle-dot home-dot"></span>
+            <span class="dt-toggle-text">🔵 Regatas</span>
+            <span class="dt-toggle-sub">A Favor</span>
+          </button>
+          <button type="button" class="dt-team-toggle-btn" id="btnDtTabAway" data-tab="away">
+            <span class="dt-toggle-dot away-dot"></span>
+            <span class="dt-toggle-text" id="dtTabAwayText">🔴 Rival</span>
+            <span class="dt-toggle-sub">En Contra</span>
+          </button>
+          <button type="button" class="dt-team-toggle-btn dt-tab-both" id="btnDtTabBoth" data-tab="both" title="Ver ambos equipos simultáneamente">
+            <span class="dt-toggle-icon">⚡</span>
+            <span class="dt-toggle-text">Ambos</span>
+            <span class="dt-toggle-sub">2 Col</span>
+          </button>
+        </div>
+
+        <!-- Botonera Táctica (2 Columnas o Fila Única según Vista) -->
+        <div class="dt-keypad-grid" id="dtKeypadGrid" data-team-view="home">
           
           <!-- Columna A FAVOR (Regatas Andino - Azul) -->
           <div class="dt-keypad-col dt-col-home">
@@ -593,10 +614,10 @@
         <!-- Barra Inferior de Acciones del DT -->
         <div class="dt-control-dock">
           <button type="button" class="dt-bottom-tool-btn btn-undo" id="btnDtUndo" title="Deshacer último evento">
-            <span>↩</span> Deshacer Último
+            <span>↩</span> Deshacer
           </button>
           <button type="button" class="dt-bottom-tool-btn btn-stats" id="btnDtOpenSummary" title="Ver resumen táctico y estadísticas">
-            <span>📊</span> Ver Resumen
+            <span>📊</span> Resumen
           </button>
           <button type="button" class="dt-bottom-tool-btn btn-feed" id="btnDtToggleFeed" title="Ver historial de eventos">
             <span>📋</span> Feed (<span id="dtFeedCount">0</span>)
