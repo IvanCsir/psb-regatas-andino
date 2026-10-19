@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261019_live_sync_v10">
+  <link rel="stylesheet" href="styles.css?v=20261019_quarter_stats_v1">
 </head>
 <body>
 
@@ -89,6 +89,15 @@
           <div class="drawer-item-info">
             <span class="drawer-item-title">Planilla Google Sheets</span>
             <span class="drawer-item-desc">Abrir archivo en la nube de Google Drive ↗</span>
+          </div>
+          <span class="drawer-badge-lock">🔒</span>
+        </button>
+
+        <button type="button" class="drawer-nav-item" id="drawerBtnStats" data-view="estadisticas">
+          <span class="drawer-item-icon">📈</span>
+          <div class="drawer-item-info">
+            <span class="drawer-item-title">Estadísticas por Cuartos</span>
+            <span class="drawer-item-desc">Análisis de 1°C, 2°C, 3°C, 4°C y temporada</span>
           </div>
           <span class="drawer-badge-lock">🔒</span>
         </button>
@@ -710,6 +719,9 @@
           <button type="button" class="dt-bottom-tool-btn btn-stats" id="btnDtOpenSummary" title="Ver resumen táctico y estadísticas">
             <span>📊</span> Resumen
           </button>
+          <button type="button" class="dt-bottom-tool-btn btn-analytics" id="btnDtOpenQuarterStats" title="Ver analítica y estadísticas por cuartos">
+            <span>📈</span> Cuartos
+          </button>
           <button type="button" class="dt-bottom-tool-btn btn-feed" id="btnDtToggleFeed" title="Ver historial de eventos">
             <span>📋</span> Feed (<span id="dtFeedCount">0</span>)
           </button>
@@ -735,6 +747,81 @@
       </section>
 
     </div> <!-- /viewDT -->
+
+    <!-- ====================================================================
+         VISTA 5: ESTADÍSTICAS Y ANÁLISIS DE CUARTOS DT
+         ==================================================================== -->
+    <div id="viewEstadisticas" class="view-panel" style="display: none;">
+      
+      <!-- Barra Superior Volver -->
+      <div class="view-return-bar" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <button class="btn-return-citacion" id="btnReturnToCitacionFromStats">
+          <span>←</span> Volver a Citación
+        </button>
+        <button class="btn-return-citacion" id="btnGoToDtFromStats" style="border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">
+          <span>⏱️</span> Ir a Botonera DT
+        </button>
+      </div>
+
+      <!-- Tarjeta Principal de Encabezado & Filtro -->
+      <section class="stats-header-card">
+        <div class="stats-header-badge">
+          <span>📈</span> ANÁLISIS TÁCTICO POR CUARTOS
+        </div>
+        <h2 class="stats-header-title">RENDIMIENTO ACUMULADO</h2>
+        <p class="stats-header-desc">
+          Métricas consolidadas de 1ra División por cuarto a partir de las incidencias registradas en la botonera.
+        </p>
+
+        <!-- Filtro Selector de Partidos -->
+        <div class="stats-filter-box">
+          <div class="stats-filter-row">
+            <label for="selectStatsMatchFilter" class="stats-filter-label">Partidos analizados:</label>
+            <select id="selectStatsMatchFilter" class="stats-match-select" aria-label="Seleccionar partidos a analizar">
+              <option value="all">🌟 Todos los Partidos (Acumulado General)</option>
+            </select>
+          </div>
+          <button type="button" class="btn-stats-sync-cloud" id="btnSyncAllMatchesCloud" title="Descargar e importar todos los partidos de Google Sheets">
+            <span>🔄</span> Sincronizar Google Sheets
+          </button>
+        </div>
+      </section>
+
+      <!-- Tarjetas de Insights y KPIs Tácticos Clave -->
+      <div class="stats-kpi-grid" id="statsKpiGrid">
+        <!-- Renderizado dinámicamente -->
+      </div>
+
+      <!-- Comparativa Visual por Cuartos (Barras Tácticas) -->
+      <section class="stats-bars-card">
+        <div class="stats-card-header">
+          <span class="stats-card-icon">📊</span>
+          <h3 class="stats-card-title">VOLUMEN OFENSIVO POR CUARTO</h3>
+        </div>
+        <div class="stats-bars-container" id="statsBarsContainer">
+          <!-- Renderizado dinámicamente -->
+        </div>
+      </section>
+
+      <!-- Gran Tabla Comparativa por Cuartos (1°C, 2°C, 3°C, 4°C y Total) -->
+      <section class="stats-table-card">
+        <div class="stats-card-header">
+          <span class="stats-card-icon">📋</span>
+          <h3 class="stats-card-title">MATRIZ COMPARATIVA POR CUARTOS</h3>
+        </div>
+        <div class="stats-matrix-wrap" id="statsMatrixWrap">
+          <!-- Renderizado dinámicamente -->
+        </div>
+      </section>
+
+      <!-- Botón de Exportar / Compartir por WhatsApp -->
+      <div class="stats-share-box">
+        <button type="button" class="btn-stats-share-wa" id="btnShareStatsWhatsApp">
+          <span>📲</span> Compartir Análisis Táctico por WhatsApp
+        </button>
+      </div>
+
+    </div> <!-- /viewEstadisticas -->
 
   </div> <!-- /container -->
 
@@ -1003,7 +1090,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261019_live_sync_v10"></script>
-  <script src="app.js?v=20261019_live_sync_v10"></script>
+  <script src="data.js?v=20261019_quarter_stats_v1"></script>
+  <script src="app.js?v=20261019_quarter_stats_v1"></script>
 </body>
 </html>
