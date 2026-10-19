@@ -3410,7 +3410,7 @@ function openIncidentOptionModal(type, team) {
     if (subtitle) subtitle.textContent = '¿Terminó en gol esta jugada fija?';
   } else {
     if (icon) icon.textContent = '🎯';
-    if (title) title.textContent = `Penal (Stroke) - ${teamName}`;
+    if (title) title.textContent = `Penal - ${teamName}`;
     if (subtitle) subtitle.textContent = '¿Terminó en gol este penal?';
   }
 
@@ -4358,7 +4358,7 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
             <td class="total-col">${totH.cornerEff}%</td>
           </tr>
           <tr>
-            <td>🎯 Penales Obtenidos (Strokes)</td>
+            <td>🎯 Penales Obtenidos</td>
             <td>${q1H.strokes}</td>
             <td>${q2H.strokes}</td>
             <td>${q3H.strokes}</td>
@@ -4629,7 +4629,7 @@ function shareStatsWhatsApp() {
     `⚽ *Marcador:* Regatas ${totH.goals} - ${totA.goals} Rival (Diferencial: ${goalDiffStr})`,
     `📥 *Ingresos al Área:* ${totH.entries} Regatas vs ${totA.entries} Rivales`,
     `🏑 *Córners Cortos:* ${totH.corners} obtenidos (${totH.cornerGoals} goles • ${totH.cornerEff}% efectividad)`,
-    `🎯 *Penales (Strokes):* ${totH.strokes} (${totH.strokeGoals} goles)`,
+    `🎯 *Penales:* ${totH.strokes} (${totH.strokeGoals} goles)`,
     `📈 *Tasa Conversión:* ${totH.conversion}% de ingresos terminaron en gol`,
     `🟨 *Tarjetas Regatas:* 🟩 ${totH.green} • 🟨 ${totH.yellow} • 🟥 ${totH.red}`,
     ``,
