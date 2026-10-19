@@ -4415,6 +4415,11 @@ body {
   padding: 0 8px 4px 8px;
 }
 
+.drawer-section-dt {
+  border-top: 1px solid rgba(0, 162, 255, 0.22);
+  padding-top: 14px;
+}
+
 .drawer-section-dt .drawer-section-label {
   color: #38bdf8;
 }
