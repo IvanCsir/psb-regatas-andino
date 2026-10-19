@@ -26,6 +26,9 @@ let currentPhysFilter = "all"; // 'all' | 'PS-B' | 'PS-C' | '5ta'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 const REQUIRED_PASSWORD = 'ctandinob';
+const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok';
+const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
+const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';
 
 // Definición de Tests Físicos de la Planilla
 const TESTS_CONFIG = [
@@ -110,7 +113,10 @@ function setupViewSwitching() {
   if (drawerOverlay) drawerOverlay.addEventListener('click', closeNavDrawer);
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeNavDrawer();
+    if (e.key === 'Escape') {
+      closeNavDrawer();
+      closeSheetsAuthModal();
+    }
   });
 
   // Acceso destacado a Botonera DT desde el Menú Hamburguesa
@@ -153,6 +159,15 @@ function setupViewSwitching() {
       closeNavDrawer();
       const btnOpen = document.getElementById('btnOpenEdit');
       if (btnOpen) btnOpen.click();
+    });
+  }
+
+  // Acceso a Planilla Google Sheets con protección por contraseña
+  const drawerBtnSheets = document.getElementById('drawerBtnSheets');
+  if (drawerBtnSheets) {
+    drawerBtnSheets.addEventListener('click', () => {
+      closeNavDrawer();
+      openSheetsAuthModal();
     });
   }
 
@@ -1125,6 +1140,112 @@ function setupEvents() {
       if (e.target === modal) closeModal();
     });
   }
+
+  // Modal de Acceso a Planilla Google Sheets (Cuerpo Técnico)
+  const modalSheets = document.getElementById('modalSheetsAuth');
+  const btnCloseSheets = document.getElementById('btnCloseSheetsAuth');
+  const btnCloseSheetsBottom = document.getElementById('btnCloseSheetsModalBottom');
+  const btnSubmitSheets = document.getElementById('btnSubmitSheetsAuth');
+  const btnLockSheets = document.getElementById('btnLockSheetsAuth');
+  const inputSheetsPass = document.getElementById('inputSheetsPassword');
+
+  if (btnCloseSheets) btnCloseSheets.addEventListener('click', closeSheetsAuthModal);
+  if (btnCloseSheetsBottom) btnCloseSheetsBottom.addEventListener('click', closeSheetsAuthModal);
+  if (btnSubmitSheets) btnSubmitSheets.addEventListener('click', verifySheetsPassword);
+  if (btnLockSheets) btnLockSheets.addEventListener('click', lockSheetsSession);
+
+  if (inputSheetsPass) {
+    inputSheetsPass.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') verifySheetsPassword();
+    });
+  }
+
+  if (modalSheets) {
+    modalSheets.addEventListener('click', (e) => {
+      if (e.target === modalSheets) closeSheetsAuthModal();
+    });
+  }
+}
+
+// ============================================================================
+// ACCESO PROTEGIDO A PLANILLA GOOGLE SHEETS
+// ============================================================================
+
+function openSheetsAuthModal() {
+  const modal = document.getElementById('modalSheetsAuth');
+  const gate = document.getElementById('sheetsAuthGate');
+  const body = document.getElementById('sheetsAuthBody');
+  const input = document.getElementById('inputSheetsPassword');
+  const error = document.getElementById('sheetsAuthErrorMsg');
+
+  if (!modal) return;
+
+  if (isDtAuthenticated()) {
+    if (gate) gate.style.display = 'none';
+    if (body) body.style.display = 'flex';
+    if (error) error.style.display = 'none';
+  } else {
+    if (gate) gate.style.display = 'block';
+    if (body) body.style.display = 'none';
+    if (error) error.style.display = 'none';
+    if (input) {
+      input.value = '';
+      setTimeout(() => input.focus(), 150);
+    }
+  }
+
+  modal.classList.add('active');
+}
+
+function closeSheetsAuthModal() {
+  const modal = document.getElementById('modalSheetsAuth');
+  if (modal) modal.classList.remove('active');
+}
+
+function verifySheetsPassword() {
+  const input = document.getElementById('inputSheetsPassword');
+  const error = document.getElementById('sheetsAuthErrorMsg');
+  const gate = document.getElementById('sheetsAuthGate');
+  const body = document.getElementById('sheetsAuthBody');
+  const entered = (input ? input.value : '').trim().toLowerCase();
+
+  if (entered === REQUIRED_PASSWORD) {
+    sessionStorage.setItem(DT_AUTH_SESSION_KEY, 'true');
+    if (error) error.style.display = 'none';
+    if (gate) gate.style.display = 'none';
+    if (body) body.style.display = 'flex';
+
+    // Abrir automáticamente la planilla de Google Sheets en una nueva pestaña
+    window.open(DT_SPREADSHEET_URL, '_blank');
+    showToast('🔓 Acceso concedido • Abriendo Planilla Google Sheets...');
+  } else {
+    if (error) error.style.display = 'block';
+    if (input) input.select();
+  }
+}
+
+function lockSheetsSession() {
+  sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
+  if (typeof pauseDtClock === 'function' && typeof dtMatchState !== 'undefined' && dtMatchState) {
+    pauseDtClock();
+  }
+  if (typeof stopDtCloudPolling === 'function') {
+    stopDtCloudPolling();
+  }
+
+  const gate = document.getElementById('sheetsAuthGate');
+  const body = document.getElementById('sheetsAuthBody');
+  const input = document.getElementById('inputSheetsPassword');
+  const error = document.getElementById('sheetsAuthErrorMsg');
+
+  if (body) body.style.display = 'none';
+  if (gate) gate.style.display = 'block';
+  if (error) error.style.display = 'none';
+  if (input) {
+    input.value = '';
+    setTimeout(() => input.focus(), 150);
+  }
+  showToast('🔒 Sesión bloqueada');
 }
 
 // ============================================================================
@@ -1735,7 +1856,6 @@ async function syncWithGoogleSheets(manual = false) {
 const DT_MATCHES_STORE_KEY = 'regatas_dt_matches_v3';
 const DT_ACTIVE_MATCH_KEY = 'regatas_dt_cur_match_v3';
 const DT_LEGACY_MATCH_KEY = 'regatas_dt_match_v2';
-const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok';
 const DT_TEAM_VIEW_KEY = 'regatas_dt_team_view_pref_v1';
 
 let dtClockInterval = null;
@@ -2078,8 +2198,6 @@ function recalculateDtStatsFromEvents() {
 // SINCRONIZACIÓN EN VIVO CON GOOGLE SHEETS (MULTI-CELULAR)
 // ============================================================================
 
-const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
-const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';
 const DT_WEBHOOK_URL_KEY = 'regatas_dt_webhook_url_v1';
 const DT_SYNC_QUEUE_KEY = 'regatas_dt_sync_queue_v1';
 

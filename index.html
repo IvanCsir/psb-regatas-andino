@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261019_live_sync_v9">
+  <link rel="stylesheet" href="styles.css?v=20261019_live_sync_v10">
 </head>
 <body>
 
@@ -84,13 +84,14 @@
           <span class="drawer-badge-lock">🔒</span>
         </button>
 
-        <a href="https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit" target="_blank" rel="noopener" class="drawer-nav-item drawer-nav-link">
+        <button type="button" class="drawer-nav-item" id="drawerBtnSheets">
           <span class="drawer-item-icon">📊</span>
           <div class="drawer-item-info">
             <span class="drawer-item-title">Planilla Google Sheets</span>
             <span class="drawer-item-desc">Abrir archivo en la nube de Google Drive ↗</span>
           </div>
-        </a>
+          <span class="drawer-badge-lock">🔒</span>
+        </button>
 
         <button type="button" class="drawer-nav-item drawer-item-dt-highlight" id="drawerBtnDT">
           <span class="drawer-item-icon">⏱️</span>
@@ -836,6 +837,58 @@
   </div>
 
   <!-- ====================================================================
+       MODAL DE ACCESO A PLANILLA GOOGLE SHEETS (PROTEGIDO CUERPO TÉCNICO)
+       ==================================================================== -->
+  <div class="modal-overlay" id="modalSheetsAuth">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">📊</span>
+          <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #ffffff;">Planilla Google Sheets</h3>
+        </div>
+        <button type="button" class="modal-close" id="btnCloseSheetsAuth" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <!-- Pantalla de Bloqueo por Contraseña -->
+      <div id="sheetsAuthGate" style="padding: 32px 20px; text-align: center;">
+        <div style="font-size: 2.4rem; margin-bottom: 10px;">🔒</div>
+        <h4 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin-bottom: 6px;">Acceso Cuerpo Técnico</h4>
+        <p style="font-size: 0.82rem; color: #9bb1d6; margin-bottom: 18px;">Ingresá la contraseña para acceder a la planilla de Google Sheets</p>
+        
+        <input type="password" id="inputSheetsPassword" class="form-input" placeholder="Contraseña..." style="max-width: 240px; margin: 0 auto 10px auto; text-align: center; font-size: 1rem; letter-spacing: 1px;" autocomplete="current-password">
+        <div id="sheetsAuthErrorMsg" style="color: #ef4444; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; display: none;">Contraseña incorrecta</div>
+        <button type="button" class="btn-primary" id="btnSubmitSheetsAuth" style="max-width: 210px; margin: 0 auto; width: 100%;">Desbloquear y Abrir ➔</button>
+      </div>
+
+      <!-- Panel Desbloqueado de Planillas Oficiales -->
+      <div class="modal-body" id="sheetsAuthBody" style="display: none; padding: 20px; gap: 14px;">
+        <div class="sheets-manage-card" style="text-align: center;">
+          <div style="font-size: 1.6rem; margin-bottom: 2px;">✅</div>
+          <h4 style="color: #34d399; font-size: 0.98rem; font-weight: 800; margin-bottom: 4px;">Acceso Concedido</h4>
+          <p style="font-size: 0.8rem; color: #9bb1d6; margin-bottom: 14px;">Podés abrir las planillas oficiales del club en Google Drive:</p>
+
+          <a href="https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" id="linkOpenDtSheet">
+            <span>📊</span> Abrir Planilla de Incidencias DT ➔
+          </a>
+
+          <a href="https://docs.google.com/spreadsheets/d/1S0g4BpD6m6Ih9_DQRrdLlnUsruUKrZmlKBAKiWL3XbU/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" id="linkOpenCitacionesSheet">
+            <span>🏑</span> Abrir Planilla de Citaciones ➔
+          </a>
+
+          <a href="https://docs.google.com/spreadsheets/d/1dAoeA0_F4RGLDEjJ0taIJiPA3WlMWl5e/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" style="background: linear-gradient(135deg, #0284c7, #00a2ff);" id="linkOpenFisicoSheet">
+            <span>⚡</span> Abrir Planilla de Evaluaciones Físicas ➔
+          </a>
+        </div>
+
+        <div style="margin-top: 4px; display: flex; gap: 10px;">
+          <button type="button" class="btn-secondary" id="btnLockSheetsAuth" style="flex: 1; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">🔒 Bloquear</button>
+          <button type="button" class="btn-secondary" id="btnCloseSheetsModalBottom" style="flex: 1;">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
        MODAL RÁPIDO: CÓRNER CORTO / PENAL (OPCIÓN A)
        ==================================================================== -->
   <div class="modal-overlay dt-modal-overlay" id="modalIncidentOption">
@@ -950,7 +1003,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261019_live_sync_v9"></script>
-  <script src="app.js?v=20261019_live_sync_v9"></script>
+  <script src="data.js?v=20261019_live_sync_v10"></script>
+  <script src="app.js?v=20261019_live_sync_v10"></script>
 </body>
 </html>
