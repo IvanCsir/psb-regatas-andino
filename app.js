@@ -308,9 +308,21 @@ function showView(viewName) {
     handleDtViewOpen();
   } else if (viewName === 'estadisticas') {
     stopDtCloudPolling();
+    // Fuera de la vista DT, quitamos el modo sol para que solo afecte la botonera
+    document.body.classList.remove('dt-sun-mode');
+    const sunModal = document.getElementById('dtSunFloatingModal');
+    if (sunModal) sunModal.style.display = 'none';
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', '#030d2d');
     handleStatsViewOpen();
   } else {
     stopDtCloudPolling();
+    // Fuera de la vista DT, quitamos el modo sol para que solo afecte la botonera
+    document.body.classList.remove('dt-sun-mode');
+    const sunModal = document.getElementById('dtSunFloatingModal');
+    if (sunModal) sunModal.style.display = 'none';
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', '#030d2d');
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1942,9 +1954,17 @@ try {
 } catch (e) {}
 
 const DT_SUN_MODE_KEY = 'regatas_dt_sun_mode_pref_v1';
+const DT_SUN_MODAL_POS_KEY = 'regatas_dt_sun_modal_pos_v2';
+const DT_SUN_MODAL_MIN_KEY = 'regatas_dt_sun_modal_min_v1';
+
 let dtSunModeActive = false;
 try {
   dtSunModeActive = localStorage.getItem(DT_SUN_MODE_KEY) === 'true';
+} catch (e) {}
+
+let dtSunModalMinimized = false;
+try {
+  dtSunModalMinimized = localStorage.getItem(DT_SUN_MODAL_MIN_KEY) === 'true';
 } catch (e) {}
 
 // Feedback Háptico para móviles (confirmación física táctil bajo el sol)
@@ -1969,23 +1989,36 @@ function triggerDtHaptic(type = 'default') {
 
 function initSunMode() {
   applyDtSunMode();
+  setupDraggableSunModal();
 
-  const btnSun = document.getElementById('btnDtSunMode');
-  if (btnSun) {
-    btnSun.addEventListener('click', () => toggleDtSunMode());
+  const pillNight = document.getElementById('btnSunPillNight');
+  const pillSun = document.getElementById('btnSunPillSun');
+  const btnMin = document.getElementById('btnDtSunModalMin');
+
+  if (pillNight) {
+    pillNight.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setDtSunMode(false);
+    });
   }
 
-  const drawerBtnSun = document.getElementById('drawerBtnSunMode');
-  if (drawerBtnSun) {
-    drawerBtnSun.addEventListener('click', () => {
-      toggleDtSunMode();
-      closeNavDrawer();
+  if (pillSun) {
+    pillSun.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setDtSunMode(true);
+    });
+  }
+
+  if (btnMin) {
+    btnMin.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSunModalMinimized();
     });
   }
 }
 
-function toggleDtSunMode(force) {
-  dtSunModeActive = typeof force === 'boolean' ? force : !dtSunModeActive;
+function setDtSunMode(active) {
+  dtSunModeActive = !!active;
   try {
     localStorage.setItem(DT_SUN_MODE_KEY, dtSunModeActive ? 'true' : 'false');
   } catch (e) {}
@@ -1994,37 +2027,174 @@ function toggleDtSunMode(force) {
   showToast(dtSunModeActive ? '☀️ Modo Cancha al Sol activado (Alto Contraste)' : '🌙 Modo Noche activado');
 }
 
+function toggleSunModalMinimized(force) {
+  dtSunModalMinimized = typeof force === 'boolean' ? force : !dtSunModalMinimized;
+  try {
+    localStorage.setItem(DT_SUN_MODAL_MIN_KEY, dtSunModalMinimized ? 'true' : 'false');
+  } catch (e) {}
+  applySunModalMinimized();
+  triggerDtHaptic('tap');
+}
+
+function applySunModalMinimized() {
+  const modal = document.getElementById('dtSunFloatingModal');
+  const btnMin = document.getElementById('btnDtSunModalMin');
+  const title = document.getElementById('dtSunModalTitle');
+  if (modal) {
+    modal.classList.toggle('minimized', !!dtSunModalMinimized);
+  }
+  if (btnMin) {
+    btnMin.textContent = dtSunModalMinimized ? '+' : '−';
+    btnMin.title = dtSunModalMinimized ? 'Expandir modalcito' : 'Minimizar modalcito';
+  }
+  if (title) {
+    title.textContent = dtSunModalMinimized 
+      ? (dtSunModeActive ? '☀️ Sol' : '🌙 Noche')
+      : '☀️ Cancha al Sol';
+  }
+}
+
 function applyDtSunMode() {
   const isSun = !!dtSunModeActive;
-  document.body.classList.toggle('dt-sun-mode', isSun);
+  
+  // Solo aplicar clase a body si estamos en la vista DT
+  if (currentActiveView === 'dt' && isDtAuthenticated()) {
+    document.body.classList.toggle('dt-sun-mode', isSun);
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) metaTheme.setAttribute('content', isSun ? '#ffffff' : '#030d2d');
+  } else {
+    document.body.classList.remove('dt-sun-mode');
+  }
 
   const viewDt = document.getElementById('viewDT');
   if (viewDt) viewDt.classList.toggle('sun-mode-active', isSun);
 
-  // Actualizar botón de la botonera DT
-  const btnSun = document.getElementById('btnDtSunMode');
-  const iconSun = document.getElementById('dtSunModeIcon');
-  const textSun = document.getElementById('dtSunModeText');
-  if (btnSun) {
-    btnSun.classList.toggle('active', isSun);
-    btnSun.title = isSun ? 'Cambiar a Modo Noche' : 'Cambiar a Modo Cancha al Sol (Alto Contraste)';
-  }
-  if (iconSun) iconSun.textContent = isSun ? '🌙' : '☀️';
-  if (textSun) textSun.textContent = isSun ? 'Modo Noche' : 'Modo Sol';
+  const pillNight = document.getElementById('btnSunPillNight');
+  const pillSun = document.getElementById('btnSunPillSun');
+  if (pillNight) pillNight.classList.toggle('active', !isSun);
+  if (pillSun) pillSun.classList.toggle('active', isSun);
 
-  // Actualizar botón del drawer
-  const drawerIcon = document.getElementById('drawerSunIcon');
-  const drawerTitle = document.getElementById('drawerSunTitle');
-  const drawerDesc = document.getElementById('drawerSunDesc');
-  if (drawerIcon) drawerIcon.textContent = isSun ? '🌙' : '☀️';
-  if (drawerTitle) drawerTitle.textContent = isSun ? 'Modo Noche (Oscuro)' : 'Modo Cancha al Sol';
-  if (drawerDesc) drawerDesc.textContent = isSun ? 'Volver al diseño nocturno clásico' : 'Alto contraste para ver la pantalla bajo el sol directo';
+  applySunModalMinimized();
+}
 
-  // Actualizar color de la barra del navegador móvil
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) {
-    metaTheme.setAttribute('content', isSun ? '#ffffff' : '#030d2d');
+function setupDraggableSunModal() {
+  const modal = document.getElementById('dtSunFloatingModal');
+  const dragBar = document.getElementById('dtSunModalDragBar');
+  if (!modal || !dragBar) return;
+
+  // Restaurar posición previa guardada
+  try {
+    const savedPos = JSON.parse(localStorage.getItem(DT_SUN_MODAL_POS_KEY));
+    if (savedPos && typeof savedPos.left === 'number' && typeof savedPos.top === 'number') {
+      const maxX = Math.max(10, window.innerWidth - 120);
+      const maxY = Math.max(10, window.innerHeight - 70);
+      const left = Math.min(Math.max(10, savedPos.left), maxX);
+      const top = Math.min(Math.max(10, savedPos.top), maxY);
+      modal.style.left = left + 'px';
+      modal.style.top = top + 'px';
+      modal.style.right = 'auto';
+      modal.style.bottom = 'auto';
+    }
+  } catch (e) {}
+
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let initLeft = 0, initTop = 0;
+  let hasMoved = false;
+
+  function onPointerDown(e) {
+    if (e.target.closest('button')) return;
+
+    isDragging = true;
+    hasMoved = false;
+    startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+
+    const rect = modal.getBoundingClientRect();
+    initLeft = rect.left;
+    initTop = rect.top;
+
+    modal.classList.add('dragging');
+
+    if (e.pointerId && dragBar.setPointerCapture) {
+      try { dragBar.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onPointerUp);
   }
+
+  function onPointerMove(e) {
+    if (!isDragging) return;
+    const curX = e.clientX || 0;
+    const curY = e.clientY || 0;
+    handleMove(curX, curY, e);
+  }
+
+  function onTouchMove(e) {
+    if (!isDragging) return;
+    if (e.touches && e.touches[0]) {
+      handleMove(e.touches[0].clientX, e.touches[0].clientY, e);
+    }
+  }
+
+  function handleMove(curX, curY, e) {
+    const deltaX = curX - startX;
+    const deltaY = curY - startY;
+
+    if (!hasMoved && Math.hypot(deltaX, deltaY) > 5) {
+      hasMoved = true;
+    }
+
+    if (hasMoved) {
+      if (e.cancelable) e.preventDefault();
+
+      const modalWidth = modal.offsetWidth || 180;
+      const modalHeight = modal.offsetHeight || 60;
+      const minX = 8;
+      const maxX = Math.max(minX, window.innerWidth - modalWidth - 8);
+      const minY = 8;
+      const maxY = Math.max(minY, window.innerHeight - modalHeight - 8);
+
+      let newLeft = initLeft + deltaX;
+      let newTop = initTop + deltaY;
+
+      newLeft = Math.min(Math.max(minX, newLeft), maxX);
+      newTop = Math.min(Math.max(minY, newTop), maxY);
+
+      modal.style.left = newLeft + 'px';
+      modal.style.top = newTop + 'px';
+      modal.style.right = 'auto';
+      modal.style.bottom = 'auto';
+    }
+  }
+
+  function onPointerUp(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    modal.classList.remove('dragging');
+
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('touchmove', onTouchMove);
+    window.removeEventListener('touchend', onPointerUp);
+
+    if (hasMoved) {
+      const rect = modal.getBoundingClientRect();
+      try {
+        localStorage.setItem(DT_SUN_MODAL_POS_KEY, JSON.stringify({ left: rect.left, top: rect.top }));
+      } catch (err) {}
+    } else {
+      if (dtSunModalMinimized && !e.target.closest('button')) {
+        toggleSunModalMinimized(false);
+      }
+    }
+  }
+
+  dragBar.addEventListener('pointerdown', onPointerDown);
+  dragBar.addEventListener('touchstart', onPointerDown, { passive: true });
 }
 
 function setDtTeamView(viewMode) {
@@ -2629,16 +2799,21 @@ function handleDtViewOpen() {
   const livePanel = document.getElementById('dtLivePanel');
   const passInput = document.getElementById('inputDtGatePassword');
   const errorMsg = document.getElementById('dtGateErrorMsg');
+  const sunModal = document.getElementById('dtSunFloatingModal');
 
   if (isDtAuthenticated()) {
     if (gateCard) gateCard.style.display = 'none';
     if (livePanel) livePanel.style.display = 'flex';
+    if (sunModal) sunModal.style.display = 'block';
+    applyDtSunMode();
     renderDtView();
     updateDtCloudSyncStatus();
     startDtCloudPolling();
     processDtSyncQueue();
   } else {
     stopDtCloudPolling();
+    if (sunModal) sunModal.style.display = 'none';
+    document.body.classList.remove('dt-sun-mode');
     if (livePanel) livePanel.style.display = 'none';
     if (gateCard) gateCard.style.display = 'block';
     if (errorMsg) errorMsg.style.display = 'none';
@@ -2668,6 +2843,11 @@ function lockDtSession() {
   sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
   pauseDtClock();
   stopDtCloudPolling();
+  const sunModal = document.getElementById('dtSunFloatingModal');
+  if (sunModal) sunModal.style.display = 'none';
+  document.body.classList.remove('dt-sun-mode');
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) metaTheme.setAttribute('content', '#030d2d');
   handleDtViewOpen();
   showToast('🔒 Sesión de DT bloqueada');
 }

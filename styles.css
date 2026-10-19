@@ -2793,38 +2793,162 @@ body {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
-.btn-dt-sun-mode {
-  background: rgba(245, 158, 11, 0.16);
-  border: 1px solid rgba(245, 158, 11, 0.45);
-  border-radius: var(--radius-full);
-  color: #fbbf24;
-  font-family: var(--font-main);
-  font-size: 0.70rem;
-  font-weight: 800;
-  padding: 5px 11px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+/* ==========================================================================
+   MODALCITO FLOTANTE Y ARRASTRABLE: MODO CANCHA AL SOL (EXCLUSIVO DT)
+   ========================================================================== */
+.dt-sun-floating-modal {
+  position: fixed;
+  top: 75px;
+  right: 14px;
+  z-index: 1000;
+  min-width: 170px;
+  max-width: 215px;
+  background: rgba(7, 21, 66, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(0, 162, 255, 0.45);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 16px rgba(0, 162, 255, 0.2);
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
-.btn-dt-sun-mode:hover {
-  background: rgba(245, 158, 11, 0.3);
-  color: #ffffff;
-  border-color: #f59e0b;
+.dt-sun-floating-modal.dragging {
+  cursor: grabbing !important;
+  opacity: 0.96;
+  transform: scale(1.03);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.7), 0 0 24px rgba(0, 162, 255, 0.4);
 }
 
-.btn-dt-sun-mode:active {
-  transform: scale(0.95);
+.dt-sun-modal-drag-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 8px 7px 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: grab;
+  touch-action: none;
 }
 
-.btn-dt-sun-mode.active {
-  background: #0f172a;
+.dt-sun-grip-dots {
+  font-size: 1.15rem;
   color: #fbbf24;
-  border-color: #0f172a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  opacity: 0.85;
+  cursor: grab;
+  line-height: 1;
+}
+
+.dt-sun-modal-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  flex: 1;
+  pointer-events: none;
+}
+
+.btn-dt-sun-modal-min {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #9bb1d6;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-dt-sun-modal-min:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.btn-dt-sun-modal-min:active {
+  transform: scale(0.9);
+}
+
+.dt-sun-modal-content {
+  padding: 8px 10px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dt-sun-modal-desc {
+  font-size: 0.65rem;
+  color: #9bb1d6;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+.dt-sun-switch-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dt-sun-pill-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 5px 6px;
+  color: #9bb1d6;
+  font-family: var(--font-main);
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dt-sun-pill-btn.active[data-mode="night"] {
+  background: #1e293b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.dt-sun-pill-btn.active[data-mode="sun"] {
+  background: #facc15;
+  color: #0f172a;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.45);
+}
+
+/* Estado Minimizado */
+.dt-sun-floating-modal.minimized {
+  min-width: auto;
+  max-width: none;
+}
+
+.dt-sun-floating-modal.minimized .dt-sun-modal-drag-bar {
+  border-bottom: none;
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+}
+
+.dt-sun-floating-modal.minimized .dt-sun-modal-content {
+  display: none;
 }
 
 /* Modal Google Sheets Config */
@@ -5502,11 +5626,60 @@ body.dt-sun-mode .btn-dt-lock-session {
   font-weight: 900 !important;
 }
 
-body.dt-sun-mode .btn-dt-sun-mode {
+body.dt-sun-mode .dt-sun-floating-modal {
+  background: #ffffff !important;
+  border: 2.5px solid #0f172a !important;
+  box-shadow: 0 6px 0 #0f172a !important;
+}
+
+body.dt-sun-mode .dt-sun-modal-drag-bar {
+  background: #f1f5f9 !important;
+  border-bottom: 2px solid #0f172a !important;
+}
+
+body.dt-sun-mode .dt-sun-floating-modal.minimized .dt-sun-modal-drag-bar {
+  border-bottom: none !important;
+}
+
+body.dt-sun-mode .dt-sun-grip-dots {
+  color: #0f172a !important;
+}
+
+body.dt-sun-mode .dt-sun-modal-title {
+  color: #0f172a !important;
+  font-weight: 900 !important;
+}
+
+body.dt-sun-mode .btn-dt-sun-modal-min {
+  background: #e2e8f0 !important;
+  border: 1.5px solid #0f172a !important;
+  color: #0f172a !important;
+}
+
+body.dt-sun-mode .dt-sun-modal-desc {
+  color: #334155 !important;
+  font-weight: 800 !important;
+}
+
+body.dt-sun-mode .dt-sun-switch-pills {
+  background: #f1f5f9 !important;
+  border: 1.5px solid #0f172a !important;
+}
+
+body.dt-sun-mode .dt-sun-pill-btn {
+  color: #64748b !important;
+}
+
+body.dt-sun-mode .dt-sun-pill-btn.active[data-mode="sun"] {
   background: #0f172a !important;
-  border: 2px solid #0f172a !important;
   color: #facc15 !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+  font-weight: 900 !important;
+}
+
+body.dt-sun-mode .dt-sun-pill-btn.active[data-mode="night"] {
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
 }
 
 /* Selector de Partido */

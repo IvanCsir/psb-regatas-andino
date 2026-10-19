@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261019_sun_mode_v1">
+  <link rel="stylesheet" href="styles.css?v=20261019_sun_modal_v2">
 </head>
 <body>
 
@@ -120,14 +120,6 @@
             <span class="drawer-item-desc">Planilla en vivo, ingresos al área, córners y estadísticas</span>
           </div>
           <span class="drawer-badge-lock">🔒</span>
-        </button>
-
-        <button type="button" class="drawer-nav-item" id="drawerBtnSunMode">
-          <span class="drawer-item-icon" id="drawerSunIcon">☀️</span>
-          <div class="drawer-item-info">
-            <span class="drawer-item-title" id="drawerSunTitle">Modo Cancha al Sol</span>
-            <span class="drawer-item-desc" id="drawerSunDesc">Alto contraste para ver la pantalla bajo el sol directo</span>
-          </div>
         </button>
       </div>
 
@@ -475,6 +467,29 @@
          ==================================================================== -->
     <div id="viewDT" class="view-panel" style="display: none;">
       
+      <!-- ================================================================
+           MODALCITO FLOTANTE Y ARRASTRABLE: MODO CANCHA AL SOL (EXCLUSIVO DT)
+           Se puede arrastrar y soltar con el dedo/mouse en cualquier parte
+           ================================================================ -->
+      <aside class="dt-sun-floating-modal" id="dtSunFloatingModal" aria-label="Control Flotante Modo Cancha al Sol">
+        <div class="dt-sun-modal-drag-bar" id="dtSunModalDragBar" title="Mantené presionado y arrastrá para moverlo">
+          <span class="dt-sun-grip-dots">⠿</span>
+          <span class="dt-sun-modal-title" id="dtSunModalTitle">☀️ Cancha al Sol</span>
+          <button type="button" class="btn-dt-sun-modal-min" id="btnDtSunModalMin" title="Minimizar / Expandir modalcito">−</button>
+        </div>
+        <div class="dt-sun-modal-content" id="dtSunModalContent">
+          <div class="dt-sun-modal-desc">Alto contraste para el sol</div>
+          <div class="dt-sun-switch-pills">
+            <button type="button" class="dt-sun-pill-btn active" id="btnSunPillNight" data-mode="night">
+              <span>🌙</span> Noche
+            </button>
+            <button type="button" class="dt-sun-pill-btn" id="btnSunPillSun" data-mode="sun">
+              <span>☀️</span> Sol
+            </button>
+          </div>
+        </div>
+      </aside>
+
       <!-- Botón Superior Volver -->
       <div class="view-return-bar">
         <button class="btn-return-citacion" id="btnReturnToCitacionFromDT">
@@ -520,10 +535,6 @@
             </div>
             
             <div class="dt-top-right-actions">
-              <button type="button" class="btn-dt-sun-mode" id="btnDtSunMode" title="Alternar Modo Sol (Alto Contraste para la cancha al sol)" aria-label="Modo Sol / Alto Contraste">
-                <span id="dtSunModeIcon">☀️</span>
-                <span id="dtSunModeText">Modo Sol</span>
-              </button>
               <button type="button" class="btn-dt-sheets-action" id="btnDtQuickSync" title="Forzar sincronización inmediata con Google Sheets">
                 🔄 Sincronizar
               </button>
@@ -1205,7 +1216,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261019_sun_mode_v1"></script>
-  <script src="app.js?v=20261019_sun_mode_v1"></script>
+  <script src="data.js?v=20261019_sun_modal_v2"></script>
+  <script src="app.js?v=20261019_sun_modal_v2"></script>
 </body>
 </html>
