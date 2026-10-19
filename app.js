@@ -383,6 +383,7 @@ function renderTournamentMatches(divData) {
           </div>
           <div class="match-item-result-group">
             <span class="pending-date-pill">📅 ${escapeHtml(m.fecha || 'A confirmar')}</span>
+            <button type="button" class="btn-match-to-dt" onclick="openDtForMatch('${currentTournamentDivision}', '${escapeHtml(m.round)}', '${escapeHtml(m.rival)}')">⏱️ DT Live</button>
           </div>
         </div>
       `;
@@ -414,7 +415,10 @@ function renderTournamentMatches(divData) {
           <span class="next-match-rival">vs ${escapeHtml(nextMatch.rival)}</span>
           <span class="next-match-condition">${escapeHtml(nextMatch.homeAway || 'Local')}${nextMatch.fecha ? ` • ${escapeHtml(nextMatch.fecha)}` : ''}</span>
         </div>
-        <span class="next-match-pill-pending">Por disputarse (X)</span>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+          <span class="next-match-pill-pending">Por disputarse (X)</span>
+          <button type="button" class="btn-match-to-dt" style="margin-top: 0;" onclick="event.stopPropagation(); openDtForMatch('${currentTournamentDivision}', '${escapeHtml(nextMatch.round)}', '${escapeHtml(nextMatch.rival)}')">⏱️ Botonera DT</button>
+        </div>
       </div>
     </div>
   ` : '';
@@ -442,6 +446,7 @@ function renderTournamentMatches(divData) {
         <div class="match-item-result-group">
           <span class="match-item-score">${escapeHtml(m.score || '-')}</span>
           <span class="match-pill-result ${resClass}">${resLabel}</span>
+          <button type="button" class="btn-match-to-dt" onclick="openDtForMatch('${currentTournamentDivision}', '${escapeHtml(m.round)}', '${escapeHtml(m.rival)}')">⏱️ DT Live</button>
         </div>
       </div>
     `;
@@ -1632,7 +1637,9 @@ async function syncWithGoogleSheets(manual = false) {
 // VISTA 4: BOTONERA DE INCIDENCIAS DT EN VIVO (HOCKEY LIVE TRACKER)
 // ============================================================================
 
-const DT_MATCH_STORAGE_KEY = 'regatas_dt_match_v2';
+const DT_MATCHES_STORE_KEY = 'regatas_dt_matches_v3';
+const DT_ACTIVE_MATCH_KEY = 'regatas_dt_cur_match_v3';
+const DT_LEGACY_MATCH_KEY = 'regatas_dt_match_v2';
 const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok';
 
 let dtClockInterval = null;
@@ -1645,54 +1652,230 @@ function createDefaultQuarterStats() {
   };
 }
 
-let dtMatchState = {
-  division: 'primera', // 'primera' | 'intermedia'
-  rivalName: 'MURIALDO B',
-  currentQuarter: 1, // 1..4
-  timer: {
-    seconds: 15 * 60,
-    isRunning: false
-  },
-  score: { home: 0, away: 0 },
-  quarters: {
-    1: createDefaultQuarterStats(),
-    2: createDefaultQuarterStats(),
-    3: createDefaultQuarterStats(),
-    4: createDefaultQuarterStats()
-  },
-  events: []
-};
+function getMatchKey(division, round) {
+  const div = (division === '2' || division === 'intermedia') ? 'intermedia' : 'primera';
+  const cleanRound = (round || 'general').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  return `${div}_${cleanRound}`;
+}
 
-// Carga y guardado de estado en LocalStorage
-function loadDtMatchState() {
+function findFixtureMatch(division, round) {
+  if (!tournamentData) loadTournamentData();
+  const div = (division === '2' || division === 'intermedia') ? 'intermedia' : 'primera';
+  const divData = (tournamentData && tournamentData[div]) || (DEFAULT_TOURNAMENT_DATA && DEFAULT_TOURNAMENT_DATA[div]);
+  if (!divData) return null;
+
+  const normalize = s => (s || '').toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const target = normalize(round);
+
+  if (divData.nextMatch && normalize(divData.nextMatch.round) === target) {
+    return divData.nextMatch;
+  }
+  if (Array.isArray(divData.pendingMatches)) {
+    const p = divData.pendingMatches.find(m => normalize(m.round) === target);
+    if (p) return p;
+  }
+  if (Array.isArray(divData.matches)) {
+    const m = divData.matches.find(m => normalize(m.round) === target);
+    if (m) return m;
+  }
+  return null;
+}
+
+function createDefaultMatchState(division, round, rivalName, homeAway, fecha) {
+  const div = (division === '2' || division === 'intermedia') ? 'intermedia' : 'primera';
+  const cleanRound = round || 'Fecha 12';
+  return {
+    id: getMatchKey(div, cleanRound),
+    division: div,
+    round: cleanRound,
+    rivalName: (rivalName || 'MURIALDO').toUpperCase(),
+    homeAway: homeAway || 'Local',
+    fecha: fecha || '',
+    currentQuarter: 1,
+    timer: {
+      seconds: 15 * 60,
+      isRunning: false
+    },
+    score: { home: 0, away: 0 },
+    quarters: {
+      1: createDefaultQuarterStats(),
+      2: createDefaultQuarterStats(),
+      3: createDefaultQuarterStats(),
+      4: createDefaultQuarterStats()
+    },
+    events: []
+  };
+}
+
+let dtMatchesStore = {};
+let dtCurrentMatchKey = 'primera_fecha_12';
+let dtMatchState = createDefaultMatchState('primera', 'Fecha 12', 'MURIALDO', 'Local', '24/10/2026');
+
+function ensureMatchStateExists(matchKey, meta = {}) {
+  if (!matchKey) matchKey = 'primera_fecha_12';
+
+  if (!dtMatchesStore[matchKey]) {
+    const div = meta.division || (matchKey.startsWith('intermedia') ? 'intermedia' : 'primera');
+    let round = meta.round;
+    if (!round) {
+      const suffix = matchKey.replace(`${div}_`, '');
+      const parts = suffix.split('_');
+      round = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+      if (!round || round.toLowerCase() === 'amistoso') round = 'Amistoso';
+    }
+
+    const fixtureMatch = findFixtureMatch(div, round);
+    const rival = meta.rivalName || (fixtureMatch ? fixtureMatch.rival : (round.toLowerCase() === 'amistoso' ? 'AMISTOSO' : 'RIVAL'));
+    const homeAway = meta.homeAway || (fixtureMatch ? fixtureMatch.homeAway : 'Local');
+    const fecha = meta.fecha || (fixtureMatch ? fixtureMatch.fecha : '');
+
+    dtMatchesStore[matchKey] = createDefaultMatchState(div, round, rival, homeAway, fecha);
+  } else {
+    if (meta.rivalName && (!dtMatchesStore[matchKey].rivalName || dtMatchesStore[matchKey].rivalName === 'RIVAL')) {
+      dtMatchesStore[matchKey].rivalName = meta.rivalName.toUpperCase();
+    }
+    if (meta.round && !dtMatchesStore[matchKey].round) {
+      dtMatchesStore[matchKey].round = meta.round;
+    }
+    if (meta.homeAway && !dtMatchesStore[matchKey].homeAway) {
+      dtMatchesStore[matchKey].homeAway = meta.homeAway;
+    }
+    if (meta.fecha && !dtMatchesStore[matchKey].fecha) {
+      dtMatchesStore[matchKey].fecha = meta.fecha;
+    }
+  }
+
+  return dtMatchesStore[matchKey];
+}
+
+// Carga y guardado de tienda multi-partido en LocalStorage
+function loadDtMatchesStore() {
   try {
-    const saved = localStorage.getItem(DT_MATCH_STORAGE_KEY);
+    const saved = localStorage.getItem(DT_MATCHES_STORE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed && parsed.quarters && parsed.events) {
-        dtMatchState = parsed;
-      }
+      dtMatchesStore = JSON.parse(saved) || {};
     }
   } catch (e) {
-    console.warn('Error cargando estado DT:', e);
+    console.warn('Error cargando dtMatchesStore:', e);
+    dtMatchesStore = {};
   }
 
-  // Asegurar nombre de rival por defecto si no está cargado
-  if (!dtMatchState.rivalName) {
-    const curDiv = dtMatchState.division || 'primera';
-    const divMeta = matchData && matchData[curDiv];
-    dtMatchState.rivalName = (divMeta && divMeta.rival) ? divMeta.rival : 'MURIALDO B';
-  }
+  // Migración desde versión anterior monomatch (v2) si existe
+  try {
+    const oldSaved = localStorage.getItem(DT_LEGACY_MATCH_KEY);
+    if (oldSaved) {
+      const oldMatch = JSON.parse(oldSaved);
+      if (oldMatch && Array.isArray(oldMatch.events) && oldMatch.events.length > 0) {
+        const legacyDiv = oldMatch.division || 'primera';
+        const legacyKey = `${legacyDiv}_fecha_12`;
+        if (!dtMatchesStore[legacyKey]) {
+          oldMatch.id = legacyKey;
+          oldMatch.round = oldMatch.round || 'Fecha 12';
+          dtMatchesStore[legacyKey] = oldMatch;
+        }
+      }
+    }
+  } catch (e) {}
 
+  const savedActiveKey = localStorage.getItem(DT_ACTIVE_MATCH_KEY);
+  dtCurrentMatchKey = savedActiveKey || 'primera_fecha_12';
+
+  ensureMatchStateExists(dtCurrentMatchKey);
+  dtMatchState = dtMatchesStore[dtCurrentMatchKey];
   recalculateDtStatsFromEvents();
 }
 
-function saveDtMatchState() {
+function saveDtMatchesStore() {
   try {
-    localStorage.setItem(DT_MATCH_STORAGE_KEY, JSON.stringify(dtMatchState));
+    if (dtMatchState && dtCurrentMatchKey) {
+      dtMatchesStore[dtCurrentMatchKey] = dtMatchState;
+    }
+    localStorage.setItem(DT_MATCHES_STORE_KEY, JSON.stringify(dtMatchesStore));
+    localStorage.setItem(DT_ACTIVE_MATCH_KEY, dtCurrentMatchKey);
   } catch (e) {
-    console.warn('Error guardando estado DT:', e);
+    console.warn('Error guardando dtMatchesStore:', e);
   }
+}
+
+// Aliases de compatibilidad
+function loadDtMatchState() {
+  loadDtMatchesStore();
+}
+
+function saveDtMatchState() {
+  saveDtMatchesStore();
+}
+
+// Cambio de partido activo en la Botonera DT
+function switchDtMatch(matchKey, meta = {}) {
+  if (!matchKey) return;
+  pauseDtClock();
+
+  saveDtMatchesStore();
+
+  dtCurrentMatchKey = matchKey;
+  ensureMatchStateExists(matchKey, meta);
+  dtMatchState = dtMatchesStore[matchKey];
+
+  recalculateDtStatsFromEvents();
+  saveDtMatchesStore();
+
+  renderDtView();
+}
+
+// Llenado dinámico del selector de partidos según la categoría activa
+function populateDtMatchSelect() {
+  const select = document.getElementById('selectDtMatch');
+  if (!select) return;
+
+  if (!tournamentData) loadTournamentData();
+  const curDiv = dtMatchState ? dtMatchState.division : 'primera';
+  const divData = (tournamentData && tournamentData[curDiv]) || (DEFAULT_TOURNAMENT_DATA && DEFAULT_TOURNAMENT_DATA[curDiv]) || {};
+  const pending = Array.isArray(divData.pendingMatches) ? divData.pendingMatches : [];
+  const played = Array.isArray(divData.matches) ? divData.matches : [];
+
+  let html = '';
+
+  // 1. Fixture por Disputarse (Oficial AMH)
+  if (pending.length > 0) {
+    html += `<optgroup label="⏳ Fixture por Disputarse (Clausura 2026)">`;
+    pending.forEach(m => {
+      const key = getMatchKey(curDiv, m.round);
+      const isSaved = dtMatchesStore[key] && dtMatchesStore[key].events && dtMatchesStore[key].events.length > 0;
+      const scoreBadge = isSaved ? ` [● En vivo ${dtMatchesStore[key].score.home}-${dtMatchesStore[key].score.away}]` : '';
+      const selectedAttr = key === dtCurrentMatchKey ? 'selected' : '';
+      const cond = m.homeAway ? `(${m.homeAway})` : '';
+      html += `<option value="${key}" ${selectedAttr}>${escapeHtml(m.round)} • vs ${escapeHtml(m.rival)} ${cond}${scoreBadge}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  // 2. Partidos Disputados (Historial para revisión o carga de estadísticas)
+  if (played.length > 0) {
+    html += `<optgroup label="✅ Partidos Disputados (Historial)">`;
+    const revPlayed = [...played].reverse();
+    revPlayed.forEach(m => {
+      const key = getMatchKey(curDiv, m.round);
+      const isSaved = dtMatchesStore[key] && dtMatchesStore[key].events && dtMatchesStore[key].events.length > 0;
+      const scoreBadge = isSaved ? ` [● DT ${dtMatchesStore[key].score.home}-${dtMatchesStore[key].score.away}]` : ` (${m.score || 'Jugado'})`;
+      const selectedAttr = key === dtCurrentMatchKey ? 'selected' : '';
+      html += `<option value="${key}" ${selectedAttr}>${escapeHtml(m.round)} • vs ${escapeHtml(m.rival)}${scoreBadge}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  // 3. Amistoso / Libre
+  const customKey = `${curDiv}_amistoso`;
+  const isCustomSaved = dtMatchesStore[customKey] && dtMatchesStore[customKey].events && dtMatchesStore[customKey].events.length > 0;
+  const customBadge = isCustomSaved ? ` [● ${dtMatchesStore[customKey].score.home}-${dtMatchesStore[customKey].score.away}]` : '';
+  const customSelected = customKey === dtCurrentMatchKey ? 'selected' : '';
+  html += `
+    <optgroup label="⚡ Personalizado / Amistoso">
+      <option value="${customKey}" ${customSelected}>Amistoso / Práctica Libre${customBadge}</option>
+    </optgroup>
+  `;
+
+  select.innerHTML = html;
 }
 
 // Recalcular todas las estadísticas y marcador directamente desde el feed de eventos
@@ -1866,29 +2049,46 @@ function initDtModule() {
   const pillI = document.getElementById('dtPillIntermedia');
   if (pillP) {
     pillP.addEventListener('click', () => {
-      dtMatchState.division = 'primera';
-      saveDtMatchState();
-      renderDtView();
+      if (dtMatchState && dtMatchState.division === 'primera') return;
+      const curRound = (dtMatchState && dtMatchState.round) || 'Fecha 12';
+      const targetKey = getMatchKey('primera', curRound);
+      switchDtMatch(targetKey, { division: 'primera', round: curRound });
+      showToast('📍 Cambiaste a 1ra División');
     });
   }
   if (pillI) {
     pillI.addEventListener('click', () => {
-      dtMatchState.division = 'intermedia';
-      saveDtMatchState();
-      renderDtView();
+      if (dtMatchState && dtMatchState.division === 'intermedia') return;
+      const curRound = (dtMatchState && dtMatchState.round) || 'Fecha 12';
+      const targetKey = getMatchKey('intermedia', curRound);
+      switchDtMatch(targetKey, { division: 'intermedia', round: curRound });
+      showToast('📍 Cambiaste a Intermedia');
     });
   }
 
-  // 4. Edición rápida del nombre del Rival
+  // 4. Selector de Partido Sincronizado con Fixture Oficial
+  const selectMatch = document.getElementById('selectDtMatch');
+  if (selectMatch) {
+    selectMatch.addEventListener('change', (e) => {
+      const chosenKey = e.target.value;
+      if (chosenKey && chosenKey !== dtCurrentMatchKey) {
+        switchDtMatch(chosenKey);
+        showToast(`📍 Partido cargado: ${dtMatchState.round} vs ${dtMatchState.rivalName}`);
+      }
+    });
+  }
+
+  // 5. Edición rápida del nombre del Rival
   const btnEditRival = document.getElementById('btnEditRivalName');
   if (btnEditRival) {
     btnEditRival.addEventListener('click', () => {
       const cur = dtMatchState.rivalName || 'RIVAL';
-      const nuevo = prompt('Ingresá el nombre del club rival:', cur);
+      const nuevo = prompt(`Ingresá el nombre del club rival para ${dtMatchState.round || 'este partido'}:`, cur);
       if (nuevo && nuevo.trim()) {
         dtMatchState.rivalName = nuevo.trim().toUpperCase();
-        saveDtMatchState();
+        saveDtMatchesStore();
         renderDtView();
+        showToast(`✏️ Rival actualizado: ${dtMatchState.rivalName}`);
       }
     });
   }
@@ -2012,6 +2212,15 @@ function initDtModule() {
       if (e.target === modalOption) closeIncidentOptionModal();
     });
   }
+
+  // 12. Atajo global para abrir un partido específico en la Botonera DT (desde Torneo)
+  window.openDtForMatch = function(division, round, rival) {
+    const div = (division === '2' || division === 'intermedia') ? 'intermedia' : 'primera';
+    const matchKey = getMatchKey(div, round);
+    switchDtMatch(matchKey, { division: div, round, rivalName: rival });
+    showView('dt');
+    showToast(`⏱️ Botonera DT: ${round} vs ${rival || 'Rival'}`);
+  };
 }
 
 // Registro centralizado de incidencias
@@ -2138,7 +2347,8 @@ function deleteEventById(eventId) {
 // Reiniciar Partido
 function resetDtMatchWithConfirm() {
   const divName = dtMatchState.division === '2' || dtMatchState.division === 'intermedia' ? 'Intermedia' : '1ra División';
-  if (confirm(`¿Reiniciar el partido de ${divName}? Se borrarán todas las incidencias y el marcador volverá a 0-0.`)) {
+  const matchDesc = `${dtMatchState.round || 'Partido'} (${divName} vs ${dtMatchState.rivalName || 'Rival'})`;
+  if (confirm(`¿Reiniciar este partido?\n${matchDesc}\n\nSe borrarán todas las incidencias de este partido y el marcador volverá a 0-0. Los demás partidos del fixture se mantendrán intactos.`)) {
     dtMatchState.currentQuarter = 1;
     dtMatchState.score = { home: 0, away: 0 };
     dtMatchState.events = [];
@@ -2149,7 +2359,7 @@ function resetDtMatchWithConfirm() {
       4: createDefaultQuarterStats()
     };
     resetDtClock();
-    saveDtMatchState();
+    saveDtMatchesStore();
     renderDtView();
     showToast('🔄 Partido reiniciado exitosamente');
   }
@@ -2354,6 +2564,22 @@ function shareDtMatchWhatsApp() {
 // Renderizado de la Pantalla DT en Vivo
 function renderDtView() {
   if (!isDtAuthenticated()) return;
+  if (!dtMatchState) loadDtMatchesStore();
+
+  // Sincronización del Selector de Partido y Título
+  populateDtMatchSelect();
+
+  const pickerTitle = document.getElementById('dtMatchPickerTitle');
+  if (pickerTitle) {
+    const roundLabel = (dtMatchState.round || 'PARTIDO').toUpperCase();
+    const divShort = dtMatchState.division === 'intermedia' ? 'INT' : '1RA';
+    pickerTitle.textContent = `${roundLabel} (${divShort}):`;
+  }
+
+  const selectMatch = document.getElementById('selectDtMatch');
+  if (selectMatch && selectMatch.value !== dtCurrentMatchKey) {
+    selectMatch.value = dtCurrentMatchKey;
+  }
 
   const rival = dtMatchState.rivalName || 'RIVAL';
   const curQ = dtMatchState.currentQuarter || 1;

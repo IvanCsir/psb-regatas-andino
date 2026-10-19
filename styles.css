@@ -2687,6 +2687,74 @@ body {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
+/* Selector de Partido Activo */
+.dt-match-picker-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(3, 13, 45, 0.85);
+  border: 1px solid var(--border-cyan);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.dt-picker-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--color-regatas-cyan);
+  white-space: nowrap;
+}
+
+.dt-match-select {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: var(--font-main);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.dt-match-select option, .dt-match-select optgroup {
+  background: var(--bg-surface-elevated);
+  color: #ffffff;
+  font-family: var(--font-main);
+}
+
+/* Botón directo hacia Botonera DT desde las tarjetas de Torneo */
+.btn-match-to-dt {
+  background: rgba(0, 162, 255, 0.12);
+  border: 1px solid rgba(0, 162, 255, 0.35);
+  border-radius: var(--radius-full);
+  color: var(--color-regatas-cyan);
+  font-family: var(--font-main);
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-top: 6px;
+}
+
+.btn-match-to-dt:hover {
+  background: var(--color-regatas-cyan);
+  color: #030d2d;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(0, 162, 255, 0.4);
+}
+
 /* Marcador Principal */
 .dt-scoreboard-wrapper {
   display: flex;
