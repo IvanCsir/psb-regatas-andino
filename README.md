@@ -26,8 +26,16 @@ La página web está conectada directamente con tu planilla de Google Sheets:
 
 ---
 
-## 🚀 Despliegue en Netlify
-Para actualizar tu sitio con esta nueva versión conectada a Google Sheets:
-1. Entrá a [Netlify Drop](https://app.netlify.com/drop).
-2. Arrastrá la carpeta `Web Citaciones`.
-3. ¡Listo! A partir de ahora, todo se gestiona desde tu planilla de Google Sheets.
+---
+
+## 🌐 Publicación en GitHub Pages
+
+La aplicación está lista para ejecutarse directamente desde GitHub Pages:
+
+🔗 **URL Oficial:** [https://ivancsir.github.io/psb-regatas-andino/](https://ivancsir.github.io/psb-regatas-andino/)
+
+### Activación en 3 pasos:
+1. Andá a [Settings > Pages](https://github.com/IvanCsir/psb-regatas-andino/settings/pages).
+2. En **Build and deployment > Source**, seleccioná **Deploy from a branch**.
+3. En **Branch**, seleccioná `main` y carpeta `/(root)`. Hacé clic en **Save**.
+4. ¡Listo! En 1 minuto tu app estará online y se actualizará automáticamente con cada `git push`.
