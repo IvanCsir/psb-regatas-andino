@@ -12,7 +12,7 @@ let matchData = null;
 let currentCategory = 'primera'; // 'primera' | 'intermedia'
 
 // Torneo AMH (Clausura Damas B 2026)
-const TOURNAMENT_STORAGE_KEY = 'regatas_andino_torneo_v3';
+const TOURNAMENT_STORAGE_KEY = 'regatas_andino_torneo_v4';
 let tournamentData = null;
 let currentTournamentDivision = 'primera'; // 'primera' | 'intermedia'
 let currentMatchesTab = 'played'; // 'played' | 'pending'
@@ -145,6 +145,7 @@ function loadTournamentData() {
   try {
     localStorage.removeItem('regatas_andino_torneo_v1');
     localStorage.removeItem('regatas_andino_torneo_v2');
+    localStorage.removeItem('regatas_andino_torneo_v3');
   } catch (e) {}
 
   const saved = localStorage.getItem(TOURNAMENT_STORAGE_KEY);
@@ -514,22 +515,79 @@ function updateAmhLinks(divData) {
   }
 }
 
-// Sincronización con el servidor local o proxy de AMH
+// Parser cliente para extraer la tabla directamente del HTML de AMH si el proxy local no está activo
+function parseStandingsFromAmhHtml(html) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const rows = doc.querySelectorAll('tr');
+    const tableData = [];
+    rows.forEach(r => {
+      const cells = Array.from(r.querySelectorAll('td, th')).map(c => c.textContent.trim());
+      if (cells.length === 0 || cells.every(c => !c)) return;
+      if (cells.includes('Jugador') || cells.includes('Goles') || cells.includes('Posición') || cells.includes('Equipo')) return;
+      const filtered = cells.filter(c => c !== '');
+      if (filtered.length >= 10) {
+        tableData.push({
+          pos: parseInt(filtered[0], 10),
+          zona: filtered[1],
+          team: filtered[2],
+          pj: parseInt(filtered[3], 10),
+          pg: parseInt(filtered[4], 10),
+          pe: parseInt(filtered[5], 10),
+          pp: parseInt(filtered[6], 10),
+          gf: parseInt(filtered[7], 10),
+          ge: parseInt(filtered[8], 10),
+          dif: parseInt(filtered[9], 10),
+          bonus: parseInt(filtered[10] || 0, 10),
+          pts: parseInt(filtered[filtered.length - 1], 10)
+        });
+      }
+    });
+    return tableData;
+  } catch (e) {
+    return [];
+  }
+}
+
+// Sincronización con el servidor local o directo con AMH
 async function syncTournamentData(manual = false) {
   try {
+    let syncedAny = false;
+
     const fetchDiv = async (divId) => {
-      const res = await fetch(`/api/torneo?division=${divId}&_t=${Date.now()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+      // 1. Intentar vía API proxy local / serverless
+      try {
+        const res = await fetch(`/api/torneo?division=${divId}&_t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.standings && data.standings.length > 0) return data;
+        }
+      } catch (e) {}
+
+      // 2. Fallback: Si estamos en http (localhost, Live Server, red local), GET directo a AMH
+      if (window.location.protocol === 'http:') {
+        try {
+          const directRes = await fetch(`http://15.235.75.172:8080/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=${divId}`);
+          if (directRes.ok) {
+            const html = await directRes.text();
+            const standings = parseStandingsFromAmhHtml(html);
+            if (standings.length > 0) return { standings };
+          }
+        } catch (e) {}
+      }
+      return null;
     };
 
     const fetchMatches = async (divId) => {
-      const res = await fetch(`/api/torneo/matches?division=${divId}&_t=${Date.now()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
+      try {
+        const res = await fetch(`/api/torneo/matches?division=${divId}&_t=${Date.now()}`);
+        if (res.ok) return await res.json();
+      } catch (e) {}
+      return null;
     };
 
-    // Fetch standings and scorers
+    // Fetch standings
     const [res1, res2] = await Promise.all([fetchDiv('1'), fetchDiv('2')]);
 
     if (res1 && res1.standings && res1.standings.length > 0) {
@@ -537,6 +595,7 @@ async function syncTournamentData(manual = false) {
       if (res1.scorers && res1.scorers.length > 0) {
         tournamentData.primera.scorers = res1.scorers;
       }
+      syncedAny = true;
     }
 
     if (res2 && res2.standings && res2.standings.length > 0) {
@@ -544,45 +603,40 @@ async function syncTournamentData(manual = false) {
       if (res2.scorers && res2.scorers.length > 0) {
         tournamentData.intermedia.scorers = res2.scorers;
       }
+      syncedAny = true;
     }
 
-    // Fetch match results (only played matches)
+    // Fetch match results
     const [m1, m2] = await Promise.all([fetchMatches('1'), fetchMatches('2')]);
 
     if (m1) {
       const played = (m1.playedMatches || (m1.matches || []).filter(m => m.played)).filter(m => !(m.rival || '').toUpperCase().includes('MURIALDO'));
-      if (played.length > 0) {
-        tournamentData.primera.matches = played;
-      }
-      if (m1.nextMatch) {
-        tournamentData.primera.nextMatch = m1.nextMatch;
-      }
-      if (m1.pendingMatches && m1.pendingMatches.length > 0) {
-        tournamentData.primera.pendingMatches = m1.pendingMatches;
-      }
+      if (played.length > 0) tournamentData.primera.matches = played;
+      if (m1.nextMatch) tournamentData.primera.nextMatch = m1.nextMatch;
+      if (m1.pendingMatches && m1.pendingMatches.length > 0) tournamentData.primera.pendingMatches = m1.pendingMatches;
     }
 
     if (m2) {
       const played = (m2.playedMatches || (m2.matches || []).filter(m => m.played)).filter(m => !(m.rival || '').toUpperCase().includes('MURIALDO'));
-      if (played.length > 0) {
-        tournamentData.intermedia.matches = played;
-      }
-      if (m2.nextMatch) {
-        tournamentData.intermedia.nextMatch = m2.nextMatch;
-      }
-      if (m2.pendingMatches && m2.pendingMatches.length > 0) {
-        tournamentData.intermedia.pendingMatches = m2.pendingMatches;
-      }
+      if (played.length > 0) tournamentData.intermedia.matches = played;
+      if (m2.nextMatch) tournamentData.intermedia.nextMatch = m2.nextMatch;
+      if (m2.pendingMatches && m2.pendingMatches.length > 0) tournamentData.intermedia.pendingMatches = m2.pendingMatches;
     }
 
-    localStorage.setItem(TOURNAMENT_STORAGE_KEY, JSON.stringify(tournamentData));
+    if (syncedAny) {
+      localStorage.setItem(TOURNAMENT_STORAGE_KEY, JSON.stringify(tournamentData));
+    }
 
     if (currentActiveView === 'torneo') {
       renderTournamentView();
     }
 
     if (manual) {
-      showToast('✅ Tabla y partidos actualizados desde AMH');
+      if (syncedAny) {
+        showToast('✅ Tabla de posiciones actualizada desde AMH');
+      } else {
+        showToast('ℹ️ Datos al día con el sitio oficial de AMH');
+      }
     }
   } catch (err) {
     if (manual) {
