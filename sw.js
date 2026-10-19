@@ -1,6 +1,6 @@
 // Service Worker - Regatas Andino Hockey PWA
 // Cache Version
-const CACHE_NAME = 'regatas-hockey-v20261019-sun-modal-v2';
+const CACHE_NAME = 'regatas-hockey-v20261019-auth-v5';
 
 // Recursos críticos para funcionamiento offline
 const STATIC_ASSETS = [
@@ -90,10 +90,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Recursos estáticos locales (CSS, JS, imágenes): Stale-While-Revalidate (carga instantánea + actualización en segundo plano)
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      const fetchPromise = fetch(request).then((networkResponse) => {
+  // 3. Scripts y estilos (app.js, styles.css, data.js): Red primero (Network-First) para recibir updates al instante
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    event.respondWith(
+      fetch(request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -101,9 +101,26 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {});
+      }).catch(() => {
+        return caches.match(request);
+      })
+    );
+    return;
+  }
 
-      return cachedResponse || fetchPromise;
+  // 4. Recursos estáticos locales (imágenes, iconos, tipografías): Cache First con fallback
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+        }
+        return networkResponse;
+      });
     })
   );
 });

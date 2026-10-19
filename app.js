@@ -28,8 +28,7 @@ const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 
 // Seguridad & Hash SHA-256 de Cuerpo Técnico (clave oficial hasheada, nunca en texto plano)
 const CT_PASSWORD_HASH = '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf05279b26691a4d';
-const CT_AUTH_STORAGE_KEY = 'regatas_ct_auth_v2';
-const DT_AUTH_SESSION_KEY = 'regatas_dt_auth_ok'; // compatibilidad retroactiva
+const CT_AUTH_STORAGE_KEY = 'regatas_ct_auth_v3';
 const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
 const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';
 
@@ -118,8 +117,7 @@ async function verifyCtPassword(input) {
 
 function isCtAuthenticated() {
   try {
-    return localStorage.getItem(CT_AUTH_STORAGE_KEY) === 'true' || 
-           sessionStorage.getItem(DT_AUTH_SESSION_KEY) === 'true';
+    return localStorage.getItem(CT_AUTH_STORAGE_KEY) === 'true';
   } catch (e) {
     return false;
   }
@@ -133,10 +131,11 @@ function setCtAuthenticated(authenticated = true) {
   try {
     if (authenticated) {
       localStorage.setItem(CT_AUTH_STORAGE_KEY, 'true');
-      sessionStorage.setItem(DT_AUTH_SESSION_KEY, 'true');
     } else {
       localStorage.removeItem(CT_AUTH_STORAGE_KEY);
-      sessionStorage.removeItem(DT_AUTH_SESSION_KEY);
+      sessionStorage.removeItem('regatas_dt_auth_ok');
+      sessionStorage.removeItem('regatas_ct_auth_v2');
+      localStorage.removeItem('regatas_ct_auth_v2');
     }
   } catch (e) {}
   updateCtUiState();
@@ -181,6 +180,26 @@ function updateCtUiState() {
   // Botonera DT
   if (currentActiveView === 'dt') {
     handleDtViewOpen();
+  }
+
+  // Estadísticas por Cuartos
+  const statsGate = document.getElementById('statsAuthGateCard');
+  const statsContent = document.getElementById('statsMainContent');
+  const statsLockBtn = document.getElementById('btnStatsLockSession');
+  if (statsGate && statsContent) {
+    if (isAuth) {
+      statsGate.style.display = 'none';
+      statsContent.style.display = 'flex';
+    } else {
+      statsGate.style.display = 'block';
+      statsContent.style.display = 'none';
+    }
+  }
+  if (statsLockBtn) {
+    statsLockBtn.style.display = isAuth ? 'inline-flex' : 'none';
+  }
+  if (currentActiveView === 'estadisticas') {
+    handleStatsViewOpen();
   }
 }
 
@@ -397,6 +416,19 @@ function setupViewSwitching() {
   if (btnShareStatsWa) {
     btnShareStatsWa.addEventListener('click', shareStatsWhatsApp);
   }
+
+  // Auth Gate de Estadísticas por Cuartos
+  const btnStatsGateSubmit = document.getElementById('btnStatsGateSubmit');
+  const inputStatsGatePassword = document.getElementById('inputStatsGatePassword');
+  const btnStatsLock = document.getElementById('btnStatsLockSession');
+
+  if (btnStatsGateSubmit) btnStatsGateSubmit.addEventListener('click', verifyStatsPassword);
+  if (inputStatsGatePassword) {
+    inputStatsGatePassword.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') verifyStatsPassword();
+    });
+  }
+  if (btnStatsLock) btnStatsLock.addEventListener('click', lockCtSession);
 
   // 2. Botones del Dock Inferior
   const dockBtns = document.querySelectorAll('.nav-dock-btn');
@@ -4004,13 +4036,49 @@ function recalculateMatchStats(targetMatch) {
 
 // Al abrir la vista de estadísticas
 function handleStatsViewOpen() {
-  loadDtMatchesStore();
-  populateStatsMatchFilter();
-  renderAnalyticsDashboard(statsCurrentSelectedFilter);
+  const gateCard = document.getElementById('statsAuthGateCard');
+  const mainContent = document.getElementById('statsMainContent');
+  const passInput = document.getElementById('inputStatsGatePassword');
+  const errorMsg = document.getElementById('statsGateErrorMsg');
+  const statsLockBtn = document.getElementById('btnStatsLockSession');
 
-  // Sincronización automática silenciosa en segundo plano con Google Sheets
-  if (getDtWebhookUrl()) {
-    syncAllMatchesFromCloud({ silent: true });
+  if (isCtAuthenticated()) {
+    if (gateCard) gateCard.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'flex';
+    if (statsLockBtn) statsLockBtn.style.display = 'inline-flex';
+    loadDtMatchesStore();
+    populateStatsMatchFilter();
+    renderAnalyticsDashboard(statsCurrentSelectedFilter);
+
+    // Sincronización automática silenciosa en segundo plano con Google Sheets
+    if (getDtWebhookUrl()) {
+      syncAllMatchesFromCloud({ silent: true });
+    }
+  } else {
+    if (mainContent) mainContent.style.display = 'none';
+    if (gateCard) gateCard.style.display = 'block';
+    if (statsLockBtn) statsLockBtn.style.display = 'none';
+    if (errorMsg) errorMsg.style.display = 'none';
+    if (passInput) {
+      passInput.value = '';
+      setTimeout(() => passInput.focus(), 150);
+    }
+  }
+}
+
+async function verifyStatsPassword() {
+  const passInput = document.getElementById('inputStatsGatePassword');
+  const errorMsg = document.getElementById('statsGateErrorMsg');
+  const entered = (passInput ? passInput.value : '').trim().toLowerCase();
+
+  const ok = await verifyCtPassword(entered);
+  if (ok) {
+    setCtAuthenticated(true);
+    handleStatsViewOpen();
+    showToast('📈 Acceso concedido a Estadísticas por Cuartos');
+  } else {
+    if (errorMsg) errorMsg.style.display = 'block';
+    if (passInput) passInput.select();
   }
 }
 
