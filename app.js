@@ -552,6 +552,10 @@ function parseStandingsFromAmhHtml(html) {
 
 // Sincronización con el servidor local o directo con AMH
 async function syncTournamentData(manual = false) {
+  const btnSync = document.getElementById('btnSyncAmh');
+  const badge = document.getElementById('amhSyncTimeBadge');
+  if (btnSync) btnSync.classList.add('is-loading');
+
   try {
     let syncedAny = false;
 
@@ -625,6 +629,11 @@ async function syncTournamentData(manual = false) {
 
     if (syncedAny) {
       localStorage.setItem(TOURNAMENT_STORAGE_KEY, JSON.stringify(tournamentData));
+      if (badge) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        badge.innerHTML = `<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #34d399;"></span> Sincronizado AMH ${timeStr}`;
+      }
     }
 
     if (currentActiveView === 'torneo') {
@@ -642,6 +651,8 @@ async function syncTournamentData(manual = false) {
     if (manual) {
       showToast('ℹ️ Usando datos cacheados de AMH');
     }
+  } finally {
+    if (btnSync) btnSync.classList.remove('is-loading');
   }
 }
 

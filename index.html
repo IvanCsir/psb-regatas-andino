@@ -218,9 +218,15 @@
         <div class="tourn-section-header">
           <div>
             <h3 class="tourn-section-title">📊 TABLA DE POSICIONES</h3>
-            <span class="tourn-section-subtitle" id="tableCategorySubtitle">Zona A</span>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span class="tourn-section-subtitle" id="tableCategorySubtitle">Zona A</span>
+              <span id="amhSyncTimeBadge" style="font-size: 0.70rem; color: #34d399; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #34d399;"></span>
+                AMH en vivo
+              </span>
+            </div>
           </div>
-          <button type="button" class="btn-sync-amh-small" id="btnSyncAmh" title="Actualizar datos">
+          <button type="button" class="btn-sync-amh-small" id="btnSyncAmh" title="Actualizar datos desde AMH">
             <span>🔄</span> Actualizar
           </button>
         </div>

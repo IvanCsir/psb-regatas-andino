@@ -2183,6 +2183,16 @@ body {
   color: #ffffff;
 }
 
+.btn-sync-amh-small.is-loading span {
+  animation: amhSpin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes amhSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .standings-table-wrapper {
   overflow-x: auto;
   border-radius: var(--radius-md);
