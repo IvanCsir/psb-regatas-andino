@@ -2639,33 +2639,27 @@ body {
   align-items: center;
 }
 
-.dt-division-pills {
+.dt-single-division-tag {
   display: inline-flex;
-  background: rgba(3, 13, 45, 0.7);
-  border: 1px solid var(--border-subtle);
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 162, 255, 0.12);
+  border: 1px solid rgba(0, 162, 255, 0.35);
   border-radius: var(--radius-full);
-  padding: 3px;
-  gap: 3px;
-}
-
-.dt-div-pill {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
+  padding: 4px 12px;
+  color: var(--color-regatas-cyan);
   font-family: var(--font-main);
-  font-size: 0.74rem;
-  font-weight: 700;
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
 }
 
-.dt-div-pill.active {
-  background: var(--color-regatas-cyan);
-  color: #030d2d;
-  font-weight: 800;
-  box-shadow: 0 2px 8px rgba(0, 162, 255, 0.35);
+.dt-div-tag-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.7);
 }
 
 .btn-dt-lock-session {
