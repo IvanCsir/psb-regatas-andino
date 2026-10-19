@@ -77,8 +77,86 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let currentActiveView = 'citacion'; // 'citacion' | 'torneo' | 'fisico' | 'dt'
 
+function openNavDrawer() {
+  const drawer = document.getElementById('navDrawer');
+  const overlay = document.getElementById('navDrawerOverlay');
+  if (drawer) {
+    drawer.classList.add('active');
+    drawer.setAttribute('aria-hidden', 'false');
+  }
+  if (overlay) overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeNavDrawer() {
+  const drawer = document.getElementById('navDrawer');
+  const overlay = document.getElementById('navDrawerOverlay');
+  if (drawer) {
+    drawer.classList.remove('active');
+    drawer.setAttribute('aria-hidden', 'true');
+  }
+  if (overlay) overlay.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
 function setupViewSwitching() {
-  // Botones del Dock Inferior
+  // 1. Menú Hamburguesa & Drawer Lateral
+  const btnOpenDrawer = document.getElementById('btnOpenNavDrawer');
+  const btnCloseDrawer = document.getElementById('btnCloseNavDrawer');
+  const drawerOverlay = document.getElementById('navDrawerOverlay');
+
+  if (btnOpenDrawer) btnOpenDrawer.addEventListener('click', openNavDrawer);
+  if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeNavDrawer);
+  if (drawerOverlay) drawerOverlay.addEventListener('click', closeNavDrawer);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeNavDrawer();
+  });
+
+  // Acceso destacado a Botonera DT desde el Menú Hamburguesa
+  const drawerBtnDT = document.getElementById('drawerBtnDT');
+  if (drawerBtnDT) {
+    drawerBtnDT.addEventListener('click', () => {
+      closeNavDrawer();
+      showView('dt');
+    });
+  }
+
+  // Navegación general desde el Drawer
+  const drawerBtnCitacion = document.getElementById('drawerBtnCitacion');
+  if (drawerBtnCitacion) {
+    drawerBtnCitacion.addEventListener('click', () => {
+      closeNavDrawer();
+      showView('citacion');
+    });
+  }
+
+  const drawerBtnTorneo = document.getElementById('drawerBtnTorneo');
+  if (drawerBtnTorneo) {
+    drawerBtnTorneo.addEventListener('click', () => {
+      closeNavDrawer();
+      showView('torneo');
+    });
+  }
+
+  const drawerBtnFisico = document.getElementById('drawerBtnFisico');
+  if (drawerBtnFisico) {
+    drawerBtnFisico.addEventListener('click', () => {
+      closeNavDrawer();
+      showView('fisico');
+    });
+  }
+
+  const drawerBtnEdit = document.getElementById('drawerBtnEditCitacion');
+  if (drawerBtnEdit) {
+    drawerBtnEdit.addEventListener('click', () => {
+      closeNavDrawer();
+      const btnOpen = document.getElementById('btnOpenEdit');
+      if (btnOpen) btnOpen.click();
+    });
+  }
+
+  // 2. Botones del Dock Inferior
   const dockBtns = document.querySelectorAll('.nav-dock-btn');
   dockBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -87,7 +165,7 @@ function setupViewSwitching() {
     });
   });
 
-  // Banners desde la vista de Citación
+  // 3. Banners desde la vista de Citación
   const btnTournamentBanner = document.getElementById('btnOpenTournamentFromBanner');
   if (btnTournamentBanner) {
     btnTournamentBanner.addEventListener('click', () => showView('torneo'));
@@ -98,7 +176,7 @@ function setupViewSwitching() {
     btnPhysicalBanner.addEventListener('click', () => showView('fisico'));
   }
 
-  // Botones de Retorno a Citación
+  // 4. Botones de Retorno a Citación
   const btnReturnFromTorneo = document.getElementById('btnReturnToCitacionFromTorneo');
   if (btnReturnFromTorneo) {
     btnReturnFromTorneo.addEventListener('click', () => showView('citacion'));
@@ -120,6 +198,7 @@ function showView(viewName) {
   const viewTorneo = document.getElementById('viewTorneo');
   const viewFisico = document.getElementById('viewFisico');
   const viewDT = document.getElementById('viewDT');
+  const bottomNavDock = document.getElementById('bottomNavDock');
 
   currentActiveView = viewName;
 
@@ -128,9 +207,19 @@ function showView(viewName) {
   if (viewFisico) viewFisico.style.display = viewName === 'fisico' ? 'flex' : 'none';
   if (viewDT) viewDT.style.display = viewName === 'dt' ? 'flex' : 'none';
 
+  // En la botonera DT ocultamos el dock inferior para que no tape los botones tácticos
+  if (bottomNavDock) {
+    bottomNavDock.style.display = viewName === 'dt' ? 'none' : 'flex';
+  }
+
   // Actualizar estado activo en la barra de navegación inferior
   document.querySelectorAll('.nav-dock-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-view') === viewName);
+  });
+
+  // Actualizar estado activo en el menú lateral (drawer)
+  document.querySelectorAll('.drawer-nav-item[data-view]').forEach(item => {
+    item.classList.toggle('active', item.getAttribute('data-view') === viewName);
   });
 
   if (viewName === 'torneo') {
