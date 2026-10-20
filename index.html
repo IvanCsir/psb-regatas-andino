@@ -789,11 +789,11 @@
         <!-- Tarjeta Principal de Encabezado & Filtro -->
         <section class="stats-header-card">
           <div class="stats-header-badge">
-            <span>📈</span> ANÁLISIS TÁCTICO POR CUARTOS
+            <span>📈</span> ANÁLISIS TÁCTICO & RENDIMIENTO
           </div>
-          <h2 class="stats-header-title">RENDIMIENTO ACUMULADO</h2>
-          <p class="stats-header-desc">
-            Métricas consolidadas de 1ra División por cuarto a partir de las incidencias registradas en la botonera.
+          <h2 class="stats-header-title" id="statsHeaderTitle">TENDENCIAS DE LA TEMPORADA</h2>
+          <p class="stats-header-desc" id="statsHeaderDesc">
+            Métricas acumuladas, diagnóstico 1T vs 2T, efectividad en cortos y evolución fecha a fecha de 1ra División.
           </p>
 
           <!-- Filtro Selector de Partidos -->
@@ -810,32 +810,50 @@
           </div>
         </section>
 
-        <!-- Tarjetas de Insights y KPIs Tácticos Clave -->
-        <div class="stats-kpi-grid" id="statsKpiGrid">
-          <!-- Renderizado dinámicamente -->
+        <!-- Selector de Sub-Pestañas: Tendencias vs Cuartos -->
+        <div class="stats-subnav-tabs" role="tablist">
+          <button type="button" class="stats-tab-btn active" id="tabBtnSeasonTrends" data-stats-tab="trends" role="tab" aria-selected="true">
+            <span>📈</span> Tendencias de Temporada
+          </button>
+          <button type="button" class="stats-tab-btn" id="tabBtnQuarterBreakdown" data-stats-tab="quarters" role="tab" aria-selected="false">
+            <span>⏱️</span> Desglose por Cuartos
+          </button>
         </div>
 
-        <!-- Comparativa Visual por Cuartos (Barras Tácticas) -->
-        <section class="stats-bars-card">
-          <div class="stats-card-header">
-            <span class="stats-card-icon">📊</span>
-            <h3 class="stats-card-title">VOLUMEN OFENSIVO POR CUARTO</h3>
-          </div>
-          <div class="stats-bars-container" id="statsBarsContainer">
-            <!-- Renderizado dinámicamente -->
-          </div>
-        </section>
+        <!-- CONTENIDO TAB 1: TENDENCIAS ACUMULADAS DE LA TEMPORADA -->
+        <div id="statsTabTrendsContent" class="stats-tab-view" style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- Renderizado dinámicamente con getSeasonTrendsData() -->
+        </div>
 
-        <!-- Gran Tabla Comparativa por Cuartos (1°C, 2°C, 3°C, 4°C y Total) -->
-        <section class="stats-table-card">
-          <div class="stats-card-header">
-            <span class="stats-card-icon">📋</span>
-            <h3 class="stats-card-title">MATRIZ COMPARATIVA POR CUARTOS</h3>
-          </div>
-          <div class="stats-matrix-wrap" id="statsMatrixWrap">
+        <!-- CONTENIDO TAB 2: DETALLE POR CUARTOS -->
+        <div id="statsTabQuartersContent" class="stats-tab-view" style="display: none; flex-direction: column; gap: 14px;">
+          <!-- Tarjetas de Insights y KPIs Tácticos Clave -->
+          <div class="stats-kpi-grid" id="statsKpiGrid">
             <!-- Renderizado dinámicamente -->
           </div>
-        </section>
+
+          <!-- Comparativa Visual por Cuartos (Barras Tácticas) -->
+          <section class="stats-bars-card">
+            <div class="stats-card-header">
+              <span class="stats-card-icon">📊</span>
+              <h3 class="stats-card-title">VOLUMEN OFENSIVO POR CUARTO</h3>
+            </div>
+            <div class="stats-bars-container" id="statsBarsContainer">
+              <!-- Renderizado dinámicamente -->
+            </div>
+          </section>
+
+          <!-- Gran Tabla Comparativa por Cuartos (1°C, 2°C, 3°C, 4°C y Total) -->
+          <section class="stats-table-card">
+            <div class="stats-card-header">
+              <span class="stats-card-icon">📋</span>
+              <h3 class="stats-card-title">MATRIZ COMPARATIVA POR CUARTOS</h3>
+            </div>
+            <div class="stats-matrix-wrap" id="statsMatrixWrap">
+              <!-- Renderizado dinámicamente -->
+            </div>
+          </section>
+        </div>
 
         <!-- Botón de Exportar / Compartir por WhatsApp -->
         <div class="stats-share-box">

@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T14:47:04.743Z
+ * Última actualización: 2026-10-20T15:11:45.733Z
  */
 
 // ============================================================================
@@ -3899,6 +3899,8 @@ function renderDtView() {
 // ============================================================================
 
 let statsCurrentSelectedFilter = 'all';
+let statsActiveSubTab = 'trends'; // 'trends' | 'quarters'
+let statsTabsInitialized = false;
 
 // Recalcular estadísticas de cuartos para cualquier objeto de partido
 function recalculateMatchStats(targetMatch) {
@@ -3968,6 +3970,7 @@ function handleStatsViewOpen() {
     if (gateCard) gateCard.style.display = 'none';
     if (mainContent) mainContent.style.display = 'flex';
     if (statsLockBtn) statsLockBtn.style.display = 'inline-flex';
+    setupStatsTabs();
     loadDtMatchesStore();
     populateStatsMatchFilter();
     renderAnalyticsDashboard(statsCurrentSelectedFilter);
@@ -3997,12 +4000,81 @@ async function verifyStatsPassword() {
   if (ok) {
     setCtAuthenticated(true);
     handleStatsViewOpen();
-    showToast('📈 Acceso concedido a Estadísticas por Cuartos');
+    showToast('📈 Acceso concedido a Estadísticas');
   } else {
     if (errorMsg) errorMsg.style.display = 'block';
     if (passInput) passInput.select();
   }
 }
+
+// Inicialización de pestañas: Tendencias de Temporada vs Desglose por Cuartos
+function setupStatsTabs() {
+  if (statsTabsInitialized) return;
+  const tabTrends = document.getElementById('tabBtnSeasonTrends');
+  const tabQuarters = document.getElementById('tabBtnQuarterBreakdown');
+
+  if (tabTrends) {
+    tabTrends.addEventListener('click', () => {
+      switchStatsSubTab('trends');
+    });
+  }
+
+  if (tabQuarters) {
+    tabQuarters.addEventListener('click', () => {
+      switchStatsSubTab('quarters');
+    });
+  }
+
+  statsTabsInitialized = true;
+}
+
+function switchStatsSubTab(tabName) {
+  statsActiveSubTab = tabName;
+  const tabTrends = document.getElementById('tabBtnSeasonTrends');
+  const tabQuarters = document.getElementById('tabBtnQuarterBreakdown');
+  const trendsContent = document.getElementById('statsTabTrendsContent');
+  const quartersContent = document.getElementById('statsTabQuartersContent');
+  const headerTitle = document.getElementById('statsHeaderTitle');
+  const headerDesc = document.getElementById('statsHeaderDesc');
+
+  if (tabTrends && tabQuarters) {
+    if (tabName === 'trends') {
+      tabTrends.classList.add('active');
+      tabTrends.setAttribute('aria-selected', 'true');
+      tabQuarters.classList.remove('active');
+      tabQuarters.setAttribute('aria-selected', 'false');
+      if (trendsContent) trendsContent.style.display = 'flex';
+      if (quartersContent) quartersContent.style.display = 'none';
+      if (headerTitle) headerTitle.textContent = 'TENDENCIAS DE LA TEMPORADA';
+      if (headerDesc) headerDesc.textContent = 'Diagnóstico táctico 1T vs 2T, efectividad en cortos, evolución fecha a fecha y goleadoras de Regatas Andino B.';
+    } else {
+      tabQuarters.classList.add('active');
+      tabQuarters.setAttribute('aria-selected', 'true');
+      tabTrends.classList.remove('active');
+      tabTrends.setAttribute('aria-selected', 'false');
+      if (trendsContent) trendsContent.style.display = 'none';
+      if (quartersContent) quartersContent.style.display = 'flex';
+      if (headerTitle) headerTitle.textContent = 'DETALLE POR CUARTOS';
+      if (headerDesc) headerDesc.textContent = 'Métricas consolidadas por cuarto (1°C, 2°C, 3°C, 4°C y Total) de las incidencias registradas en la botonera.';
+    }
+  }
+}
+
+function inspectMatchQuarters(matchKey) {
+  const select = document.getElementById('selectStatsMatchFilter');
+  if (select && matchKey) {
+    select.value = matchKey;
+  }
+  switchStatsSubTab('quarters');
+  renderAnalyticsDashboard(matchKey);
+  const container = document.getElementById('viewEstadisticas');
+  if (container) {
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+window.inspectMatchQuarters = inspectMatchQuarters;
+window.switchStatsSubTab = switchStatsSubTab;
 
 // Llenado del selector de partidos a analizar
 function populateStatsMatchFilter() {
@@ -4181,8 +4253,328 @@ function getAggregatedQuarterStats(selectedKey = 'all') {
   };
 }
 
+// Cálculo agregado de métricas de Tendencias de Temporada (1T vs 2T, campaña, goleadoras, timeline)
+function getSeasonTrendsData(selectedKey = 'all') {
+  let matchesList = [];
+  const matchKeys = Object.keys(dtMatchesStore || {});
+
+  if (selectedKey === 'all') {
+    if (matchKeys.length > 0) {
+      matchKeys.forEach(k => {
+        const m = dtMatchesStore[k];
+        if (m) {
+          recalculateMatchStats(m);
+          matchesList.push(m);
+        }
+      });
+    } else if (dtMatchState) {
+      recalculateMatchStats(dtMatchState);
+      matchesList.push(dtMatchState);
+    }
+  } else if (dtMatchesStore[selectedKey]) {
+    recalculateMatchStats(dtMatchesStore[selectedKey]);
+    matchesList = [dtMatchesStore[selectedKey]];
+  } else if (dtMatchState) {
+    recalculateMatchStats(dtMatchState);
+    matchesList = [dtMatchState];
+  }
+
+  // Ordenar cronológicamente por número de fecha
+  matchesList.sort((a, b) => {
+    const numA = parseInt((a.round || '').replace(/\D+/g, ''), 10) || 0;
+    const numB = parseInt((b.round || '').replace(/\D+/g, ''), 10) || 0;
+    return numA - numB;
+  });
+
+  let wins = 0, draws = 0, losses = 0;
+  let totalGF = 0, totalGC = 0;
+  let totalEntriesHome = 0, totalEntriesAway = 0;
+  let totalCornersHome = 0, cornerGoalsHome = 0;
+  let totalCornersAway = 0, cornerGoalsAway = 0;
+  let totalStrokesHome = 0, strokeGoalsHome = 0;
+  let totalStrokesAway = 0, strokeGoalsAway = 0;
+
+  // 1T vs 2T
+  const halves = {
+    first: {
+      entriesHome: 0, entriesAway: 0,
+      goalsHome: 0, goalsAway: 0,
+      cornersHome: 0, cornerGoalsHome: 0,
+      cornersAway: 0, cornerGoalsAway: 0,
+      cardsHome: { green: 0, yellow: 0, red: 0 }
+    },
+    second: {
+      entriesHome: 0, entriesAway: 0,
+      goalsHome: 0, goalsAway: 0,
+      cornersHome: 0, cornerGoalsHome: 0,
+      cornersAway: 0, cornerGoalsAway: 0,
+      cardsHome: { green: 0, yellow: 0, red: 0 }
+    }
+  };
+
+  const scorersMap = {};
+  const cardsMap = {};
+  const matchChronology = [];
+
+  matchesList.forEach(m => {
+    const hGoals = (m.score && typeof m.score.home === 'number') ? m.score.home : 0;
+    const aGoals = (m.score && typeof m.score.away === 'number') ? m.score.away : 0;
+    totalGF += hGoals;
+    totalGC += aGoals;
+
+    let res = 'draw';
+    if (hGoals > aGoals) { wins++; res = 'win'; }
+    else if (hGoals < aGoals) { losses++; res = 'loss'; }
+    else { draws++; res = 'draw'; }
+
+    let matchEntriesH = 0, matchEntriesA = 0;
+    let matchCornersH = 0, matchCornerGoalsH = 0;
+
+    for (let q = 1; q <= 4; q++) {
+      const qData = (m.quarters && m.quarters[q]) ? m.quarters[q] : createDefaultQuarterStats();
+      const h = qData.home || {};
+      const a = qData.away || {};
+
+      totalEntriesHome += (h.entries || 0);
+      totalEntriesAway += (a.entries || 0);
+      matchEntriesH += (h.entries || 0);
+      matchEntriesA += (a.entries || 0);
+
+      totalCornersHome += (h.corners || 0);
+      cornerGoalsHome += (h.cornerGoals || 0);
+      matchCornersH += (h.corners || 0);
+      matchCornerGoalsH += (h.cornerGoals || 0);
+
+      totalCornersAway += (a.corners || 0);
+      cornerGoalsAway += (a.cornerGoals || 0);
+
+      totalStrokesHome += (h.strokes || 0);
+      strokeGoalsHome += (h.strokeGoals || 0);
+      totalStrokesAway += (a.strokes || 0);
+      strokeGoalsAway += (a.strokeGoals || 0);
+
+      const halfKey = (q <= 2) ? 'first' : 'second';
+      const half = halves[halfKey];
+
+      half.entriesHome += (h.entries || 0);
+      half.entriesAway += (a.entries || 0);
+      half.goalsHome += (h.goals || 0);
+      half.goalsAway += (a.goals || 0);
+      half.cornersHome += (h.corners || 0);
+      half.cornerGoalsHome += (h.cornerGoals || 0);
+      half.cornersAway += (a.corners || 0);
+      half.cornerGoalsAway += (a.cornerGoals || 0);
+      half.cardsHome.green += (h.green || 0);
+      half.cardsHome.yellow += (h.yellow || 0);
+      half.cardsHome.red += (h.red || 0);
+    }
+
+    // Eventos individuales
+    (m.events || []).forEach(evt => {
+      const team = evt.team === 'away' ? 'away' : 'home';
+      const type = evt.type || deduceEventType(evt);
+      const isGoal = evt.endedInGoal === true || type === 'fieldGoal';
+      const playerName = (evt.player || '').trim();
+
+      if (team === 'home') {
+        if (isGoal) {
+          const key = playerName || 'Sin especificar';
+          if (!scorersMap[key]) {
+            scorersMap[key] = { name: key, total: 0, field: 0, corner: 0, stroke: 0 };
+          }
+          scorersMap[key].total++;
+          if (type === 'corner') scorersMap[key].corner++;
+          else if (type === 'stroke') scorersMap[key].stroke++;
+          else scorersMap[key].field++;
+        }
+
+        if (type === 'cardGreen' || type === 'cardYellow' || type === 'cardRed') {
+          const key = playerName || 'Jugadora no especificada';
+          if (!cardsMap[key]) {
+            cardsMap[key] = { name: key, green: 0, yellow: 0, red: 0, penaltyMinutes: 0 };
+          }
+          if (type === 'cardGreen') {
+            cardsMap[key].green++;
+            cardsMap[key].penaltyMinutes += 2;
+          } else if (type === 'cardYellow') {
+            cardsMap[key].yellow++;
+            cardsMap[key].penaltyMinutes += 5;
+          } else if (type === 'cardRed') {
+            cardsMap[key].red++;
+            cardsMap[key].penaltyMinutes += 60;
+          }
+        }
+      }
+    });
+
+    const mKey = m.key || (m.round ? getMatchKey('primera', m.round) : '');
+    matchChronology.push({
+      key: mKey,
+      round: m.round || 'Fecha',
+      rival: m.rivalName || 'Rival',
+      date: m.date || '',
+      homeScore: hGoals,
+      awayScore: aGoals,
+      result: res,
+      entriesHome: matchEntriesH,
+      entriesAway: matchEntriesA,
+      cornersHome: matchCornersH,
+      cornerGoalsHome: matchCornerGoalsH,
+      eventCount: (m.events || []).length
+    });
+  });
+
+  const playedCount = matchesList.length;
+  const points = wins * 3 + draws * 1;
+  const maxPossiblePoints = playedCount > 0 ? playedCount * 3 : 0;
+  const pointsEff = maxPossiblePoints > 0 ? Math.round((points / maxPossiblePoints) * 100) : 0;
+
+  const cornerEffHome = totalCornersHome > 0 ? Math.round((cornerGoalsHome / totalCornersHome) * 100) : 0;
+  const cornerDefHome = totalCornersAway > 0 ? Math.round(((totalCornersAway - cornerGoalsAway) / totalCornersAway) * 100) : 100;
+  const conversionHome = totalEntriesHome > 0 ? Math.round((totalGF / totalEntriesHome) * 100) : 0;
+
+  const scorersList = Object.values(scorersMap).sort((a, b) => b.total - a.total);
+  const cardsList = Object.values(cardsMap).sort((a, b) => b.penaltyMinutes - a.penaltyMinutes);
+
+  return {
+    selectedKey,
+    playedCount,
+    wins,
+    draws,
+    losses,
+    points,
+    pointsEff,
+    totalGF,
+    totalGC,
+    goalDiff: totalGF - totalGC,
+    avgGF: playedCount > 0 ? (totalGF / playedCount).toFixed(1) : '0',
+    avgGC: playedCount > 0 ? (totalGC / playedCount).toFixed(1) : '0',
+    totalEntriesHome,
+    totalEntriesAway,
+    avgEntriesHome: playedCount > 0 ? (totalEntriesHome / playedCount).toFixed(1) : '0',
+    avgEntriesAway: playedCount > 0 ? (totalEntriesAway / playedCount).toFixed(1) : '0',
+    totalCornersHome,
+    cornerGoalsHome,
+    cornerEffHome,
+    totalCornersAway,
+    cornerGoalsAway,
+    cornerDefHome,
+    conversionHome,
+    halves,
+    scorersList,
+    cardsList,
+    matchChronology
+  };
+}
+
+// Diagnósticos tácticos automáticos del DT basados en datos
+function generateSeasonTacticalDiagnosis(trends) {
+  const h1 = trends.halves.first;
+  const h2 = trends.halves.second;
+  const insights = [];
+
+  const totalGoals = trends.totalGF;
+  if (totalGoals > 0) {
+    const h1GoalsPct = Math.round((h1.goalsHome / totalGoals) * 100);
+    const h2GoalsPct = Math.round((h2.goalsHome / totalGoals) * 100);
+
+    if (h2GoalsPct >= 60) {
+      insights.push({
+        type: 'positive',
+        icon: '🔥',
+        title: 'Potencia en Segundos Tiempos',
+        desc: `El ${h2GoalsPct}% de los goles de Regatas se convierten en el 2° Tiempo (3°C y 4°C). Gran lectura y definición tras el entretiempo.`
+      });
+    } else if (h1GoalsPct >= 60) {
+      insights.push({
+        type: 'positive',
+        icon: '⚡',
+        title: 'Golpes de Entrada Tempranos',
+        desc: `El ${h1GoalsPct}% de los goles se marcaron en el 1° Tiempo. Regatas sale con intensidad alta y golpea rápido en los partidos.`
+      });
+    } else {
+      insights.push({
+        type: 'neutral',
+        icon: '⚖️',
+        title: 'Producción Ofensiva Constante',
+        desc: `Distribución balanceada de goles entre la 1ra mitad (${h1.goalsHome}) y la 2da mitad (${h2.goalsHome}). Ritmo parejo a lo largo de los 60 minutos.`
+      });
+    }
+  }
+
+  const totalConceded = trends.totalGC;
+  if (totalConceded > 0) {
+    const h2ConcededPct = Math.round((h2.goalsAway / totalConceded) * 100);
+    if (h2ConcededPct >= 65) {
+      insights.push({
+        type: 'warning',
+        icon: '⚠️',
+        title: 'Atención al Cierre de los Partidos',
+        desc: `El ${h2ConcededPct}% de los goles rivales se reciben en el 2° Tiempo. Conviene ajustar rotaciones o mantener el bloque defensivo ante el desgaste físico final.`
+      });
+    } else if (h2ConcededPct <= 35) {
+      insights.push({
+        type: 'positive',
+        icon: '🛡️',
+        title: 'Cierres Defensivos Sólidos',
+        desc: `Apenas el ${h2ConcededPct}% de los goles en contra ocurren en la segunda mitad. Gran resistencia y cierre de líneas en los tramos decisivos.`
+      });
+    }
+  }
+
+  if (trends.totalCornersHome >= 2) {
+    if (trends.cornerEffHome >= 20) {
+      insights.push({
+        type: 'positive',
+        icon: '🎯',
+        title: 'Arma Ofensiva: Córner Corto',
+        desc: `Alta efectividad del ${trends.cornerEffHome}% en jugadas preparadas de corto (${trends.cornerGoalsHome} goles en ${trends.totalCornersHome} CC). Clave para abrir partidos cerrados.`
+      });
+    } else {
+      insights.push({
+        type: 'warning',
+        icon: '💡',
+        title: 'Oportunidad de Mejora en Cortos',
+        desc: `Efectividad del ${trends.cornerEffHome}% en córner corto a favor (${trends.cornerGoalsHome} gol en ${trends.totalCornersHome} CC). Se generan ocasiones pero falta capitalizar la arrastrada o desvío.`
+      });
+    }
+  }
+
+  if (trends.totalCornersAway >= 2) {
+    if (trends.cornerDefHome >= 80) {
+      insights.push({
+        type: 'positive',
+        icon: '🧤',
+        title: 'Gran Muralla en Cortos Defensivos',
+        desc: `Se neutralizó el ${trends.cornerDefHome}% de los córners cortos rivales concedidos (${trends.totalCornersAway - trends.cornerGoalsAway} defendidos de ${trends.totalCornersAway}).`
+      });
+    }
+  }
+
+  if (trends.totalEntriesHome > 0 && trends.totalEntriesAway > 0) {
+    const diff = trends.totalEntriesHome - trends.totalEntriesAway;
+    if (diff > 0) {
+      insights.push({
+        type: 'positive',
+        icon: '📈',
+        title: 'Dominio Territorial Acumulado',
+        desc: `Promedio de ${trends.avgEntriesHome} ingresos al área rival por partido (+${diff} sobre rivales). Regatas impone condiciones en campo contrario.`
+      });
+    }
+  }
+
+  return insights;
+}
+
 // Renderizado principal del Dashboard de Estadísticas
 function renderAnalyticsDashboard(selectedKey = 'all') {
+  setupStatsTabs();
+
+  // 1. Renderizar Pestaña de Tendencias de Temporada
+  const seasonTrends = getSeasonTrendsData(selectedKey);
+  renderSeasonTrends(seasonTrends);
+
+  // 2. Renderizar Pestaña de Desglose por Cuartos
   const stats = getAggregatedQuarterStats(selectedKey);
   const q = stats.quarters;
   const totH = q.total.home;
@@ -4489,6 +4881,397 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
       </table>
     `;
   }
+
+  // Sincronizar visibilidad de subpestaña activa
+  switchStatsSubTab(statsActiveSubTab);
+}
+
+// Renderizado de la Vista de Tendencias de Temporada
+function renderSeasonTrends(trends) {
+  const container = document.getElementById('statsTabTrendsContent');
+  if (!container) return;
+
+  if (trends.playedCount === 0) {
+    container.innerHTML = `
+      <div class="stats-campaign-banner" style="text-align: center; padding: 32px 18px;">
+        <div style="font-size: 2.2rem; margin-bottom: 8px;">📈</div>
+        <h3 style="color: #ffffff; font-size: 1.1rem; font-weight: 800; margin-bottom: 6px;">Sin Partidos Registrados Aún</h3>
+        <p style="font-size: 0.8rem; color: #9bb1d6; max-width: 440px; margin: 0 auto 16px auto; line-height: 1.4;">
+          Aún no se han guardado incidencias de partidos en la Botonera DT. Iniciá un partido en la botonera o sincronizá con Google Sheets para cargar las fechas del torneo.
+        </p>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button type="button" class="btn-primary" onclick="showView('dt')" style="max-width: 200px;">
+            <span>⏱️</span> Ir a Botonera DT
+          </button>
+          <button type="button" class="btn-stats-sync-cloud" onclick="syncAllMatchesFromCloud()">
+            <span>🔄</span> Sincronizar Google Sheets
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const h1 = trends.halves.first;
+  const h2 = trends.halves.second;
+
+  const totalGoals = trends.totalGF;
+  const h1GoalsPct = totalGoals > 0 ? Math.round((h1.goalsHome / totalGoals) * 100) : 50;
+  const h2GoalsPct = 100 - h1GoalsPct;
+
+  const totalConceded = trends.totalGC;
+  const h1ConcededPct = totalConceded > 0 ? Math.round((h1.goalsAway / totalConceded) * 100) : 50;
+  const h2ConcededPct = 100 - h1ConcededPct;
+
+  const totalEntries = trends.totalEntriesHome;
+  const h1EntriesPct = totalEntries > 0 ? Math.round((h1.entriesHome / totalEntries) * 100) : 50;
+  const h2EntriesPct = 100 - h1EntriesPct;
+
+  const insights = generateSeasonTacticalDiagnosis(trends);
+
+  const goalDiffSign = trends.goalDiff > 0 ? `+${trends.goalDiff}` : `${trends.goalDiff}`;
+  const entryDiff = trends.totalEntriesHome - trends.totalEntriesAway;
+  const entryDiffSign = entryDiff > 0 ? `+${entryDiff}` : `${entryDiff}`;
+
+  let html = `
+    <!-- BANNER DE CAMPAÑA & RÉCORD GLOBAL -->
+    <section class="stats-campaign-banner">
+      <div class="stats-campaign-header">
+        <div>
+          <span class="stats-filter-label" style="display:block; margin-bottom: 2px;">Campaña Acumulada</span>
+          <h3 style="font-size: 1.15rem; font-weight: 900; color: #ffffff; margin: 0;">BALANCE GENERAL DE TEMPORADA</h3>
+        </div>
+        <div class="stats-campaign-record-badge">
+          <span>🏆</span> ${trends.playedCount} PJ • ${trends.wins}V ${trends.draws}E ${trends.losses}D (${trends.points} PTS)
+        </div>
+      </div>
+
+      <div class="stats-campaign-grid">
+        <div class="stats-campaign-kpi">
+          <span class="stats-campaign-kpi-label">Efectividad de Puntos</span>
+          <span class="stats-campaign-kpi-val" style="color: #34d399;">${trends.pointsEff}%</span>
+          <span class="stats-campaign-kpi-sub">${trends.points} de ${trends.playedCount * 3} pts posibles</span>
+        </div>
+        <div class="stats-campaign-kpi">
+          <span class="stats-campaign-kpi-label">Goles F / C (Diferencial)</span>
+          <span class="stats-campaign-kpi-val">${trends.totalGF} - ${trends.totalGC} <small style="font-size:0.75rem; color:${trends.goalDiff >= 0 ? '#34d399':'#f87171'};">(${goalDiffSign})</small></span>
+          <span class="stats-campaign-kpi-sub">Promedio: ${trends.avgGF} a favor / ${trends.avgGC} contra</span>
+        </div>
+        <div class="stats-campaign-kpi">
+          <span class="stats-campaign-kpi-label">Volumen Territorial</span>
+          <span class="stats-campaign-kpi-val">${trends.totalEntriesHome} vs ${trends.totalEntriesAway}</span>
+          <span class="stats-campaign-kpi-sub">Balance: ${entryDiffSign} ingresos a favor</span>
+        </div>
+        <div class="stats-campaign-kpi">
+          <span class="stats-campaign-kpi-label">Tasa de Conversión</span>
+          <span class="stats-campaign-kpi-val" style="color: #38bdf8;">${trends.conversionHome}%</span>
+          <span class="stats-campaign-kpi-sub">Goles por cada 100 ingresos al área</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TERMÓMETRO TÁCTICO: 1ER TIEMPO vs 2DO TIEMPO -->
+    <section class="stats-halves-card">
+      <div class="stats-card-header">
+        <span class="stats-card-icon">⚖️</span>
+        <div>
+          <h3 class="stats-card-title">TERMÓMETRO: 1° TIEMPO vs 2° TIEMPO</h3>
+          <p style="font-size: 0.72rem; color: #9bb1d6; margin: 2px 0 0 0;">Comparativa de rendimiento entre la primera mitad (1°C + 2°C) y la segunda mitad (3°C + 4°C)</p>
+        </div>
+      </div>
+
+      <!-- Barras comparativas 1T vs 2T -->
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="stats-quarter-bar-row">
+          <div class="stats-quarter-bar-head">
+            <span class="stats-quarter-name">⚽ Goles Marcados por Regatas</span>
+            <span class="stats-quarter-badge stats-badge-win">1T: ${h1GoalsPct}% | 2T: ${h2GoalsPct}%</span>
+          </div>
+          <div class="stats-dual-bar-track">
+            <div class="stats-bar-home" style="width: ${h1GoalsPct}%;" title="1T: ${h1.goalsHome} goles"></div>
+            <div class="stats-bar-away" style="width: ${h2GoalsPct}%; background: linear-gradient(90deg, #38bdf8, #818cf8);" title="2T: ${h2.goalsHome} goles"></div>
+          </div>
+          <div class="stats-bar-legend">
+            <span class="stats-legend-home">🔵 1° Tiempo (1°C y 2°C): ${h1.goalsHome} goles</span>
+            <span class="stats-legend-away" style="color: #a5b4fc;">🟣 2° Tiempo (3°C y 4°C): ${h2.goalsHome} goles</span>
+          </div>
+        </div>
+
+        <div class="stats-quarter-bar-row">
+          <div class="stats-quarter-bar-head">
+            <span class="stats-quarter-name">🛑 Goles Recibidos (Vulnerabilidad)</span>
+            <span class="stats-quarter-badge stats-badge-loss">1T: ${h1ConcededPct}% | 2T: ${h2ConcededPct}%</span>
+          </div>
+          <div class="stats-dual-bar-track">
+            <div class="stats-bar-home" style="width: ${h1ConcededPct}%; background: linear-gradient(90deg, #f59e0b, #fbbf24);" title="1T: ${h1.goalsAway} goles"></div>
+            <div class="stats-bar-away" style="width: ${h2ConcededPct}%; background: linear-gradient(90deg, #ef4444, #f87171);" title="2T: ${h2.goalsAway} goles"></div>
+          </div>
+          <div class="stats-bar-legend">
+            <span class="stats-legend-home" style="color: #fbbf24;">🟠 1° Tiempo: ${h1.goalsAway} goles recibidos</span>
+            <span class="stats-legend-away">🔴 2° Tiempo: ${h2.goalsAway} goles recibidos</span>
+          </div>
+        </div>
+
+        <div class="stats-quarter-bar-row">
+          <div class="stats-quarter-bar-head">
+            <span class="stats-quarter-name">📥 Ingresos al Área Rival (Volumen)</span>
+            <span class="stats-quarter-badge stats-badge-draw">1T: ${h1EntriesPct}% | 2T: ${h2EntriesPct}%</span>
+          </div>
+          <div class="stats-dual-bar-track">
+            <div class="stats-bar-home" style="width: ${h1EntriesPct}%;" title="1T: ${h1.entriesHome} ingresos"></div>
+            <div class="stats-bar-away" style="width: ${h2EntriesPct}%; background: linear-gradient(90deg, #06b6d4, #22d3ee);" title="2T: ${h2.entriesHome} ingresos"></div>
+          </div>
+          <div class="stats-bar-legend">
+            <span class="stats-legend-home">🔵 1° Tiempo: ${h1.entriesHome} ingresos</span>
+            <span class="stats-legend-away" style="color: #67e8f9;">🔷 2° Tiempo: ${h2.entriesHome} ingresos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cuadros Comparativos Lado a Lado -->
+      <div class="stats-halves-grid">
+        <div class="stats-half-col">
+          <div class="stats-half-col-title">
+            <span>⏱️ 1° Tiempo (1°C + 2°C)</span>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Goles a Favor:</span>
+            <strong style="color: #34d399;">${h1.goalsHome}</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Goles en Contra:</span>
+            <strong style="color: #f87171;">${h1.goalsAway}</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Ingresos Área (Reg / Riv):</span>
+            <strong>${h1.entriesHome} / ${h1.entriesAway}</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Córners Cortos a Favor:</span>
+            <strong>${h1.cornersHome} (${h1.cornerGoalsHome}g)</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Tarjetas (Verdes / Amarillas):</span>
+            <strong>${h1.cardsHome.green}V / ${h1.cardsHome.yellow}A</strong>
+          </div>
+        </div>
+
+        <div class="stats-half-col">
+          <div class="stats-half-col-title">
+            <span style="color: #818cf8;">⏱️ 2° Tiempo (3°C + 4°C)</span>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Goles a Favor:</span>
+            <strong style="color: #34d399;">${h2.goalsHome}</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Goles en Contra:</span>
+            <strong style="color: #f87171;">${h2.goalsAway}</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Ingresos Área (Reg / Riv):</span>
+            <strong>${h2.entriesHome} / ${h2.entriesAway}</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Córners Cortos a Favor:</span>
+            <strong>${h2.cornersHome} (${h2.cornerGoalsHome}g)</strong>
+          </div>
+          <div class="stats-half-metric-row">
+            <span>Tarjetas (Verdes / Amarillas):</span>
+            <strong>${h2.cardsHome.green}V / ${h2.cardsHome.yellow}A</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagnósticos Tácticos Automáticos del DT -->
+      ${insights.length > 0 ? `
+        <div style="margin-top: 4px;">
+          <span class="stats-filter-label" style="display: block; margin-bottom: 6px;">💡 Conclusiones Tácticas del CT</span>
+          <div class="stats-insights-list">
+            ${insights.map(item => `
+              <div class="stats-insight-item ${item.type}">
+                <span class="stats-insight-icon">${item.icon}</span>
+                <div class="stats-insight-text">
+                  <strong>${item.title}</strong>
+                  ${item.desc}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </section>
+
+    <!-- EFICIENCIA DE CÓRNER CORTO (ATAQUE vs DEFENSA) -->
+    <section class="stats-halves-card">
+      <div class="stats-card-header">
+        <span class="stats-card-icon">🏑</span>
+        <div>
+          <h3 class="stats-card-title">EFICIENCIA CRÍTICA EN CÓRNERS CORTOS</h3>
+          <p style="font-size: 0.72rem; color: #9bb1d6; margin: 2px 0 0 0;">Conversión en jugadas preparadas de ataque y solidez en defensa fija</p>
+        </div>
+      </div>
+
+      <div class="stats-corners-summary-grid">
+        <div class="stats-corners-box">
+          <div class="stats-corners-box-title" style="color: #38bdf8;">
+            <span>🎯</span> ATAQUE (A FAVOR)
+          </div>
+          <div class="stats-corners-box-val" style="color: #38bdf8;">
+            ${trends.cornerEffHome}%
+          </div>
+          <div class="stats-corners-box-sub">
+            <strong>${trends.cornerGoalsHome} goles</strong> en ${trends.totalCornersHome} cortos obtenidos
+          </div>
+          <div class="stats-corners-box-sub" style="margin-top: 4px; color: #c8d8f0;">
+            ${trends.cornerGoalsHome > 0 ? `Se anota 1 gol cada ${(trends.totalCornersHome / trends.cornerGoalsHome).toFixed(1)} cortos` : 'Sin goles de córner corto aún'}
+          </div>
+        </div>
+
+        <div class="stats-corners-box">
+          <div class="stats-corners-box-title" style="color: #34d399;">
+            <span>🛡️</span> DEFENSA (EN CONTRA)
+          </div>
+          <div class="stats-corners-box-val" style="color: #34d399;">
+            ${trends.cornerDefHome}%
+          </div>
+          <div class="stats-corners-box-sub">
+            <strong>Efectividad defendiendo</strong> cortos rivales
+          </div>
+          <div class="stats-corners-box-sub" style="margin-top: 4px; color: #c8d8f0;">
+            Solo ${trends.cornerGoalsAway} goles sufridos de ${trends.totalCornersAway} cortos concedidos
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVOLUCIÓN PARTIDO A PARTIDO (TIMELINE DE FECHAS) -->
+    <section class="stats-halves-card">
+      <div class="stats-card-header">
+        <span class="stats-card-icon">📅</span>
+        <div>
+          <h3 class="stats-card-title">EVOLUCIÓN PARTIDO A PARTIDO</h3>
+          <p style="font-size: 0.72rem; color: #9bb1d6; margin: 2px 0 0 0;">Historial cronológico de fechas con diferencial territorial y efectividad</p>
+        </div>
+      </div>
+
+      <div class="stats-match-timeline">
+        ${trends.matchChronology.map(m => {
+          const resClass = m.result === 'win' ? 'stats-res-win' : (m.result === 'draw' ? 'stats-res-draw' : 'stats-res-loss');
+          const resLetter = m.result === 'win' ? 'V' : (m.result === 'draw' ? 'E' : 'D');
+          const entryDiffVal = m.entriesHome - m.entriesAway;
+          const entryDiffText = entryDiffVal > 0 ? `+${entryDiffVal}` : `${entryDiffVal}`;
+
+          return `
+            <div class="stats-timeline-row">
+              <div class="stats-timeline-info">
+                <span class="stats-res-pill ${resClass}">${resLetter}</span>
+                <div class="stats-timeline-details">
+                  <div class="stats-timeline-title">
+                    ${escapeHtml(m.round)} vs ${escapeHtml(m.rival)}
+                    <span style="color: #ffffff; font-weight: 900; margin-left: 6px;">${m.homeScore} - ${m.awayScore}</span>
+                  </div>
+                  <div class="stats-timeline-meta">
+                    <span>📥 Ingresos: ${m.entriesHome} vs ${m.entriesAway} (${entryDiffText})</span>
+                    <span>🏑 CC: ${m.cornersHome} (${m.cornerGoalsHome}g)</span>
+                    ${m.date ? `<span>📅 ${escapeHtml(m.date)}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn-timeline-inspect" onclick="inspectMatchQuarters('${m.key}')" title="Ver análisis de cuartos de este partido">
+                Ver Cuartos ➔
+              </button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </section>
+
+    <!-- GOLEADORAS Y DISCIPLINA DEL PLANTEL -->
+    <section class="stats-halves-card">
+      <div class="stats-card-header">
+        <span class="stats-card-icon">⭐</span>
+        <div>
+          <h3 class="stats-card-title">RENDIMIENTO INDIVIDUAL DEL PLANTEL</h3>
+          <p style="font-size: 0.72rem; color: #9bb1d6; margin: 2px 0 0 0;">Tabla de goleadoras y registro disciplinario extraídos de las incidencias</p>
+        </div>
+      </div>
+
+      <div class="stats-players-grid">
+        <!-- TOP GOLEADORAS -->
+        <div class="stats-players-card">
+          <div class="stats-players-card-title">
+            <span>⚽ TOP GOLEADORAS</span>
+            <span style="font-size: 0.68rem; color: #34d399;">${trends.totalGF} Goles</span>
+          </div>
+
+          ${trends.scorersList.length > 0 ? `
+            <table class="stats-players-mini-table">
+              <thead>
+                <tr>
+                  <th>Jugadora</th>
+                  <th style="text-align: center;">Jugada</th>
+                  <th style="text-align: center;">Corto</th>
+                  <th style="text-align: center;">Penal</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trends.scorersList.map(s => `
+                  <tr>
+                    <td><strong>${escapeHtml(s.name)}</strong></td>
+                    <td style="text-align: center; color: #9bb1d6;">${s.field}</td>
+                    <td style="text-align: center; color: #9bb1d6;">${s.corner}</td>
+                    <td style="text-align: center; color: #9bb1d6;">${s.stroke}</td>
+                    <td>${s.total} gol${s.total === 1 ? '' : 'es'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `
+            <div class="stats-empty-hint">No hay goles asignados a jugadoras todavía.</div>
+          `}
+        </div>
+
+        <!-- DISCIPLINA & TARJETAS -->
+        <div class="stats-players-card">
+          <div class="stats-players-card-title">
+            <span>🟨 TARJETAS & DISCIPLINA</span>
+            <span style="font-size: 0.68rem; color: #fbbf24;">Fair Play</span>
+          </div>
+
+          ${trends.cardsList.length > 0 ? `
+            <table class="stats-players-mini-table">
+              <thead>
+                <tr>
+                  <th>Jugadora</th>
+                  <th style="text-align: center;">🟩 2m</th>
+                  <th style="text-align: center;">🟨 5m</th>
+                  <th style="text-align: center;">🟥 Exp</th>
+                  <th>Minutos Fuera</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trends.cardsList.map(c => `
+                  <tr>
+                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td style="text-align: center; color: #34d399;">${c.green}</td>
+                    <td style="text-align: center; color: #fbbf24;">${c.yellow}</td>
+                    <td style="text-align: center; color: #f87171;">${c.red}</td>
+                    <td style="color: #f87171;">${c.penaltyMinutes} min</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `
+            <div class="stats-empty-hint" style="color: #34d399;">¡Plantel impecable! Sin tarjetas registradas aún.</div>
+          `}
+        </div>
+      </div>
+    </section>
+  `;
+
+  container.innerHTML = html;
 }
 
 // Sincronización de todos los partidos e incidencias desde Google Sheets
@@ -4581,15 +5364,53 @@ async function syncAllMatchesFromCloud(options = {}) {
 
 // Compartir resumen táctico por WhatsApp
 function shareStatsWhatsApp() {
-  const stats = getAggregatedQuarterStats(statsCurrentSelectedFilter);
-  const q = stats.quarters;
-  const totH = q.total.home;
-  const totA = q.total.away;
-
   const filterSelect = document.getElementById('selectStatsMatchFilter');
   const selectedLabel = filterSelect && filterSelect.options[filterSelect.selectedIndex] 
     ? filterSelect.options[filterSelect.selectedIndex].text 
     : 'Todos los Partidos';
+
+  if (statsActiveSubTab === 'trends') {
+    const trends = getSeasonTrendsData(statsCurrentSelectedFilter);
+    const h1 = trends.halves.first;
+    const h2 = trends.halves.second;
+    const topScorersStr = trends.scorersList.length > 0
+      ? trends.scorersList.slice(0, 3).map((s, i) => `${i + 1}. ${s.name}: ${s.total} gol${s.total === 1 ? '' : 'es'}`).join('\n')
+      : 'Sin goles individuales registrados';
+
+    const goalDiffStr = trends.goalDiff > 0 ? `+${trends.goalDiff}` : `${trends.goalDiff}`;
+
+    const lines = [
+      `📈 *REGATAS ANDINO B - TENDENCIAS DE TEMPORADA*`,
+      `📊 *Muestra:* ${selectedLabel}`,
+      `🏆 *Campaña:* ${trends.playedCount} PJ • ${trends.wins}V ${trends.draws}E ${trends.losses}D (${trends.points} pts • ${trends.pointsEff}% efectividad)`,
+      `⚽ *Goles:* ${trends.totalGF} a favor / ${trends.totalGC} en contra (Dif: ${goalDiffStr})`,
+      `📥 *Ingresos al Área:* ${trends.avgEntriesHome} prom. a favor vs ${trends.avgEntriesAway} rivales`,
+      ``,
+      `⚖️ *DIAGNÓSTICO 1° TIEMPO vs 2° TIEMPO:*`,
+      `*1° Tiempo (1°C + 2°C):* ${h1.goalsHome} goles a favor • ${h1.goalsAway} recibidos • ${h1.entriesHome} ingresos`,
+      `*2° Tiempo (3°C + 4°C):* ${h2.goalsHome} goles a favor • ${h2.goalsAway} recibidos • ${h2.entriesHome} ingresos`,
+      ``,
+      `🎯 *CÓRNERS CORTOS:*`,
+      `*Ataque:* ${trends.cornerGoalsHome} goles en ${trends.totalCornersHome} CC (${trends.cornerEffHome}% efectividad)`,
+      `*Defensa:* ${trends.cornerDefHome}% defendidos con éxito (${trends.cornerGoalsAway} goles sufridos en ${trends.totalCornersAway} CC)`,
+      ``,
+      `⭐ *TOP GOLEADORAS:*`,
+      topScorersStr,
+      ``,
+      `_Generado desde la App Oficial de Citaciones y Botonera DT de Regatas Andino B_`
+    ];
+
+    const fullText = lines.join('\n');
+    const waUrl = `https://wa.me/?text=${encodeURIComponent(fullText)}`;
+    window.open(waUrl, '_blank');
+    return;
+  }
+
+  // Desglose por cuartos
+  const stats = getAggregatedQuarterStats(statsCurrentSelectedFilter);
+  const q = stats.quarters;
+  const totH = q.total.home;
+  const totA = q.total.away;
 
   const goalDiff = totH.goals - totA.goals;
   const goalDiffStr = goalDiff > 0 ? `+${goalDiff}` : `${goalDiff}`;
