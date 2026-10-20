@@ -26,16 +26,18 @@ module.exports = async function handler(req, res) {
 
   try {
     results.requirePuppeteerCore = 'trying';
-    const p = require('puppeteer-core');
-    results.requirePuppeteerCore = 'success';
+    const puppeteerModule = await import('puppeteer-core');
+    const p = puppeteerModule.default || puppeteerModule;
+    results.requirePuppeteerCore = 'success (' + typeof p.launch + ')';
   } catch (e) {
     results.requirePuppeteerCore = 'failed: ' + e.message;
   }
 
   try {
     results.requireSparticuz = 'trying';
-    const c = require('@sparticuz/chromium');
-    results.requireSparticuz = 'success';
+    const chromiumModule = await import('@sparticuz/chromium');
+    const c = chromiumModule.default || chromiumModule;
+    results.requireSparticuz = 'success (' + typeof c.executablePath + ')';
     results.sparticuzKeys = Object.keys(c);
   } catch (e) {
     results.requireSparticuz = 'failed: ' + e.message;

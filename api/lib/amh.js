@@ -61,9 +61,10 @@ function findBrowserExecutable() {
 
 // Obtener instancia de navegador compatible con Windows local y Vercel Serverless
 async function getBrowserInstance() {
-  const puppeteer = require('puppeteer-core');
-  const localExe = findBrowserExecutable();
+  const puppeteerModule = await import('puppeteer-core');
+  const puppeteer = puppeteerModule.default || puppeteerModule;
 
+  const localExe = findBrowserExecutable();
   if (localExe) {
     return await puppeteer.launch({
       executablePath: localExe,
@@ -74,7 +75,7 @@ async function getBrowserInstance() {
 
   // Si estamos en Vercel o en un entorno Linux Serverless
   try {
-    const chromiumModule = require('@sparticuz/chromium');
+    const chromiumModule = await import('@sparticuz/chromium');
     const chromium = chromiumModule.default || chromiumModule;
 
     // Desactivar stack gráfico para optimizar velocidad y memoria en serverless
