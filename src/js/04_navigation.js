@@ -172,16 +172,6 @@ function setupViewSwitching() {
     });
   });
 
-  // 3. Banners desde la vista de Citación
-  const btnTournamentBanner = document.getElementById('btnOpenTournamentFromBanner');
-  if (btnTournamentBanner) {
-    btnTournamentBanner.addEventListener('click', () => showView('torneo'));
-  }
-
-  const btnPhysicalBanner = document.getElementById('btnOpenPhysicalFromBanner');
-  if (btnPhysicalBanner) {
-    btnPhysicalBanner.addEventListener('click', () => showView('fisico'));
-  }
 
   // 4. Botones de Retorno a Citación
   const btnReturnFromTorneo = document.getElementById('btnReturnToCitacionFromTorneo');
