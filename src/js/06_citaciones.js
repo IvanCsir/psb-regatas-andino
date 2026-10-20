@@ -268,7 +268,11 @@ function renderActiveCategory() {
   if (!listContainer) return;
 
   if (!players.length) {
-    listContainer.innerHTML = '<div style="text-align: center; color: #9bb1d6; padding: 20px;">No hay jugadoras citadas aún para esta categoría.</div>';
+    listContainer.innerHTML = '<div style="text-align: center; color: #9bb1d6; padding: 28px 16px; font-size: 0.92rem; line-height: 1.5;">' +
+      '<div style="font-size: 2rem; margin-bottom: 8px;">📡</div>' +
+      '<strong style="color: #ffffff;">Esperando sincronización de citadas</strong><br>' +
+      '<span style="font-size: 0.8rem; color: #64748b;">Conectate a internet para ver la citación oficial en vivo desde la planilla.</span>' +
+      '</div>';
     return;
   }
 

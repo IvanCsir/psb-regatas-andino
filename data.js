@@ -19,26 +19,7 @@ const DEFAULT_MATCH_DATA = {
     badge: "1RA",
     callTime: "15.30 hs",
     matchTime: "16.35 hs",
-    players: [
-      "Aciares Ailen",
-      "Beron Antonella",
-      "Brittos Valentina",
-      "Campos Pilar",
-      "Cesetti Giuliana",
-      "Chacón Aldana",
-      "D’Inocencio Priscila",
-      "Ferrería Abril",
-      "Figuero Victoria",
-      "Narvaez Renata",
-      "Ponce Ana Paula",
-      "Prato Delfina",
-      "Puppato Valentina",
-      "Moyano Lara",
-      "Santillán Carina",
-      "Vater Lara",
-      "Villegas Rocio",
-      "Vater Emilia"
-    ]
+    players: []
   },
 
   // Intermedia (Datos base sincronizados con hoja 'intermedia')
@@ -47,23 +28,7 @@ const DEFAULT_MATCH_DATA = {
     badge: "INTER",
     callTime: "14.15 hs",
     matchTime: "15.15 hs",
-    players: [
-      "Baldillou Celia",
-      "Blanco Luisina",
-      "Boffa Clarita",
-      "Cesetti Giuliana",
-      "Constantini Micaela",
-      "Costanzo Agostina",
-      "Dinocencio Priscila",
-      "Gil Gabriela",
-      "Lascano Romina",
-      "Martinez Martina",
-      "Menoyo Brisa",
-      "Oviedo Lua",
-      "Pistis Luciana",
-      "Puppato Luciana",
-      "Segura Cairo Delfina"
-    ]
+    players: []
   }
 };
 
