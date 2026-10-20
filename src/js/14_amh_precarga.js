@@ -88,6 +88,7 @@ function openAmhPrecargaModal() {
   
   switchAmhPrecargaCategory(currentCat);
   modal.classList.add('active');
+  document.body.classList.add('amh-modal-open');
   document.body.style.overflow = 'hidden';
 }
 
@@ -99,6 +100,7 @@ function closeAmhPrecargaModal() {
   }
   const modal = document.getElementById('modalAmhPrecarga');
   if (modal) modal.classList.remove('active');
+  document.body.classList.remove('amh-modal-open');
   document.body.style.overflow = '';
 }
 

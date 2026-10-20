@@ -1,7 +1,7 @@
 /*
  * Estilos Oficiales - Club Regatas Andino (Hockey Femenino)
  * Compilado automáticamente desde /src/css/
- * Última actualización: 2026-10-20T18:36:27.420Z
+ * Última actualización: 2026-10-20T18:49:42.496Z
  */
 
 /* ==========================================================================
@@ -6749,6 +6749,11 @@ body.dt-sun-mode .toast {
    MÓDULO: 12_amh_precarga.css
    ========================================================================== */
 
+body.amh-modal-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
 /* ==========================================================================
    MÓDULO 12: ESTILOS PARA PRECARGA DE EQUIPOS AMH (CUERPO TÉCNICO)
    ========================================================================== */
@@ -6777,8 +6782,8 @@ body.dt-sun-mode .toast {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
+  overscroll-behavior: contain;
   box-sizing: border-box;
 }
 
@@ -6799,13 +6804,14 @@ body.dt-sun-mode .toast {
   border-radius: 16px;
   width: 100%;
   max-width: 680px;
-  max-height: 90vh;
+  height: 88vh;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   overflow: hidden;
-  animation: amhModalZoom 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
+  animation: amhModalZoom 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes amhModalZoom {
@@ -6821,6 +6827,7 @@ body.dt-sun-mode .toast {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .amh-header-left {
@@ -6867,9 +6874,14 @@ body.dt-sun-mode .toast {
 
 /* Modal Body */
 .amh-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1.25rem 1rem;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
@@ -6941,15 +6953,27 @@ body.dt-sun-mode .toast {
   box-shadow: 0 2px 8px rgba(76, 173, 212, 0.4);
 }
 
+
+/* Prevención estricta contra colapso de tarjetas dentro de flexbox */
+.amh-security-banner,
+.amh-category-tabs,
+.amh-card,
+.amh-execute-btn,
+.amh-status-box,
+#amhResultBox,
+#amhErrorBox {
+  flex-shrink: 0;
+}
+
 /* Secciones / Cards */
 .amh-card {
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
-  padding: 0.9rem 1rem;
+  padding: 1rem;
   width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .amh-card-title-row {
@@ -7102,11 +7126,11 @@ body.dt-sun-mode .toast {
   flex: 1;
   min-width: 0;
   width: 100%;
-  max-width: 100%;
+  height: 44px;
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f8fafc;
-  padding: 0.65rem 0.85rem;
+  padding: 0 0.85rem;
   border-radius: 8px;
   font-size: 0.85rem;
   outline: none;
@@ -7125,7 +7149,9 @@ body.dt-sun-mode .toast {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #94a3b8;
-  padding: 0.65rem 0.75rem;
+  height: 44px;
+  width: 44px;
+  flex-shrink: 0;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -7443,6 +7469,7 @@ body.dt-sun-mode .toast {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .amh-btn-cancel {
@@ -7469,7 +7496,8 @@ body.dt-sun-mode .toast {
   }
 
   .amh-modal-dialog {
-    max-height: 94vh;
+    height: 92vh;
+    max-height: 92vh;
     border-radius: 12px;
   }
 
@@ -7491,12 +7519,13 @@ body.dt-sun-mode .toast {
   }
 
   .amh-card {
-    padding: 0.8rem 0.75rem;
+    padding: 0.85rem 0.75rem;
   }
 
   .amh-card-title-row {
-    flex-direction: column;
-    align-items: flex-start;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.45rem;
   }
 
@@ -7505,13 +7534,10 @@ body.dt-sun-mode .toast {
   }
 
   .amh-title-actions {
-    width: 100%;
-    justify-content: space-between;
+    display: flex;
+    align-items: center;
     gap: 0.35rem;
-  }
-
-  .amh-badge-rival {
-    align-self: flex-start;
+    flex-wrap: wrap;
   }
 
   .amh-tab-btn {
@@ -7522,11 +7548,7 @@ body.dt-sun-mode .toast {
   .amh-execute-btn {
     padding: 0.85rem 1rem;
     font-size: 0.9rem;
-  }
-
-  .amh-cited-tags-grid {
-    max-height: none;
-    overflow-y: visible;
+    min-height: 48px;
   }
 
   .amh-player-cb-label {
