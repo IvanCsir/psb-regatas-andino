@@ -45,26 +45,36 @@ try {
 
 // Feedback Háptico para móviles (confirmación física táctil bajo el sol)
 function triggerDtHaptic(type = 'default') {
-  if (!('vibrate' in navigator)) return;
+  // 1. Android / Navegadores con soporte estándar de Vibration API
+  if ('vibrate' in navigator) {
+    try {
+      if (type === 'goal') {
+        navigator.vibrate([80, 50, 100, 50, 120]); // Celebración rítmica enérgica para gol
+      } else if (type === 'corner') {
+        navigator.vibrate([35, 45, 35]); // Doble pulso nítido para córner corto
+      } else if (type === 'stroke') {
+        navigator.vibrate([50, 40, 70]); // Pulso firme para penal / stroke
+      } else if (type === 'entry') {
+        navigator.vibrate(22); // Pulso ágil para ingreso al área
+      } else if (type === 'card' || type.startsWith('card')) {
+        navigator.vibrate([50, 50, 50]); // Triple pulso para tarjeta
+      } else if (type === 'undo') {
+        navigator.vibrate([70, 40, 30]); // Secuencia descendente de advertencia para deshacer
+      } else if (type === 'quarter') {
+        navigator.vibrate([40, 30, 40, 30, 40]); // Cambio de cuarto
+      } else if (type === 'timer') {
+        navigator.vibrate(30);
+      } else {
+        navigator.vibrate(20);
+      }
+    } catch (e) {}
+  }
+
+  // 2. iOS Safari / WebKit PWA (Taptic Engine nativo para iOS 18+)
   try {
-    if (type === 'goal') {
-      navigator.vibrate([80, 50, 100, 50, 120]); // Celebración rítmica enérgica para gol
-    } else if (type === 'corner') {
-      navigator.vibrate([35, 45, 35]); // Doble pulso nítido para córner corto
-    } else if (type === 'stroke') {
-      navigator.vibrate([50, 40, 70]); // Pulso firme para penal / stroke
-    } else if (type === 'entry') {
-      navigator.vibrate(22); // Pulso ágil para ingreso al área
-    } else if (type === 'card' || type.startsWith('card')) {
-      navigator.vibrate([50, 50, 50]); // Triple pulso para tarjeta
-    } else if (type === 'undo') {
-      navigator.vibrate([70, 40, 30]); // Secuencia descendente de advertencia para deshacer
-    } else if (type === 'quarter') {
-      navigator.vibrate([40, 30, 40, 30, 40]); // Cambio de cuarto
-    } else if (type === 'timer') {
-      navigator.vibrate(30);
-    } else {
-      navigator.vibrate(20);
+    const iosLabel = document.getElementById('iosHapticLabel');
+    if (iosLabel) {
+      iosLabel.click();
     }
   } catch (e) {}
 }
@@ -923,6 +933,7 @@ function initDtModule() {
         dtMatchState.currentQuarter = q;
         resetDtClock();
         saveDtMatchState();
+        triggerDtHaptic('quarter');
         renderDtView();
         if (navigator.vibrate) navigator.vibrate(25);
         showToast(`📍 Cambiaste al ${q}° Cuarto`);
