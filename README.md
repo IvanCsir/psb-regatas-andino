@@ -21,21 +21,31 @@ La página web está conectada directamente con tu planilla de Google Sheets:
      - **Horario partido**: Hora de inicio de cada categoría.
      - **Cancha**: Lugar donde se juega.
 3. **Actualización Automática**:
-   - Cada vez que una jugadora o vos abren la página web (en Netlify o en el celular), **los datos se actualizan solos en tiempo real**.
-   - **¡Ya no tenés que volver a subir la web a Netlify cada fin de semana!**
+   - Cada vez que una jugadora o vos abren la página web, **los datos se actualizan solos en tiempo real**.
 
 ---
 
+## 🛠️ Arquitectura Modular y Desarrollo
+
+El código fuente del frontend está organizado en módulos claros dentro de la carpeta `src/`:
+- **`src/js/`**: Módulos JavaScript (autenticación, citaciones, torneo AMH, evaluaciones físicas, live tracker DT, estadísticas y PWA).
+- **`src/css/`**: Módulos CSS separados por funcionalidad y pantallas (colores del club, layouts, componentes, modo sol).
+- **`api/`**: Funciones Serverless para Vercel (`/api/torneo` y `/api/torneo/matches`) para scraping y sincronización en vivo del torneo oficial AMH.
+
+### Comandos de desarrollo:
+```bash
+# Compilar los módulos a app.js y styles.css
+npm run build
+
+# Modo observador (recompila automáticamente ante cualquier cambio en /src)
+npm run dev
+
+# Servidor de pruebas local
+npm start
+```
+
 ---
 
-## 🌐 Publicación en GitHub Pages
-
-La aplicación está lista para ejecutarse directamente desde GitHub Pages:
-
-🔗 **URL Oficial:** [https://ivancsir.github.io/psb-regatas-andino/](https://ivancsir.github.io/psb-regatas-andino/)
-
-### Activación en 3 pasos:
-1. Andá a [Settings > Pages](https://github.com/IvanCsir/psb-regatas-andino/settings/pages).
-2. En **Build and deployment > Source**, seleccioná **Deploy from a branch**.
-3. En **Branch**, seleccioná `main` y carpeta `/(root)`. Hacé clic en **Save**.
-4. ¡Listo! En 1 minuto tu app estará online y se actualizará automáticamente con cada `git push`.
+## 🌐 Publicación en Vercel
+La aplicación se despliega automáticamente en Vercel con cada `git push` a la rama `main`:
+🔗 **Dominio Oficial:** [https://psb-regatasandino.com](https://psb-regatasandino.com)

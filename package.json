@@ -1,0 +1,21 @@
+{
+  "name": "psb-regatas-andino",
+  "version": "1.0.0",
+  "description": "Web Oficial de Citaciones, Evaluaciones Físicas y Live Tracker DT - Club Regatas Andino",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/build.js --watch",
+    "start": "node server.js",
+    "check": "node --check app.js && node --check server.js"
+  },
+  "keywords": [
+    "hockey",
+    "regatas-andino",
+    "citaciones",
+    "live-tracker",
+    "pwa"
+  ],
+  "author": "Club Regatas Andino",
+  "license": "ISC"
+}

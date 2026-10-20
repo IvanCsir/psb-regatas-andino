@@ -1,5 +1,15 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
+ * Compilado automáticamente desde /src/js/
+ * Última actualización: 2026-10-20T00:08:40.750Z
+ */
+
+// ============================================================================
+// MÓDULO: 01_config.js
+// ============================================================================
+
+/**
+ * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Manejo de Citaciones (Primera e Intermedia) y Rendimiento Físico
  * Sincronización en Vivo con Google Sheets (Citaciones y Físico)
  */
@@ -31,6 +41,10 @@ const CT_PASSWORD_HASH = '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf0527
 const CT_AUTH_STORAGE_KEY = 'regatas_ct_auth_v3';
 const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
 const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';
+
+// ============================================================================
+// MÓDULO: 02_crypto.js
+// ============================================================================
 
 // ============================================================================
 // FUNCIONES CRIPTOGRÁFICAS & SESIÓN UNIFICADA CUERPO TÉCNICO
@@ -107,6 +121,10 @@ function fallbackSha256(ascii) {
   }
   return result;
 }
+
+// ============================================================================
+// MÓDULO: 03_auth.js
+// ============================================================================
 
 async function verifyCtPassword(input) {
   const clean = (input || '').trim().toLowerCase();
@@ -218,52 +236,9 @@ function lockCtSession() {
   showToast('🔒 Sesión de Cuerpo Técnico cerrada');
 }
 
-// Definición de Tests Físicos de la Planilla
-const TESTS_CONFIG = [
-  { key: 'broadJump', name: 'Broad Jump', type: 'Salto Horizontal', unit: 'm', higherIsBetter: true, icon: '🏃‍♀️', decimals: 2, cols: [3, 4, 5] },
-  { key: 'cmj', name: 'CMJ (Salto Vertical)', type: 'Salto con Contramovimiento', unit: 'cm', higherIsBetter: true, icon: '⚡', decimals: 1, cols: [6, 7, 8] },
-  { key: 'agility', name: 'Test 5-10-5', type: 'Agilidad Pro Agility', unit: 'seg', higherIsBetter: false, icon: '⏱️', decimals: 2, cols: [9, 10, 11] },
-  { key: 'sprint', name: 'Velocidad 40 mts', type: 'Aceleración Lineal', unit: 'seg', higherIsBetter: false, icon: '💨', decimals: 2, cols: [12, 13, 14] },
-  { key: 'yoyo', name: 'Yo-Yo Test', type: 'Resistencia Intermitente', unit: 'm', higherIsBetter: true, icon: '🫁', decimals: 0, cols: [15, 16, 17] },
-  { key: 'bench', name: 'Press de Banca', type: 'Fuerza Tren Superior', unit: 'kg', higherIsBetter: true, icon: '🏋️‍♀️', decimals: 1, cols: [18, 19, 20] },
-  { key: 'deadlift', name: 'Peso Muerto', type: 'Fuerza Cadena Posterior', unit: 'kg', higherIsBetter: true, icon: '🏋️', decimals: 1, cols: [21, 22, 23] },
-  { key: 'squat', name: 'Sentadilla', type: 'Fuerza Tren Inferior', unit: 'kg', higherIsBetter: true, icon: '🦵', decimals: 1, cols: [24, 25, 26] },
-  { key: 'platform', name: 'Plataforma', type: 'Potencia', unit: '', higherIsBetter: true, icon: '🎯', decimals: 1, cols: [27, 28, 29] }
-];
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadData();
-  loadTournamentData();
-  render();
-  renderTournamentView();
-  setupCategorySwitch();
-  setupTournamentCategorySwitch();
-  setupViewSwitching();
-  setupEvents();
-  setupPhysicalSection();
-  initDtModule();
-  initSunMode();
-  updateCtUiState();
-  setupPwa();
-
-  // Sincronizaciones en vivo
-  syncWithGoogleSheets(); // Citaciones
-  loadPhysicalEvaluations(); // Físico
-  syncTournamentData(); // Torneo AMH
-
-  // Actualizaciones automáticas en segundo plano y foco
-  setInterval(() => {
-    syncWithGoogleSheets();
-    loadPhysicalEvaluations();
-    syncTournamentData();
-  }, 60000);
-
-  window.addEventListener('focus', () => {
-    syncWithGoogleSheets();
-    loadPhysicalEvaluations();
-    syncTournamentData();
-  });
-});
+// ============================================================================
+// MÓDULO: 04_navigation.js
+// ============================================================================
 
 // ============================================================================
 // NAVEGACIÓN DISCRETA ENTRE CITACIÓN, TORNEO Y EVALUACIONES FÍSICAS
@@ -527,6 +502,11 @@ function showView(viewName) {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 05_torneo.js
+// ============================================================================
+
 // CARGA Y RENDERIZADO DEL TORNEO (AMH CLAUSURA DAMAS B 2026)
 // ============================================================================
 
@@ -1053,6 +1033,11 @@ async function syncTournamentData(manual = false) {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 06_citaciones.js
+// ============================================================================
+
 // CARGA Y PERSISTENCIA DE CITACIONES
 // ============================================================================
 
@@ -1357,6 +1342,11 @@ function setupCategorySwitch() {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 07_ct_modal.js
+// ============================================================================
+
 // EVENTOS Y MODAL CUERPO TÉCNICO
 // ============================================================================
 
@@ -1528,6 +1518,25 @@ function lockSheetsSession() {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 08_fisico.js
+// ============================================================================
+
+// Definición de Tests Físicos de la Planilla
+const TESTS_CONFIG = [
+  { key: 'broadJump', name: 'Broad Jump', type: 'Salto Horizontal', unit: 'm', higherIsBetter: true, icon: '🏃‍♀️', decimals: 2, cols: [3, 4, 5] },
+  { key: 'cmj', name: 'CMJ (Salto Vertical)', type: 'Salto con Contramovimiento', unit: 'cm', higherIsBetter: true, icon: '⚡', decimals: 1, cols: [6, 7, 8] },
+  { key: 'agility', name: 'Test 5-10-5', type: 'Agilidad Pro Agility', unit: 'seg', higherIsBetter: false, icon: '⏱️', decimals: 2, cols: [9, 10, 11] },
+  { key: 'sprint', name: 'Velocidad 40 mts', type: 'Aceleración Lineal', unit: 'seg', higherIsBetter: false, icon: '💨', decimals: 2, cols: [12, 13, 14] },
+  { key: 'yoyo', name: 'Yo-Yo Test', type: 'Resistencia Intermitente', unit: 'm', higherIsBetter: true, icon: '🫁', decimals: 0, cols: [15, 16, 17] },
+  { key: 'bench', name: 'Press de Banca', type: 'Fuerza Tren Superior', unit: 'kg', higherIsBetter: true, icon: '🏋️‍♀️', decimals: 1, cols: [18, 19, 20] },
+  { key: 'deadlift', name: 'Peso Muerto', type: 'Fuerza Cadena Posterior', unit: 'kg', higherIsBetter: true, icon: '🏋️', decimals: 1, cols: [21, 22, 23] },
+  { key: 'squat', name: 'Sentadilla', type: 'Fuerza Tren Inferior', unit: 'kg', higherIsBetter: true, icon: '🦵', decimals: 1, cols: [24, 25, 26] },
+  { key: 'platform', name: 'Plataforma', type: 'Potencia', unit: '', higherIsBetter: true, icon: '🎯', decimals: 1, cols: [27, 28, 29] }
+];
+
+
 // SECCIÓN DE EVALUACIONES FÍSICAS
 // ============================================================================
 
@@ -1948,6 +1957,11 @@ function escapeHtml(string) {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 09_sheets_sync.js
+// ============================================================================
+
 // SINCRONIZACIÓN EN TIEMPO REAL CON GOOGLE SHEETS (CITACIONES)
 // ============================================================================
 
@@ -2131,6 +2145,11 @@ async function syncWithGoogleSheets(manual = false) {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 10_dt_tracker.js
+// ============================================================================
+
 // VISTA 4: BOTONERA DE INCIDENCIAS DT EN VIVO (HOCKEY LIVE TRACKER)
 // ============================================================================
 
@@ -3500,6 +3519,7 @@ function deleteEventById(eventId) {
     renderDtView();
   }
 }
+window.deleteEventById = deleteEventById;
 
 // Reiniciar Partido
 function resetDtMatchWithConfirm() {
@@ -3973,6 +3993,11 @@ function renderDtView() {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 11_estadisticas.js
+// ============================================================================
+
 // VISTA 5: APARTADO DE ESTADÍSTICAS & ANÁLISIS DE RENDIMIENTO POR CUARTOS
 // ============================================================================
 
@@ -4702,6 +4727,11 @@ function shareStatsWhatsApp() {
 }
 
 // ============================================================================
+
+// ============================================================================
+// MÓDULO: 12_pwa.js
+// ============================================================================
+
 // PWA: SERVICE WORKER & INSTALACIÓN EN PANTALLA DE INICIO
 // ============================================================================
 
@@ -4808,4 +4838,59 @@ function closeIosInstallModal() {
 window.triggerPwaInstall = triggerPwaInstall;
 window.openIosInstallModal = openIosInstallModal;
 window.closeIosInstallModal = closeIosInstallModal;
+
+// ============================================================================
+// MÓDULO: 13_init.js
+// ============================================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadData();
+  loadTournamentData();
+  render();
+  renderTournamentView();
+  setupCategorySwitch();
+  setupTournamentCategorySwitch();
+  setupViewSwitching();
+  setupEvents();
+  setupPhysicalSection();
+  initDtModule();
+  initSunMode();
+  updateCtUiState();
+  setupPwa();
+
+  // Sincronizaciones iniciales
+  syncWithGoogleSheets(); // Citaciones
+  loadPhysicalEvaluations(); // Físico
+  syncTournamentData(); // Torneo AMH
+
+  // Polling inteligente respetando visibilidad de pantalla (ahorro de batería en celulares)
+  setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      syncWithGoogleSheets();
+      if (typeof currentActiveView !== 'undefined') {
+        if (currentActiveView === 'fisico') loadPhysicalEvaluations();
+        if (currentActiveView === 'torneo') syncTournamentData();
+      }
+    }
+  }, 60000);
+
+  // Al volver a la app o desbloquear el celular
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      syncWithGoogleSheets();
+      if (typeof currentActiveView !== 'undefined') {
+        if (currentActiveView === 'fisico') loadPhysicalEvaluations();
+        if (currentActiveView === 'torneo') syncTournamentData();
+      }
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    syncWithGoogleSheets();
+    if (typeof currentActiveView !== 'undefined') {
+      if (currentActiveView === 'fisico') loadPhysicalEvaluations();
+      if (currentActiveView === 'torneo') syncTournamentData();
+    }
+  });
+});
 
