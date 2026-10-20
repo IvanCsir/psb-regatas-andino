@@ -294,36 +294,67 @@ function switchDtMatch(matchKey, meta = {}) {
   }
 }
 
-// Llenado dinámico del selector de partidos (1ra División)
+// Llenado dinámico del selector de partidos (1ra División e Intermedia)
 function populateDtMatchSelect() {
   const select = document.getElementById('selectDtMatch');
   if (!select) return;
 
   if (!tournamentData) loadTournamentData();
-  const divData = (tournamentData && tournamentData.primera) || (DEFAULT_TOURNAMENT_DATA && DEFAULT_TOURNAMENT_DATA.primera) || {};
-  const pending = Array.isArray(divData.pendingMatches) ? divData.pendingMatches : [];
-  const played = Array.isArray(divData.matches) ? divData.matches : [];
+
+  const def1 = (typeof DEFAULT_TOURNAMENT_DATA !== 'undefined' && DEFAULT_TOURNAMENT_DATA.primera) || {};
+  const def2 = (typeof DEFAULT_TOURNAMENT_DATA !== 'undefined' && DEFAULT_TOURNAMENT_DATA.intermedia) || {};
+
+  const div1 = (tournamentData && tournamentData.primera) || def1;
+  const div2 = (tournamentData && tournamentData.intermedia) || def2;
+
+  const pending1 = (Array.isArray(div1.pendingMatches) && div1.pendingMatches.length > 0)
+    ? div1.pendingMatches
+    : (Array.isArray(def1.pendingMatches) ? def1.pendingMatches : []);
+  const played1 = (Array.isArray(div1.matches) && div1.matches.length > 0)
+    ? div1.matches
+    : (Array.isArray(def1.matches) ? def1.matches : []);
+
+  const pending2 = (Array.isArray(div2.pendingMatches) && div2.pendingMatches.length > 0)
+    ? div2.pendingMatches
+    : (Array.isArray(def2.pendingMatches) ? def2.pendingMatches : []);
+  const played2 = (Array.isArray(div2.matches) && div2.matches.length > 0)
+    ? div2.matches
+    : (Array.isArray(def2.matches) ? def2.matches : []);
 
   let html = '';
 
-  // 1. Fixture por Disputarse (Oficial AMH)
-  if (pending.length > 0) {
+  // 1. Fixture por Disputarse (1ra División)
+  if (pending1.length > 0) {
     html += `<optgroup label="⏳ Fixture por Disputarse (1ra División)">`;
-    pending.forEach(m => {
+    pending1.forEach(m => {
       const key = getMatchKey('primera', m.round);
       const isSaved = dtMatchesStore[key] && dtMatchesStore[key].events && dtMatchesStore[key].events.length > 0;
       const scoreBadge = isSaved ? ` [● En vivo ${dtMatchesStore[key].score.home}-${dtMatchesStore[key].score.away}]` : '';
       const selectedAttr = key === dtCurrentMatchKey ? 'selected' : '';
-      const cond = m.homeAway ? `(${m.homeAway})` : '';
-      html += `<option value="${key}" ${selectedAttr}>${escapeHtml(m.round)} • vs ${escapeHtml(m.rival)} ${cond}${scoreBadge}</option>`;
+      const cond = m.homeAway ? ` (${m.homeAway})` : '';
+      html += `<option value="${key}" ${selectedAttr}>${escapeHtml(m.round)} • vs ${escapeHtml(m.rival)}${cond}${scoreBadge}</option>`;
     });
     html += `</optgroup>`;
   }
 
-  // 2. Partidos Disputados (Historial para revisión o carga de estadísticas)
-  if (played.length > 0) {
-    html += `<optgroup label="✅ Partidos Disputados (Historial)">`;
-    const revPlayed = [...played].reverse();
+  // 2. Fixture por Disputarse (Intermedia)
+  if (pending2.length > 0) {
+    html += `<optgroup label="⏳ Fixture por Disputarse (Intermedia)">`;
+    pending2.forEach(m => {
+      const key = getMatchKey('intermedia', m.round);
+      const isSaved = dtMatchesStore[key] && dtMatchesStore[key].events && dtMatchesStore[key].events.length > 0;
+      const scoreBadge = isSaved ? ` [● En vivo ${dtMatchesStore[key].score.home}-${dtMatchesStore[key].score.away}]` : '';
+      const selectedAttr = key === dtCurrentMatchKey ? 'selected' : '';
+      const cond = m.homeAway ? ` (${m.homeAway})` : '';
+      html += `<option value="${key}" ${selectedAttr}>${escapeHtml(m.round)} • vs ${escapeHtml(m.rival)}${cond}${scoreBadge}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  // 3. Partidos Disputados (Historial 1ra División)
+  if (played1.length > 0) {
+    html += `<optgroup label="✅ Partidos Disputados (1ra División)">`;
+    const revPlayed = [...played1].reverse();
     revPlayed.forEach(m => {
       const key = getMatchKey('primera', m.round);
       const isSaved = dtMatchesStore[key] && dtMatchesStore[key].events && dtMatchesStore[key].events.length > 0;
@@ -334,7 +365,21 @@ function populateDtMatchSelect() {
     html += `</optgroup>`;
   }
 
-  // 3. Amistoso / Libre
+  // 4. Partidos Disputados (Historial Intermedia)
+  if (played2.length > 0) {
+    html += `<optgroup label="✅ Partidos Disputados (Intermedia)">`;
+    const revPlayed = [...played2].reverse();
+    revPlayed.forEach(m => {
+      const key = getMatchKey('intermedia', m.round);
+      const isSaved = dtMatchesStore[key] && dtMatchesStore[key].events && dtMatchesStore[key].events.length > 0;
+      const scoreBadge = isSaved ? ` [● DT ${dtMatchesStore[key].score.home}-${dtMatchesStore[key].score.away}]` : ` (${m.score || 'Jugado'})`;
+      const selectedAttr = key === dtCurrentMatchKey ? 'selected' : '';
+      html += `<option value="${key}" ${selectedAttr}>${escapeHtml(m.round)} • vs ${escapeHtml(m.rival)}${scoreBadge}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  // 5. Amistoso / Libre
   const customKey = 'primera_amistoso';
   const isCustomSaved = dtMatchesStore[customKey] && dtMatchesStore[customKey].events && dtMatchesStore[customKey].events.length > 0;
   const customBadge = isCustomSaved ? ` [● ${dtMatchesStore[customKey].score.home}-${dtMatchesStore[customKey].score.away}]` : '';
@@ -683,11 +728,6 @@ function closeDtSheetsConfigModal() {
   if (modal) modal.classList.remove('active');
 }
 
-// Comprobación de autenticación DT
-function isDtAuthenticated() {
-  return sessionStorage.getItem(DT_AUTH_SESSION_KEY) === 'true';
-}
-
 function handleDtViewOpen() {
   const gateCard = document.getElementById('dtAuthGateCard');
   const livePanel = document.getElementById('dtLivePanel');
@@ -786,6 +826,7 @@ function resetDtClock() {
 // Inicialización de Eventos y Botones del Módulo DT
 function initDtModule() {
   loadDtMatchState();
+  populateDtMatchSelect();
 
   // 1. Auth Gate
   const btnSubmit = document.getElementById('btnDtGateSubmit');

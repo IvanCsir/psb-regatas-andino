@@ -34,6 +34,9 @@ function loadTournamentData() {
         return m.status === 'Jugado' || m.played === true;
       });
     }
+    if ((!tournamentData[div].matches || tournamentData[div].matches.length === 0) && DEFAULT_TOURNAMENT_DATA[div] && DEFAULT_TOURNAMENT_DATA[div].matches) {
+      tournamentData[div].matches = DEFAULT_TOURNAMENT_DATA[div].matches;
+    }
     if (!tournamentData[div].nextMatch && DEFAULT_TOURNAMENT_DATA[div] && DEFAULT_TOURNAMENT_DATA[div].nextMatch) {
       tournamentData[div].nextMatch = DEFAULT_TOURNAMENT_DATA[div].nextMatch;
     }

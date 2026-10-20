@@ -211,3 +211,13 @@ const DEFAULT_TOURNAMENT_DATA = {
     ]
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.DEFAULT_MATCH_DATA = DEFAULT_MATCH_DATA;
+  window.DEFAULT_TOURNAMENT_DATA = DEFAULT_TOURNAMENT_DATA;
+}
+if (typeof global !== 'undefined') {
+  global.DEFAULT_MATCH_DATA = DEFAULT_MATCH_DATA;
+  global.DEFAULT_TOURNAMENT_DATA = DEFAULT_TOURNAMENT_DATA;
+}
+
