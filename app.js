@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T16:57:58.676Z
+ * Última actualización: 2026-10-20T17:31:30.907Z
  */
 
 // ============================================================================
@@ -5640,6 +5640,14 @@ function setupAmhPrecargaEvents() {
   const tabInter = document.getElementById('tabAmhIntermedia');
   const btnSelectAll = document.getElementById('btnAmhSelectAll');
   const btnDeselectAll = document.getElementById('btnAmhDeselectAll');
+  const btnFromSheets = document.getElementById('btnOpenPrecargaFromSheets');
+
+  if (btnFromSheets) {
+    btnFromSheets.addEventListener('click', () => {
+      closeSheetsAuthModal();
+      openAmhPrecargaModal();
+    });
+  }
 
   if (drawerBtn) {
     drawerBtn.addEventListener('click', () => {

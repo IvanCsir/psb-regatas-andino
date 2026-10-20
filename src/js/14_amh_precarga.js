@@ -18,6 +18,14 @@ function setupAmhPrecargaEvents() {
   const tabInter = document.getElementById('tabAmhIntermedia');
   const btnSelectAll = document.getElementById('btnAmhSelectAll');
   const btnDeselectAll = document.getElementById('btnAmhDeselectAll');
+  const btnFromSheets = document.getElementById('btnOpenPrecargaFromSheets');
+
+  if (btnFromSheets) {
+    btnFromSheets.addEventListener('click', () => {
+      closeSheetsAuthModal();
+      openAmhPrecargaModal();
+    });
+  }
 
   if (drawerBtn) {
     drawerBtn.addEventListener('click', () => {
