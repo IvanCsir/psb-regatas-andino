@@ -1,11 +1,13 @@
 /**
  * Endpoint para Precarga Oficial AMH
  * Soporta GET (listar partidos disponibles) y POST (inscribir tildados)
+ * Compatible con Node.js local y Vercel Serverless Functions
  */
 
-const { fetchAvailableMatches, executeAmhPrecarga } = require('../../scripts/amh_precarga.js');
+const { fetchAvailableMatches, executeAmhPrecarga } = require('../lib/amh.js');
 
 module.exports = async function handler(req, res) {
+  // Configuración de CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -26,41 +28,54 @@ module.exports = async function handler(req, res) {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: true, matches }));
     } catch (err) {
-      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ success: false, error: err.message }));
+      console.error('[API Precarga GET Error]:', err);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ success: false, matches: [], error: err.message }));
     }
     return;
   }
 
-  // POST: Ejecutar precarga
+  // POST: Ejecutar precarga en AMH
   if (req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body || '{}');
-        const { division = '1', partidoId = null, rival = null, players = [] } = payload;
-
-        if (!players || players.length === 0) {
-          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ success: false, error: 'Lista de jugadoras vacía.' }));
-          return;
-        }
-
-        const result = await executeAmhPrecarga({
-          division,
-          partidoId,
-          rival,
-          players
+    try {
+      // Extraer payload de forma compatible con Vercel (pre-parsed) y Node raw stream
+      let payload;
+      if (req.body && typeof req.body === 'object') {
+        payload = req.body;
+      } else if (req.body && typeof req.body === 'string') {
+        try { payload = JSON.parse(req.body); } catch (_) { payload = {}; }
+      } else {
+        const raw = await new Promise((resolve) => {
+          let data = '';
+          req.on('data', chunk => data += chunk);
+          req.on('end', () => resolve(data));
+          req.on('error', () => resolve(''));
         });
-
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ success: true, result }));
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ success: false, error: err.message }));
+        try { payload = JSON.parse(raw || '{}'); } catch (_) { payload = {}; }
       }
-    });
+
+      const { division = '1', partidoId = null, rival = null, players = [] } = payload;
+
+      if (!players || players.length === 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, error: 'Lista de jugadoras citadas vacía.' }));
+        return;
+      }
+
+      const result = await executeAmhPrecarga({
+        division,
+        partidoId,
+        rival,
+        players
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ success: true, result }));
+    } catch (err) {
+      console.error('[API Precarga POST Error]:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    }
     return;
   }
 
