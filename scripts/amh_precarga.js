@@ -85,8 +85,23 @@ function levenshtein(a, b) {
   return d[m][n];
 }
 
+// Diccionario de equivalencias para apodos o nombres registrados distintos en la federación
+const KNOWN_ALIASES = {
+  'moyano lara': 'tonelli lara',
+  'oviedo lua': 'oviedo romero bianca morena',
+  'baldillou celia': 'baldillon celia belen',
+  'chacon aldana': 'delgado chacon aldana rocio',
+  'dinocencio priscila': 'd?nocencio priscila'
+};
+
 function matchPlayer(citedName, amhPlayers) {
-  const normCited = normalizeStr(citedName);
+  let normCited = normalizeStr(citedName);
+
+  // Si existe un alias conocido, usar su nombre oficial en la federación
+  if (KNOWN_ALIASES[normCited]) {
+    normCited = normalizeStr(KNOWN_ALIASES[normCited]);
+  }
+
   const citedTokens = normCited.split(' ').filter(t => t.length >= 2);
   if (citedTokens.length === 0) return null;
 
