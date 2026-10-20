@@ -35,7 +35,7 @@ El código fuente del frontend está organizado en módulos claros dentro de la 
 ### Comandos de desarrollo:
 ```bash
 # Compilar los módulos a app.js y styles.css
-npm run build
+npm run bundle
 
 # Modo observador (recompila automáticamente ante cualquier cambio en /src)
 npm run dev
