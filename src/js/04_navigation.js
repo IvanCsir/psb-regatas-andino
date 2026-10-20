@@ -210,6 +210,9 @@ function showView(viewName) {
 
   currentActiveView = viewName;
 
+  document.body.classList.toggle('in-dt-view', viewName === 'dt');
+  document.body.classList.toggle('in-stats-view', viewName === 'estadisticas');
+
   if (viewCitacion) viewCitacion.style.display = viewName === 'citacion' ? 'flex' : 'none';
   if (viewTorneo) viewTorneo.style.display = viewName === 'torneo' ? 'flex' : 'none';
   if (viewFisico) viewFisico.style.display = viewName === 'fisico' ? 'flex' : 'none';

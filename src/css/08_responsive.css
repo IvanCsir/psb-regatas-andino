@@ -2,6 +2,52 @@
    DISEÑO ERGONÓMICO MÓVIL: BOTONERA DT Y APP GENERAL
    ========================================================================== */
 
+/* Resets de Pantalla Completa Ergonómica: Botonera DT */
+body.in-dt-view {
+  padding-top: max(6px, env(safe-area-inset-top, 0px)) !important;
+  padding-left: max(6px, env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(6px, env(safe-area-inset-right, 0px)) !important;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+  overflow-x: hidden !important;
+}
+
+body.in-dt-view .top-title-header {
+  display: none !important;
+}
+
+body.in-dt-view .bottom-left-bar {
+  display: none !important;
+}
+
+body.in-dt-view .btn-hamburger {
+  display: none !important;
+}
+
+body.in-dt-view .container {
+  max-width: 100% !important;
+  gap: 6px !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
+body.in-dt-view .view-return-bar {
+  margin-bottom: 2px !important;
+}
+
+body.in-dt-view .btn-return-citacion {
+  padding: 4px 10px !important;
+  font-size: 0.72rem !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+body.in-dt-view .dt-live-panel {
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  padding-bottom: 10px !important;
+  gap: 6px !important;
+  overflow-x: hidden !important;
+}
+
 /* Barra de Alternancia de Equipos (A Favor / En Contra / Ambos) */
 .dt-team-toggle-bar {
   display: flex;
@@ -195,114 +241,315 @@
   font-size: 0.72rem;
 }
 
-/* Espacio inferior de seguridad para que la botonera nunca choque con la barra flotante */
+/* Espacio inferior optimizado en vivo */
 .dt-live-panel {
-  padding-bottom: 95px !important;
+  padding-bottom: 10px !important;
 }
 
-/* Ajustes Responsive para Pantallas Pequeñas (< 560px) */
-@media (max-width: 560px) {
+/* Ajustes Responsive para Pantallas Pequeñas (< 600px): Todo en una sola pantalla */
+@media (max-width: 600px) {
   .dt-match-header-card {
-    padding: 12px 10px;
-    gap: 10px;
+    padding: 8px 8px;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .dt-top-actions {
-    gap: 6px;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dt-top-left-badges {
+    gap: 4px;
   }
 
   .dt-single-division-tag {
-    font-size: 0.68rem;
-    padding: 3px 9px;
+    font-size: 0.62rem;
+    padding: 2px 7px;
+    letter-spacing: 0.2px;
   }
 
   .dt-cloud-badge {
-    font-size: 0.65rem;
-    padding: 3px 8px;
+    font-size: 0.62rem;
+    padding: 2px 6px;
+  }
+
+  .dt-top-right-actions {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .btn-dt-sun-toggle {
+    font-size: 0.62rem;
+    padding: 3px 6px;
+    min-height: 26px;
+  }
+
+  /* En celulares mostramos solo el ícono ☀️ para ganar espacio horizontal */
+  .btn-dt-sun-toggle .sun-text {
+    display: none;
   }
 
   .btn-dt-sheets-action,
-  .btn-dt-lock-session,
-  .btn-dt-sun-toggle {
-    font-size: 0.66rem;
-    padding: 4px 8px;
+  .btn-dt-lock-session {
+    font-size: 0.60rem;
+    padding: 3px 6px;
+    min-height: 26px;
   }
 
   .dt-match-picker-bar {
-    padding: 6px 10px;
+    padding: 5px 8px;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dt-picker-label {
+    font-size: 0.66rem;
   }
 
   .dt-match-select {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
+    min-width: 0;
   }
 
   /* Marcador Compacto & Nítido */
   .dt-scoreboard-wrapper {
-    padding: 10px 8px;
-    gap: 6px;
+    padding: 6px 6px;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .dt-team-crest {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
   }
 
   .dt-team-name {
-    font-size: 0.82rem;
+    font-size: 0.76rem;
+    line-height: 1.1;
   }
 
   .dt-team-sub {
-    font-size: 0.58rem;
+    font-size: 0.52rem;
   }
 
   .dt-score-number {
-    font-size: 2rem;
-    min-width: 32px;
-    padding: 0 4px;
+    font-size: 1.6rem;
+    min-width: 26px;
+    padding: 0 2px;
+  }
+
+  .dt-vs-badge {
+    font-size: 0.58rem;
+    padding: 2px 4px;
   }
 
   /* Barra de Cuartos y Reloj */
   .dt-quarter-clock-bar {
-    gap: 6px;
+    gap: 4px;
+    padding-top: 3px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .dt-quarters-selector {
-    gap: 4px;
+    gap: 3px;
     flex: 1;
   }
 
   .dt-quarter-btn {
-    padding: 6px 6px;
-    font-size: 0.72rem;
+    padding: 4px 3px;
+    font-size: 0.66rem;
     flex: 1;
     text-align: center;
+    min-width: 0;
   }
 
   .dt-clock-widget {
-    padding: 4px 6px;
-    gap: 6px;
-  }
-
-  .dt-clock-display {
-    font-size: 0.95rem;
-  }
-
-  .dt-clock-btn {
-    width: 24px;
-    height: 24px;
-    font-size: 0.75rem;
-  }
-
-  /* Barra de control inferior */
-  .dt-control-dock {
-    padding: 8px 6px;
+    padding: 2px 6px;
     gap: 4px;
   }
 
-  .dt-bottom-tool-btn {
-    padding: 7px 6px;
+  .dt-clock-display {
+    font-size: 0.85rem;
+  }
+
+  .dt-clock-btn {
+    width: 20px;
+    height: 20px;
     font-size: 0.68rem;
-    gap: 3px;
+  }
+
+  /* Barra de Alternancia de Equipos */
+  .dt-team-toggle-bar {
+    padding: 2px;
+    gap: 2px;
+    margin-bottom: 2px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dt-team-toggle-btn {
+    padding: 4px 2px;
+    min-height: 36px;
+  }
+
+  .dt-toggle-text {
+    font-size: 0.72rem;
+  }
+
+  .dt-toggle-sub {
+    font-size: 0.52rem;
+  }
+
+  /* ========================================================================
+     GRILLA TÁCTICA 2x2 COMPACTA EN CELULAR (PANTALLA ÚNICA SIN SCROLL)
+     ======================================================================== */
+  .dt-keypad-grid {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* En modo 1 equipo (Home o Away), colocamos los 4 botones en matriz 2x2 */
+  .dt-keypad-grid[data-team-view="home"] .dt-col-home,
+  .dt-keypad-grid[data-team-view="away"] .dt-col-away {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-col-header,
+  .dt-keypad-grid[data-team-view="away"] .dt-col-header {
+    display: none !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-action-btn,
+  .dt-keypad-grid[data-team-view="away"] .dt-action-btn {
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 4px 6px !important;
+    gap: 6px !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-action-btn .dt-btn-icon,
+  .dt-keypad-grid[data-team-view="away"] .dt-action-btn .dt-btn-icon {
+    font-size: 1.15rem !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-action-btn .dt-btn-title,
+  .dt-keypad-grid[data-team-view="away"] .dt-action-btn .dt-btn-title {
+    font-size: 0.74rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-action-btn .dt-btn-count,
+  .dt-keypad-grid[data-team-view="away"] .dt-action-btn .dt-btn-count {
+    font-size: 0.58rem !important;
+    margin-top: 1px !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-action-btn .dt-btn-plus,
+  .dt-keypad-grid[data-team-view="away"] .dt-action-btn .dt-btn-plus {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.74rem !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-cards-strip,
+  .dt-keypad-grid[data-team-view="away"] .dt-cards-strip {
+    grid-column: span 2 !important;
+    padding: 4px 8px !important;
+    min-height: 34px !important;
+    border-radius: var(--radius-sm) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-strip-label,
+  .dt-keypad-grid[data-team-view="away"] .dt-strip-label {
+    font-size: 0.62rem !important;
+  }
+
+  .dt-keypad-grid[data-team-view="home"] .dt-card-btn,
+  .dt-keypad-grid[data-team-view="away"] .dt-card-btn {
+    padding: 3px 6px !important;
+    font-size: 0.72rem !important;
+    min-height: 28px !important;
+    border-radius: 4px !important;
+  }
+
+  /* Modo Ambos en celular */
+  .dt-keypad-grid[data-team-view="both"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+
+  .dt-keypad-grid[data-team-view="both"] .dt-action-btn {
+    min-height: 42px !important;
+    padding: 4px 5px !important;
+    gap: 4px !important;
+  }
+
+  .dt-keypad-grid[data-team-view="both"] .dt-action-btn .dt-btn-icon {
+    font-size: 1.05rem !important;
+  }
+
+  .dt-keypad-grid[data-team-view="both"] .dt-action-btn .dt-btn-title {
+    font-size: 0.68rem !important;
+  }
+
+  .dt-keypad-grid[data-team-view="both"] .dt-action-btn .dt-btn-count {
+    font-size: 0.55rem !important;
+  }
+
+  .dt-keypad-grid[data-team-view="both"] .dt-action-btn .dt-btn-plus {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .dt-keypad-grid[data-team-view="both"] .dt-cards-strip {
+    padding: 4px 6px !important;
+  }
+
+  .dt-keypad-grid[data-team-view="both"] .dt-card-btn {
+    padding: 2px 4px !important;
+    font-size: 0.64rem !important;
+  }
+
+  /* ========================================================================
+     BARRA DE CONTROL INFERIOR (3 COLUMNAS x 2 FILAS, CERO OVERFLOW)
+     ======================================================================== */
+  .dt-control-dock {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 4px !important;
+    padding: 4px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dt-bottom-tool-btn {
+    min-height: 30px !important;
+    height: 30px !important;
+    padding: 2px 2px !important;
+    font-size: 0.62rem !important;
+    gap: 2px !important;
+    border-radius: var(--radius-sm) !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
   }
 
   /* Modales Estilo Bottom-Sheet para Celulares */
