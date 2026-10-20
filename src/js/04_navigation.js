@@ -85,15 +85,6 @@ function setupViewSwitching() {
     });
   }
 
-  const drawerBtnEdit = document.getElementById('drawerBtnEditCitacion');
-  if (drawerBtnEdit) {
-    drawerBtnEdit.addEventListener('click', () => {
-      closeNavDrawer();
-      const btnOpen = document.getElementById('btnOpenEdit');
-      if (btnOpen) btnOpen.click();
-    });
-  }
-
   // Acceso a Planilla Google Sheets con protección por contraseña
   const drawerBtnSheets = document.getElementById('drawerBtnSheets');
   if (drawerBtnSheets) {

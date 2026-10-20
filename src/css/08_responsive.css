@@ -15,10 +15,6 @@ body.in-dt-view .top-title-header {
   display: none !important;
 }
 
-body.in-dt-view .bottom-left-bar {
-  display: none !important;
-}
-
 /* El menú hamburguesa se mantiene visible y accesible en la Botonera DT */
 body.in-dt-view .btn-hamburger {
   display: flex !important;

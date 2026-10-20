@@ -86,15 +86,6 @@
       <!-- Sección al Final: CUERPO TÉCNICO -->
       <div class="drawer-section drawer-section-dt">
         <span class="drawer-section-label">⚡ CUERPO TÉCNICO</span>
-        <button type="button" class="drawer-nav-item" id="drawerBtnEditCitacion">
-          <span class="drawer-item-icon">⚙️</span>
-          <div class="drawer-item-info">
-            <span class="drawer-item-title">Editar Citadas</span>
-            <span class="drawer-item-desc">Modificar jugadoras, horarios y detalles</span>
-          </div>
-          <span class="drawer-badge-lock">🔒</span>
-        </button>
-
 
         <button type="button" class="drawer-nav-item" id="drawerBtnStats" data-view="estadisticas">
           <span class="drawer-item-icon">📈</span>
@@ -122,9 +113,6 @@
           </div>
           <span class="drawer-badge-lock">🔒</span>
         </button>
-
-
-
       </div>
 
       <!-- Debajo del apartado de Cuerpo Técnico -->
@@ -881,95 +869,14 @@
   </nav>
 
   <!-- ====================================================================
-       BOTÓN FLOTANTE INFERIOR IZQUIERDA (ACCESO CUERPO TÉCNICO)
-       ==================================================================== -->
-  <aside class="bottom-left-bar">
-    <button class="btn-edit-mode" id="btnOpenEdit" title="Acceso Cuerpo Técnico" aria-label="Acceso Cuerpo Técnico">
-      <span class="edit-icon">⚙️</span>
-    </button>
-  </aside>
-
-  <!-- ====================================================================
-       MODAL DE EDICIÓN & ACCESO CUERPO TÉCNICO
-       ==================================================================== -->
-  <div class="modal-overlay" id="editModal">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3>⚙️ Panel Cuerpo Técnico</h3>
-        <button class="modal-close" id="btnCloseEdit">&times;</button>
-      </div>
-
-      <!-- Pantalla de Bloqueo por Contraseña -->
-      <div id="authGate" style="padding: 32px 20px; text-align: center;">
-        <div style="font-size: 2.4rem; margin-bottom: 10px;">🔒</div>
-        <h4 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin-bottom: 6px;">Acceso Cuerpo Técnico</h4>
-        <p style="font-size: 0.82rem; color: #9bb1d6; margin-bottom: 18px;">Ingresá la contraseña para administrar las citaciones</p>
-        
-        <input type="password" id="authPasswordInput" class="form-input" placeholder="Contraseña..." style="max-width: 240px; margin: 0 auto 10px auto; text-align: center; font-size: 1rem; letter-spacing: 1px;" autocomplete="off">
-        <div id="authErrorMsg" style="color: #ef4444; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; display: none;">Contraseña incorrecta</div>
-        <button class="btn-primary" id="btnSubmitAuth" style="max-width: 180px; margin: 0 auto; width: 100%;">Ingresar</button>
-      </div>
-
-      <!-- Panel de Administración con Google Sheets (visible tras autenticar) -->
-      <div class="modal-body" id="editFormBody" style="display: none;">
-        
-        <div class="sheets-manage-card">
-          <div class="sheets-live-indicator">
-            <span class="live-dot"></span> Sincronizado en Vivo con Google Sheets
-          </div>
-          
-          <p class="sheets-manage-desc">
-            Todos los datos (<strong>Rival, Fecha N°, Horarios, Cancha, Citadas y Escudo</strong>) se administran directamente desde tu planilla de Google Sheets.
-          </p>
-
-          <a href="https://docs.google.com/spreadsheets/d/1S0g4BpD6m6Ih9_DQRrdLlnUsruUKrZmlKBAKiWL3XbU/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets">
-            <span>📊</span> Abrir Planilla de Citaciones ➔
-          </a>
-
-          <a href="https://docs.google.com/spreadsheets/d/1dAoeA0_F4RGLDEjJ0taIJiPA3WlMWl5e/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" style="background: linear-gradient(135deg, #0284c7, #00a2ff);">
-            <span>⚡</span> Abrir Planilla de Evaluaciones Físicas ➔
-          </a>
-
-          <button type="button" class="btn-sync-sheets" id="btnSyncNow">
-            <span>🔄</span> Sincronizar Cambios Ahora
-          </button>
-        </div>
-
-        <!-- Guía Rápida de Celdas -->
-        <div class="sheets-guide-box">
-          <h5 class="sheets-guide-title">📋 Celdas que podés editar en la planilla:</h5>
-          <ul class="sheets-guide-list">
-            <li><strong>Columna F:</strong> Jugadoras citadas marcadas.</li>
-            <li><strong>Columna H e I:</strong>
-              <div>• <code>Fecha N°</code> (ej: <code>10</code>)</div>
-              <div>• <code>Rival</code> (ej: <code>Murialdo B</code>)</div>
-              <div>• <code>Dia</code> (ej: <code>Sábado 24 de Octubre</code>)</div>
-              <div>• <code>Cancha</code> (ej: <code>Regatas Andino</code>)</div>
-              <div>• <code>Horario citacion</code> y <code>Horario partido</code></div>
-              <div>• <code>Url escudo rival</code> (link de imagen del escudo)</div>
-            </li>
-            <li>Hojas separadas para <strong>primera</strong> e <strong>intermedia</strong>.</li>
-          </ul>
-        </div>
-
-        <div style="margin-top: 10px; display: flex; gap: 10px;">
-          <button type="button" class="btn-secondary" id="btnLockEditModal" style="flex: 1; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">🔒 Bloquear Sesión</button>
-          <button type="button" class="btn-secondary" id="btnCloseModalBottom" style="flex: 1;">Cerrar</button>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ====================================================================
-       MODAL DE ACCESO A PLANILLA GOOGLE SHEETS (PROTEGIDO CUERPO TÉCNICO)
+       MODAL DE ACCESO A PLANILLAS GOOGLE SHEETS (PROTEGIDO CUERPO TÉCNICO)
        ==================================================================== -->
   <div class="modal-overlay" id="modalSheetsAuth">
     <div class="modal-box">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 1.2rem;">📊</span>
-          <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #ffffff;">Planilla Google Sheets</h3>
+          <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #ffffff;">Planillas Oficiales</h3>
         </div>
         <button type="button" class="modal-close" id="btnCloseSheetsAuth" aria-label="Cerrar modal">&times;</button>
       </div>
@@ -978,11 +885,11 @@
       <div id="sheetsAuthGate" style="padding: 32px 20px; text-align: center;">
         <div style="font-size: 2.4rem; margin-bottom: 10px;">🔒</div>
         <h4 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin-bottom: 6px;">Acceso Cuerpo Técnico</h4>
-        <p style="font-size: 0.82rem; color: #9bb1d6; margin-bottom: 18px;">Ingresá la contraseña para acceder a la planilla de Google Sheets</p>
+        <p style="font-size: 0.82rem; color: #9bb1d6; margin-bottom: 18px;">Ingresá la contraseña para acceder a las planillas oficiales</p>
         
         <input type="password" id="inputSheetsPassword" class="form-input" placeholder="Contraseña..." style="max-width: 240px; margin: 0 auto 10px auto; text-align: center; font-size: 1rem; letter-spacing: 1px;" autocomplete="current-password">
         <div id="sheetsAuthErrorMsg" style="color: #ef4444; font-size: 0.8rem; font-weight: 700; margin-bottom: 12px; display: none;">Contraseña incorrecta</div>
-        <button type="button" class="btn-primary" id="btnSubmitSheetsAuth" style="max-width: 210px; margin: 0 auto; width: 100%;">Desbloquear y Abrir ➔</button>
+        <button type="button" class="btn-primary" id="btnSubmitSheetsAuth" style="max-width: 210px; margin: 0 auto; width: 100%;">Desbloquear ➔</button>
       </div>
 
       <!-- Panel Desbloqueado de Planillas Oficiales -->
@@ -992,12 +899,12 @@
           <h4 style="color: #34d399; font-size: 0.98rem; font-weight: 800; margin-bottom: 4px;">Acceso Concedido</h4>
           <p style="font-size: 0.8rem; color: #9bb1d6; margin-bottom: 14px;">Podés abrir las planillas oficiales del club en Google Drive:</p>
 
-          <a href="https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" id="linkOpenDtSheet">
-            <span>📊</span> Abrir Planilla de Incidencias DT ➔
-          </a>
-
           <a href="https://docs.google.com/spreadsheets/d/1S0g4BpD6m6Ih9_DQRrdLlnUsruUKrZmlKBAKiWL3XbU/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" id="linkOpenCitacionesSheet">
             <span>🏑</span> Abrir Planilla de Citaciones ➔
+          </a>
+
+          <a href="https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" id="linkOpenDtSheet">
+            <span>📊</span> Abrir Planilla de Incidencias DT ➔
           </a>
 
           <a href="https://docs.google.com/spreadsheets/d/1dAoeA0_F4RGLDEjJ0taIJiPA3WlMWl5e/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-open-sheets" style="background: linear-gradient(135deg, #0284c7, #00a2ff);" id="linkOpenFisicoSheet">

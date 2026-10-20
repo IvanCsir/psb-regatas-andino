@@ -1,7 +1,7 @@
 /*
  * Estilos Oficiales - Club Regatas Andino (Hockey Femenino)
  * Compilado automáticamente desde /src/css/
- * Última actualización: 2026-10-20T13:47:33.345Z
+ * Última actualización: 2026-10-20T14:47:04.837Z
  */
 
 /* ==========================================================================
@@ -614,57 +614,7 @@ body {
    ========================================================================== */
 
 /* ==========================================================================
-   BOTÓN FLOTANTE INFERIOR IZQUIERDA (ACCESO CUERPO TÉCNICO)
-   ========================================================================== */
-
-.bottom-left-bar {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  z-index: 990;
-}
-
-.btn-edit-mode {
-  background: rgba(7, 21, 66, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-cyan);
-  color: var(--text-secondary);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 162, 255, 0.2);
-  transition: all 0.2s ease;
-}
-
-.btn-edit-mode .edit-icon {
-  font-size: 1.25rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-edit-mode:hover {
-  color: #ffffff;
-  border-color: var(--color-regatas-cyan);
-  background: var(--bg-surface-elevated);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 22px rgba(0, 162, 255, 0.35);
-}
-
-.btn-edit-mode:hover .edit-icon {
-  transform: rotate(45deg);
-}
-
-/* ==========================================================================
-   MODAL DE EDICIÓN & ACCESO CUERPO TÉCNICO
+   MODALES Y PANELES (CUERPO TÉCNICO)
    ========================================================================== */
 
 .modal-overlay {
@@ -2535,28 +2485,7 @@ body {
   box-shadow: 0 4px 16px rgba(0, 162, 255, 0.45);
 }
 
-/* En pantallas móviles: Botón de Cuerpo Técnico arriba a la derecha para no obstruir el dock ni los dedos */
 @media (max-width: 640px) {
-  .bottom-left-bar {
-    position: fixed;
-    top: calc(12px + env(safe-area-inset-top, 0px));
-    right: calc(12px + env(safe-area-inset-right, 0px));
-    bottom: auto;
-    left: auto;
-    z-index: 990;
-  }
-  .btn-edit-mode {
-    width: 36px;
-    height: 36px;
-    background: rgba(5, 17, 54, 0.88);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 162, 255, 0.4);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  }
-  .btn-edit-mode .edit-icon {
-    font-size: 1.05rem;
-  }
   .bottom-nav-dock {
     padding: 4px 6px;
     gap: 3px;
@@ -4202,10 +4131,6 @@ body.in-dt-view {
 }
 
 body.in-dt-view .top-title-header {
-  display: none !important;
-}
-
-body.in-dt-view .bottom-left-bar {
   display: none !important;
 }
 
@@ -6381,13 +6306,6 @@ body.dt-sun-mode .nav-dock-btn {
 body.dt-sun-mode .nav-dock-btn.active {
   background: #0f172a !important;
   color: #ffffff !important;
-}
-
-body.dt-sun-mode .btn-edit-mode {
-  background: #ffffff !important;
-  border: 2.5px solid #0f172a !important;
-  color: #0f172a !important;
-  box-shadow: 0 3px 0 #0f172a !important;
 }
 
 /* Toast Flotante */

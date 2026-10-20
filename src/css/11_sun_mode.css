@@ -518,13 +518,6 @@ body.dt-sun-mode .nav-dock-btn.active {
   color: #ffffff !important;
 }
 
-body.dt-sun-mode .btn-edit-mode {
-  background: #ffffff !important;
-  border: 2.5px solid #0f172a !important;
-  color: #0f172a !important;
-  box-shadow: 0 3px 0 #0f172a !important;
-}
-
 /* Toast Flotante */
 body.dt-sun-mode .toast {
   background: #0f172a !important;

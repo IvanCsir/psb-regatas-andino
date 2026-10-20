@@ -41,19 +41,6 @@ function updateCtUiState() {
     badge.style.color = isAuth ? '#34d399' : '';
   });
 
-  // Modal de Edición de Citaciones
-  const editGate = document.getElementById('authGate');
-  const editBody = document.getElementById('editFormBody');
-  if (editGate && editBody) {
-    if (isAuth) {
-      editGate.style.display = 'none';
-      editBody.style.display = 'flex';
-    } else {
-      editGate.style.display = 'block';
-      editBody.style.display = 'none';
-    }
-  }
-
   // Modal de Google Sheets
   const sheetsGate = document.getElementById('sheetsAuthGate');
   const sheetsBody = document.getElementById('sheetsAuthBody');

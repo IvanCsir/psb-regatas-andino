@@ -58,28 +58,7 @@
   box-shadow: 0 4px 16px rgba(0, 162, 255, 0.45);
 }
 
-/* En pantallas móviles: Botón de Cuerpo Técnico arriba a la derecha para no obstruir el dock ni los dedos */
 @media (max-width: 640px) {
-  .bottom-left-bar {
-    position: fixed;
-    top: calc(12px + env(safe-area-inset-top, 0px));
-    right: calc(12px + env(safe-area-inset-right, 0px));
-    bottom: auto;
-    left: auto;
-    z-index: 990;
-  }
-  .btn-edit-mode {
-    width: 36px;
-    height: 36px;
-    background: rgba(5, 17, 54, 0.88);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 162, 255, 0.4);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  }
-  .btn-edit-mode .edit-icon {
-    font-size: 1.05rem;
-  }
   .bottom-nav-dock {
     padding: 4px 6px;
     gap: 3px;

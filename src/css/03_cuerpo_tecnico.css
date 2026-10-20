@@ -1,55 +1,5 @@
 /* ==========================================================================
-   BOTÓN FLOTANTE INFERIOR IZQUIERDA (ACCESO CUERPO TÉCNICO)
-   ========================================================================== */
-
-.bottom-left-bar {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  z-index: 990;
-}
-
-.btn-edit-mode {
-  background: rgba(7, 21, 66, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-cyan);
-  color: var(--text-secondary);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 162, 255, 0.2);
-  transition: all 0.2s ease;
-}
-
-.btn-edit-mode .edit-icon {
-  font-size: 1.25rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-edit-mode:hover {
-  color: #ffffff;
-  border-color: var(--color-regatas-cyan);
-  background: var(--bg-surface-elevated);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 22px rgba(0, 162, 255, 0.35);
-}
-
-.btn-edit-mode:hover .edit-icon {
-  transform: rotate(45deg);
-}
-
-/* ==========================================================================
-   MODAL DE EDICIÓN & ACCESO CUERPO TÉCNICO
+   MODALES Y PANELES (CUERPO TÉCNICO)
    ========================================================================== */
 
 .modal-overlay {
