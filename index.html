@@ -113,6 +113,15 @@
           </div>
           <span class="drawer-badge-lock">🔒</span>
         </button>
+
+        <button type="button" class="drawer-nav-item drawer-item-amh-highlight" id="drawerBtnPrecargaAmh">
+          <span class="drawer-item-icon">🏑</span>
+          <div class="drawer-item-info">
+            <span class="drawer-item-title">Precarga AMH</span>
+            <span class="drawer-item-desc">Inscribir citadas en el sistema oficial AMH</span>
+          </div>
+          <span class="drawer-badge-lock">🔒</span>
+        </button>
       </div>
 
       <!-- Debajo del apartado de Cuerpo Técnico -->
@@ -934,6 +943,95 @@
           <button type="button" class="btn-secondary" id="btnLockSheetsAuth" style="flex: 1; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">🔒 Bloquear</button>
           <button type="button" class="btn-secondary" id="btnCloseSheetsModalBottom" style="flex: 1;">Cerrar</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL DE PRECARGA OFICIAL AMH (CUERPO TÉCNICO)
+       ==================================================================== -->
+  <div class="amh-modal" id="modalAmhPrecarga" role="dialog" aria-modal="true" aria-labelledby="amhModalTitle">
+    <div class="amh-modal-dialog">
+      <!-- Encabezado -->
+      <div class="amh-modal-header">
+        <div class="amh-header-left">
+          <span class="amh-header-icon">🏑</span>
+          <div>
+            <h3 class="amh-header-title" id="amhModalTitle">Precarga Oficial AMH</h3>
+            <p class="amh-header-sub">Inscripción oficial de jugadoras convocadas en el sistema de la federación</p>
+          </div>
+        </div>
+        <button type="button" class="amh-modal-close" id="btnCloseAmhPrecarga" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <!-- Cuerpo del Modal -->
+      <div class="amh-modal-body">
+        <!-- Banner de Seguridad Estricto -->
+        <div class="amh-security-banner">
+          <span class="amh-sec-icon">🛡️</span>
+          <div class="amh-sec-text">
+            <strong>MODO SEGURO ACTIVO:</strong> Esta herramienta <strong>SOLO tilda e inscribe</strong> a las jugadoras convocadas (botón <em>Inscribe Tildados</em>). <strong>NUNCA cierra la precarga</strong>. El cierre final deberás realizarlo manualmente en la web de la AMH tras tu verificación.
+          </div>
+        </div>
+
+        <!-- Selector de Categoría: 1ra / Intermedia -->
+        <div class="amh-category-tabs">
+          <button type="button" class="amh-tab-btn active" id="tabAmhPrimera">
+            <span>🏑</span> 1ra División
+          </button>
+          <button type="button" class="amh-tab-btn" id="tabAmhIntermedia">
+            <span>🏑</span> Intermedia
+          </button>
+        </div>
+
+        <!-- Tarjeta de Selección de Partido -->
+        <div class="amh-card">
+          <div class="amh-card-title-row">
+            <span class="amh-card-title"><span>🏟️</span> Partido Oficial AMH</span>
+            <span class="amh-badge-rival" id="amhRivalBadge">Rival próximo</span>
+          </div>
+          <div class="amh-select-row">
+            <select id="selectAmhPartido" class="amh-select">
+              <option value="">Cargando partidos desde AMH...</option>
+            </select>
+            <button type="button" class="amh-btn-icon" id="btnRefreshAmhMatches" title="Actualizar lista de partidos desde AMH">
+              <span>🔄</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Jugadoras Citadas -->
+        <div class="amh-card">
+          <div class="amh-card-title-row">
+            <span class="amh-card-title"><span>👥</span> Jugadoras Convocadas</span>
+            <span class="amh-badge-count" id="amhCitedCount">0 citadas</span>
+          </div>
+          <div class="amh-cited-tags-grid" id="amhCitedList">
+            <!-- Rellenado dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Estado de Progreso -->
+        <div class="amh-status-box" id="amhStatusBox" style="display: none;">
+          <span class="amh-spinner"></span>
+          <span id="amhStatusText">Iniciando conexión con AMH...</span>
+        </div>
+
+        <!-- Resultado Exitoso -->
+        <div id="amhResultBox" style="display: none;"></div>
+
+        <!-- Error -->
+        <div id="amhErrorBox" style="display: none;"></div>
+
+        <!-- Botón Principal de Acción -->
+        <button type="button" class="amh-execute-btn" id="btnExecuteAmhPrecarga">
+          <span>🚀</span> Hacer Precarga en AMH (Inscribir tildadas)
+        </button>
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="amh-modal-footer">
+        <button type="button" class="amh-btn-cancel" id="btnCloseAmhPrecargaBottom">Cerrar</button>
       </div>
     </div>
   </div>

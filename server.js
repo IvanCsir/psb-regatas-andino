@@ -225,6 +225,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API para Precarga Oficial AMH
+  if (reqPath === '/api/torneo/precarga' || reqPath === '/api/precarga') {
+    const precargaHandler = require('./api/torneo/precarga.js');
+    precargaHandler(req, res);
+    return;
+  }
+
   let filePath = path.join(__dirname, reqPath === '/' ? 'index.html' : reqPath);
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';

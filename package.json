@@ -7,7 +7,10 @@
     "bundle": "node scripts/build.js",
     "dev": "node scripts/build.js --watch",
     "start": "node server.js",
-    "check": "node --check app.js && node --check server.js"
+    "check": "node --check app.js && node --check server.js",
+    "precarga": "node scripts/amh_precarga.js",
+    "precarga:primera": "node scripts/amh_precarga.js --division=1",
+    "precarga:intermedia": "node scripts/amh_precarga.js --division=2"
   },
   "keywords": [
     "hockey",
@@ -17,5 +20,8 @@
     "pwa"
   ],
   "author": "Club Regatas Andino",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer-core": "^25.15.0"
+  }
 }
