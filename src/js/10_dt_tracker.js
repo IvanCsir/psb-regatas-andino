@@ -43,42 +43,6 @@ try {
   dtSunModeActive = localStorage.getItem(DT_SUN_MODE_KEY) === 'true';
 } catch (e) {}
 
-// Feedback Háptico para móviles (confirmación física táctil bajo el sol)
-function triggerDtHaptic(type = 'default') {
-  // 1. Android / Navegadores con soporte estándar de Vibration API
-  if ('vibrate' in navigator) {
-    try {
-      if (type === 'goal') {
-        navigator.vibrate([80, 50, 100, 50, 120]); // Celebración rítmica enérgica para gol
-      } else if (type === 'corner') {
-        navigator.vibrate([35, 45, 35]); // Doble pulso nítido para córner corto
-      } else if (type === 'stroke') {
-        navigator.vibrate([50, 40, 70]); // Pulso firme para penal / stroke
-      } else if (type === 'entry') {
-        navigator.vibrate(22); // Pulso ágil para ingreso al área
-      } else if (type === 'card' || type.startsWith('card')) {
-        navigator.vibrate([50, 50, 50]); // Triple pulso para tarjeta
-      } else if (type === 'undo') {
-        navigator.vibrate([70, 40, 30]); // Secuencia descendente de advertencia para deshacer
-      } else if (type === 'quarter') {
-        navigator.vibrate([40, 30, 40, 30, 40]); // Cambio de cuarto
-      } else if (type === 'timer') {
-        navigator.vibrate(30);
-      } else {
-        navigator.vibrate(20);
-      }
-    } catch (e) {}
-  }
-
-  // 2. iOS Safari / WebKit PWA (Taptic Engine nativo para iOS 18+)
-  try {
-    const iosLabel = document.getElementById('iosHapticLabel');
-    if (iosLabel) {
-      iosLabel.click();
-    }
-  } catch (e) {}
-}
-
 function initSunMode() {
   applyDtSunMode();
 
@@ -97,7 +61,6 @@ function setDtSunMode(active) {
     localStorage.setItem(DT_SUN_MODE_KEY, dtSunModeActive ? 'true' : 'false');
   } catch (e) {}
   applyDtSunMode();
-  triggerDtHaptic('tap');
   showToast(dtSunModeActive ? '☀️ Modo Cancha al Sol activado (Alto Contraste)' : '🌙 Modo Noche activado');
 }
 
@@ -146,8 +109,6 @@ function setDtTeamView(viewMode) {
   if (btnHome) btnHome.classList.toggle('active', viewMode === 'home');
   if (btnAway) btnAway.classList.toggle('active', viewMode === 'away');
   if (btnBoth) btnBoth.classList.toggle('active', viewMode === 'both');
-
-  if (navigator.vibrate) navigator.vibrate(20);
 }
 
 function createDefaultQuarterStats() {
@@ -852,7 +813,6 @@ function initDtModule() {
       if (isDtAuthenticated()) {
         fetchDtMatchFromCloud();
         processDtSyncQueue();
-        if (navigator.vibrate) navigator.vibrate(25);
         showToast('🔄 Sincronizando con Google Sheets...');
       }
     });
@@ -862,7 +822,6 @@ function initDtModule() {
       if (isDtAuthenticated()) {
         fetchDtMatchFromCloud();
         processDtSyncQueue();
-        if (navigator.vibrate) navigator.vibrate(25);
         showToast('🔄 Sincronizando con Google Sheets...');
       } else {
         openDtSheetsConfigModal();
@@ -933,9 +892,7 @@ function initDtModule() {
         dtMatchState.currentQuarter = q;
         resetDtClock();
         saveDtMatchState();
-        triggerDtHaptic('quarter');
         renderDtView();
-        if (navigator.vibrate) navigator.vibrate(25);
         showToast(`📍 Cambiaste al ${q}° Cuarto`);
       }
     });
@@ -945,14 +902,12 @@ function initDtModule() {
   const btnToggleClock = document.getElementById('btnDtClockToggle');
   if (btnToggleClock) {
     btnToggleClock.addEventListener('click', () => {
-      if (navigator.vibrate) navigator.vibrate(20);
       if (dtMatchState.timer.isRunning) pauseDtClock(); else startDtClock();
     });
   }
   const btnResetClock = document.getElementById('btnDtClockReset');
   if (btnResetClock) {
     btnResetClock.addEventListener('click', () => {
-      if (navigator.vibrate) navigator.vibrate(20);
       resetDtClock();
     });
   }
@@ -1148,20 +1103,12 @@ function logIncident(type, team, endedInGoal = false, player = '') {
     rival: dtMatchState.rivalName,
     sheetName: getDtMatchSheetName(dtMatchState)
   });
-
-  // Vibración háptica diferenciada en móviles
   if (endedInGoal) {
-    triggerDtHaptic('goal');
   } else if (type.startsWith('card')) {
-    triggerDtHaptic('card');
   } else if (type === 'entry') {
-    triggerDtHaptic('entry');
   } else if (type === 'corner') {
-    triggerDtHaptic('corner');
   } else if (type === 'stroke') {
-    triggerDtHaptic('stroke');
   } else {
-    triggerDtHaptic('tap');
   }
 
   showToast(`${evt.team === 'home' ? '🔵' : '🔴'} ${evt.label}`);
@@ -1255,7 +1202,6 @@ function openPlayerAssignModal(incidentData) {
 
   renderPlayerAssignGrid('');
   if (modal) modal.classList.add('active');
-  if (navigator.vibrate) navigator.vibrate(25);
 }
 
 function renderPlayerAssignGrid(filter = '') {
@@ -1320,7 +1266,6 @@ window.closePlayerAssignModal = closePlayerAssignModal;
 
 // Modal de Opción A: Córner Corto / Penal
 function openIncidentOptionModal(type, team) {
-  triggerDtHaptic('tap');
   dtPendingOptionAction = { type, team };
 
   const modal = document.getElementById('modalIncidentOption');
@@ -1347,7 +1292,6 @@ function confirmIncidentOption(isGoal) {
     const action = { ...dtPendingOptionAction };
     closeIncidentOptionModal();
     if (isGoal && action.team === 'home') {
-      triggerDtHaptic('goal');
       openPlayerAssignModal({ type: action.type, team: 'home', endedInGoal: true });
     } else {
       logIncident(action.type, action.team, isGoal);
@@ -1381,8 +1325,6 @@ function undoLastIncident() {
     rival: dtMatchState.rivalName,
     sheetName: getDtMatchSheetName(dtMatchState)
   });
-
-  triggerDtHaptic('undo');
   showToast(`↩ Deshecho: ${popped.label}`);
   renderDtView();
 }
