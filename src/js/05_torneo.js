@@ -383,42 +383,7 @@ function updateAmhLinks(divData) {
   }
 }
 
-// Parser cliente para extraer la tabla directamente del HTML de AMH si el proxy local no está activo
-function parseStandingsFromAmhHtml(html) {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const rows = doc.querySelectorAll('tr');
-    const tableData = [];
-    rows.forEach(r => {
-      const cells = Array.from(r.querySelectorAll('td, th')).map(c => c.textContent.trim());
-      if (cells.length === 0 || cells.every(c => !c)) return;
-      if (cells.includes('Jugador') || cells.includes('Goles') || cells.includes('Posición') || cells.includes('Equipo')) return;
-      const filtered = cells.filter(c => c !== '');
-      if (filtered.length >= 10) {
-        tableData.push({
-          pos: parseInt(filtered[0], 10),
-          zona: filtered[1],
-          team: filtered[2],
-          pj: parseInt(filtered[3], 10),
-          pg: parseInt(filtered[4], 10),
-          pe: parseInt(filtered[5], 10),
-          pp: parseInt(filtered[6], 10),
-          gf: parseInt(filtered[7], 10),
-          ge: parseInt(filtered[8], 10),
-          dif: parseInt(filtered[9], 10),
-          bonus: parseInt(filtered[10] || 0, 10),
-          pts: parseInt(filtered[filtered.length - 1], 10)
-        });
-      }
-    });
-    return tableData;
-  } catch (e) {
-    return [];
-  }
-}
-
-// Sincronización con el servidor local o directo con AMH
+// Sincronización oficial del Torneo mediante Backend Proxy (/api/torneo)
 async function syncTournamentData(manual = false) {
   const btnSync = document.getElementById('btnSyncAmh');
   const badge = document.getElementById('amhSyncTimeBadge');
@@ -428,32 +393,21 @@ async function syncTournamentData(manual = false) {
     let syncedAny = false;
 
     const fetchDiv = async (divId) => {
-      // 1. Intentar vía API proxy local / serverless
       try {
-        const res = await fetch(`/api/torneo?division=${divId}&_t=${Date.now()}`);
+        const cacheBust = manual ? `&_t=${Date.now()}` : '';
+        const res = await fetch(`/api/torneo?division=${divId}${cacheBust}`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.standings && data.standings.length > 0) return data;
         }
       } catch (e) {}
-
-      // 2. Fallback: Si estamos en http (localhost, Live Server, red local), GET directo a AMH
-      if (window.location.protocol === 'http:') {
-        try {
-          const directRes = await fetch(`http://15.235.75.172:8080/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=${divId}`);
-          if (directRes.ok) {
-            const html = await directRes.text();
-            const standings = parseStandingsFromAmhHtml(html);
-            if (standings.length > 0) return { standings };
-          }
-        } catch (e) {}
-      }
       return null;
     };
 
     const fetchMatches = async (divId) => {
       try {
-        const res = await fetch(`/api/torneo/matches?division=${divId}&_t=${Date.now()}`);
+        const cacheBust = manual ? `&_t=${Date.now()}` : '';
+        const res = await fetch(`/api/torneo/matches?division=${divId}${cacheBust}`);
         if (res.ok) return await res.json();
       } catch (e) {}
       return null;

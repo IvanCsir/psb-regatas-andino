@@ -34,6 +34,8 @@ function loadEnv() {
 
 loadEnv();
 
+const AMH_BASE_URL = process.env.AMH_BASE_URL || (process.env.AMH_URL ? new URL(process.env.AMH_URL).origin : 'http://15.235.75.172:8080');
+
 // Detección de binario de navegador (Chrome o Edge en Windows / Linux / Mac)
 function findBrowserExecutable() {
   if (process.env.CHROME_BIN && fs.existsSync(process.env.CHROME_BIN)) {
@@ -208,9 +210,10 @@ function fetchMatchesHttp(division = '1') {
   return new Promise((resolve) => {
     const divId = (division === '2' || division === 'intermedia') ? '2' : '1';
     const isIntermedia = divId === '2';
-    const url = `http://15.235.75.172:8080/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
+    const url = `${AMH_BASE_URL}/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
+    const client = url.startsWith('https:') ? require('https') : http;
 
-    http.get(url, (res) => {
+    client.get(url, (res) => {
       let html = '';
       res.on('data', chunk => html += chunk);
       res.on('end', () => {
@@ -296,7 +299,7 @@ async function fetchAvailableMatches(division = '1') {
   // 2. Fallback mediante navegador si estuviera disponible
   const username = process.env.AMH_USER;
   const password = process.env.AMH_PASSWORD;
-  const baseUrl = process.env.AMH_URL || 'http://15.235.75.172:8080/ords/r/amh/clubes/login_desktop';
+  const baseUrl = process.env.AMH_URL || `${AMH_BASE_URL}/ords/r/amh/clubes/login_desktop`;
 
   if (!username || !password) {
     return [];
@@ -328,7 +331,7 @@ async function fetchAvailableMatches(division = '1') {
     if (!session) throw new Error('No se pudo obtener la sesión tras el login en AMH');
 
     // 2. Navegar a Precarga de Equipos (Página 13)
-    await page.goto(`http://15.235.75.172:8080/ords/r/amh/clubes/13?session=${session}`, { waitUntil: 'networkidle2' });
+    await page.goto(`${AMH_BASE_URL}/ords/r/amh/clubes/13?session=${session}`, { waitUntil: 'networkidle2' });
 
     // 3. Seleccionar Torneo
     const torneoVal = await page.evaluate(() => {
@@ -384,7 +387,7 @@ async function executeAmhPrecarga(params = {}) {
 
   const username = process.env.AMH_USER;
   const password = process.env.AMH_PASSWORD;
-  const baseUrl = process.env.AMH_URL || 'http://15.235.75.172:8080/ords/r/amh/clubes/login_desktop';
+  const baseUrl = process.env.AMH_URL || `${AMH_BASE_URL}/ords/r/amh/clubes/login_desktop`;
 
   if (!username || !password) {
     throw new Error('Credenciales AMH no configuradas. Verificá las variables de entorno AMH_USER y AMH_PASSWORD en Vercel.');
@@ -420,7 +423,7 @@ async function executeAmhPrecarga(params = {}) {
 
     // PASO 2: Navegación a Precarga de Equipos (Página 13)
     onProgress({ step: 4, message: 'Navegando a Administración de Plantel > Precarga de Equipos...' });
-    await page.goto(`http://15.235.75.172:8080/ords/r/amh/clubes/13?session=${session}`, { waitUntil: 'networkidle2' });
+    await page.goto(`${AMH_BASE_URL}/ords/r/amh/clubes/13?session=${session}`, { waitUntil: 'networkidle2' });
 
     // PASO 3: Selección de Torneo (Clausura Damas B)
     onProgress({ step: 5, message: 'Seleccionando Torneo Clausura Damas B...' });

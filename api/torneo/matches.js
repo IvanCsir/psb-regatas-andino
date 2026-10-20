@@ -1,11 +1,15 @@
 const http = require('http');
+const https = require('https');
+
+const AMH_BASE_URL = process.env.AMH_BASE_URL || 'http://15.235.75.172:8080';
 
 function fetchAmhMatches(division) {
   return new Promise((resolve, reject) => {
     const divId = division === '2' ? '2' : '1';
-    const url = `http://15.235.75.172:8080/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
+    const url = `${AMH_BASE_URL}/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
+    const client = url.startsWith('https:') ? https : http;
 
-    const req = http.get(url, (res) => {
+    const req = client.get(url, (res) => {
       let html = '';
       res.on('data', (chunk) => { html += chunk; });
       res.on('end', () => {

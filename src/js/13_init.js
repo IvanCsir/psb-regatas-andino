@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTournamentCategorySwitch();
   setupViewSwitching();
   setupEvents();
+  setupCitacionSyncUI();
   setupPhysicalSection();
   initDtModule();
   initSunMode();

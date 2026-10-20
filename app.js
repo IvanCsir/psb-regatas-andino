@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T22:39:48.601Z
+ * Última actualización: 2026-10-20T23:51:37.514Z
  */
 
 // ============================================================================
@@ -869,42 +869,7 @@ function updateAmhLinks(divData) {
   }
 }
 
-// Parser cliente para extraer la tabla directamente del HTML de AMH si el proxy local no está activo
-function parseStandingsFromAmhHtml(html) {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const rows = doc.querySelectorAll('tr');
-    const tableData = [];
-    rows.forEach(r => {
-      const cells = Array.from(r.querySelectorAll('td, th')).map(c => c.textContent.trim());
-      if (cells.length === 0 || cells.every(c => !c)) return;
-      if (cells.includes('Jugador') || cells.includes('Goles') || cells.includes('Posición') || cells.includes('Equipo')) return;
-      const filtered = cells.filter(c => c !== '');
-      if (filtered.length >= 10) {
-        tableData.push({
-          pos: parseInt(filtered[0], 10),
-          zona: filtered[1],
-          team: filtered[2],
-          pj: parseInt(filtered[3], 10),
-          pg: parseInt(filtered[4], 10),
-          pe: parseInt(filtered[5], 10),
-          pp: parseInt(filtered[6], 10),
-          gf: parseInt(filtered[7], 10),
-          ge: parseInt(filtered[8], 10),
-          dif: parseInt(filtered[9], 10),
-          bonus: parseInt(filtered[10] || 0, 10),
-          pts: parseInt(filtered[filtered.length - 1], 10)
-        });
-      }
-    });
-    return tableData;
-  } catch (e) {
-    return [];
-  }
-}
-
-// Sincronización con el servidor local o directo con AMH
+// Sincronización oficial del Torneo mediante Backend Proxy (/api/torneo)
 async function syncTournamentData(manual = false) {
   const btnSync = document.getElementById('btnSyncAmh');
   const badge = document.getElementById('amhSyncTimeBadge');
@@ -914,32 +879,21 @@ async function syncTournamentData(manual = false) {
     let syncedAny = false;
 
     const fetchDiv = async (divId) => {
-      // 1. Intentar vía API proxy local / serverless
       try {
-        const res = await fetch(`/api/torneo?division=${divId}&_t=${Date.now()}`);
+        const cacheBust = manual ? `&_t=${Date.now()}` : '';
+        const res = await fetch(`/api/torneo?division=${divId}${cacheBust}`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.standings && data.standings.length > 0) return data;
         }
       } catch (e) {}
-
-      // 2. Fallback: Si estamos en http (localhost, Live Server, red local), GET directo a AMH
-      if (window.location.protocol === 'http:') {
-        try {
-          const directRes = await fetch(`http://15.235.75.172:8080/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=${divId}`);
-          if (directRes.ok) {
-            const html = await directRes.text();
-            const standings = parseStandingsFromAmhHtml(html);
-            if (standings.length > 0) return { standings };
-          }
-        } catch (e) {}
-      }
       return null;
     };
 
     const fetchMatches = async (divId) => {
       try {
-        const res = await fetch(`/api/torneo/matches?division=${divId}&_t=${Date.now()}`);
+        const cacheBust = manual ? `&_t=${Date.now()}` : '';
+        const res = await fetch(`/api/torneo/matches?division=${divId}${cacheBust}`);
         if (res.ok) return await res.json();
       } catch (e) {}
       return null;
@@ -1880,8 +1834,83 @@ function escapeHtml(string) {
 // SINCRONIZACIÓN EN TIEMPO REAL CON GOOGLE SHEETS (CITACIONES)
 // ============================================================================
 
+const CITACION_LAST_SYNC_KEY = 'psb_citacion_last_sync_ts';
+
+function formatCitacionSyncTime(timestamp) {
+  if (!timestamp) return 'Sin sincronizar aún';
+  const ts = Number(timestamp);
+  if (isNaN(ts) || ts <= 0) return 'Sin sincronizar aún';
+  const date = new Date(ts);
+  const now = new Date();
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isToday = date.toDateString() === now.toDateString();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  if (isToday) {
+    return `Hoy ${timeStr} hs`;
+  } else if (isYesterday) {
+    return `Ayer ${timeStr} hs`;
+  } else {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month} ${timeStr} hs`;
+  }
+}
+
+function updateCitacionSyncBadge(state = 'success', customText = null) {
+  const dot = document.getElementById('citacionSyncDot');
+  const textEl = document.getElementById('citacionSyncText');
+  const btn = document.getElementById('btnRefreshCitacion');
+
+  if (!dot || !textEl) return;
+
+  dot.classList.remove('syncing', 'offline');
+
+  if (state === 'syncing') {
+    dot.classList.add('syncing');
+    if (btn) btn.classList.add('is-spinning');
+    textEl.textContent = customText || 'Actualizando desde Google Sheets...';
+    return;
+  }
+
+  if (btn) btn.classList.remove('is-spinning');
+
+  let savedTs = null;
+  try {
+    savedTs = localStorage.getItem(CITACION_LAST_SYNC_KEY);
+  } catch (e) {}
+
+  if (state === 'success') {
+    const timeFormatted = formatCitacionSyncTime(savedTs || Date.now());
+    textEl.textContent = customText || `Citación al día • ${timeFormatted}`;
+  } else if (state === 'offline' || state === 'error') {
+    dot.classList.add('offline');
+    if (savedTs) {
+      const timeFormatted = formatCitacionSyncTime(savedTs);
+      textEl.textContent = customText || `Sin conexión • Guardado ${timeFormatted}`;
+    } else {
+      textEl.textContent = customText || 'Sin conexión a Google Sheets';
+    }
+  }
+}
+
+function setupCitacionSyncUI() {
+  const btnRefresh = document.getElementById('btnRefreshCitacion');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', (e) => {
+      e.preventDefault();
+      syncWithGoogleSheets(true);
+    });
+  }
+  updateCitacionSyncBadge('success');
+}
+
 async function syncWithGoogleSheets(manual = false) {
   const sheetId = (matchData && matchData.spreadsheetId) || SPREADSHEET_ID;
+  updateCitacionSyncBadge('syncing');
 
   try {
     const fetchTab = async (tabName) => {
@@ -2048,13 +2077,20 @@ async function syncWithGoogleSheets(manual = false) {
       render();
     }
 
+    try {
+      localStorage.setItem(CITACION_LAST_SYNC_KEY, Date.now().toString());
+    } catch (e) {}
+
+    updateCitacionSyncBadge('success');
+
     if (manual) {
-      showToast('¡Datos sincronizados con Google Sheets!');
+      showToast('✅ ¡Citación sincronizada con Google Sheets!');
     }
   } catch (err) {
     console.warn('Error sincronizando con Google Sheets:', err);
+    updateCitacionSyncBadge('offline');
     if (manual) {
-      showToast('No se pudo conectar con la planilla (verificá tu conexión)');
+      showToast('⚠️ No se pudo conectar con Google Sheets (sin señal)');
     }
   }
 }
@@ -6474,6 +6510,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupTournamentCategorySwitch();
   setupViewSwitching();
   setupEvents();
+  setupCitacionSyncUI();
   setupPhysicalSection();
   initDtModule();
   initSunMode();

@@ -1,8 +1,10 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
 const PORT = 3000;
+const AMH_BASE_URL = process.env.AMH_BASE_URL || 'http://15.235.75.172:8080';
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
@@ -16,9 +18,10 @@ const MIME_TYPES = {
 
 function fetchAmhStandings(division, callback) {
   const divId = division === '2' ? '2' : '1';
-  const url = `http://15.235.75.172:8080/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=${divId}`;
+  const url = `${AMH_BASE_URL}/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=${divId}`;
+  const client = url.startsWith('https:') ? https : http;
 
-  http.get(url, res => {
+  client.get(url, res => {
     let html = '';
     res.on('data', chunk => html += chunk);
     res.on('end', () => {
@@ -89,9 +92,10 @@ function fetchAmhStandings(division, callback) {
 
 function fetchAmhMatches(division, callback) {
   const divId = division === '2' ? '2' : '1';
-  const url = `http://15.235.75.172:8080/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
+  const url = `${AMH_BASE_URL}/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
+  const client = url.startsWith('https:') ? https : http;
 
-  http.get(url, res => {
+  client.get(url, res => {
     let html = '';
     res.on('data', chunk => html += chunk);
     res.on('end', () => {

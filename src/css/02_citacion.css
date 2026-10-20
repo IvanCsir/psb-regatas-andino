@@ -415,3 +415,97 @@
   color: var(--color-andino-white);
   letter-spacing: 0.2px;
 }
+
+/* ==========================================================================
+   BARRA DE ESTADO DE SINCRONIZACIÓN AL FINAL DE CITACIÓN
+   ========================================================================== */
+
+.citacion-sync-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(7, 21, 66, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-top: 14px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.sync-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sync-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #34d399;
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+  transition: all 0.3s ease;
+}
+
+.sync-status-dot.syncing {
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
+  animation: pulse-sync 1s infinite alternate;
+}
+
+.sync-status-dot.offline {
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+@keyframes pulse-sync {
+  from { opacity: 0.4; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1.15); }
+}
+
+.sync-status-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-citacion-refresh {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+  padding: 5px 12px;
+  color: var(--color-andino-white);
+  font-family: var(--font-main);
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-citacion-refresh:hover {
+  background: rgba(0, 162, 255, 0.2);
+  border-color: var(--color-regatas-cyan);
+  color: #ffffff;
+}
+
+.btn-citacion-refresh.is-spinning .refresh-icon {
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

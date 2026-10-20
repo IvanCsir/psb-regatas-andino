@@ -1,8 +1,83 @@
 // SINCRONIZACIÓN EN TIEMPO REAL CON GOOGLE SHEETS (CITACIONES)
 // ============================================================================
 
+const CITACION_LAST_SYNC_KEY = 'psb_citacion_last_sync_ts';
+
+function formatCitacionSyncTime(timestamp) {
+  if (!timestamp) return 'Sin sincronizar aún';
+  const ts = Number(timestamp);
+  if (isNaN(ts) || ts <= 0) return 'Sin sincronizar aún';
+  const date = new Date(ts);
+  const now = new Date();
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const isToday = date.toDateString() === now.toDateString();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  if (isToday) {
+    return `Hoy ${timeStr} hs`;
+  } else if (isYesterday) {
+    return `Ayer ${timeStr} hs`;
+  } else {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${day}/${month} ${timeStr} hs`;
+  }
+}
+
+function updateCitacionSyncBadge(state = 'success', customText = null) {
+  const dot = document.getElementById('citacionSyncDot');
+  const textEl = document.getElementById('citacionSyncText');
+  const btn = document.getElementById('btnRefreshCitacion');
+
+  if (!dot || !textEl) return;
+
+  dot.classList.remove('syncing', 'offline');
+
+  if (state === 'syncing') {
+    dot.classList.add('syncing');
+    if (btn) btn.classList.add('is-spinning');
+    textEl.textContent = customText || 'Actualizando desde Google Sheets...';
+    return;
+  }
+
+  if (btn) btn.classList.remove('is-spinning');
+
+  let savedTs = null;
+  try {
+    savedTs = localStorage.getItem(CITACION_LAST_SYNC_KEY);
+  } catch (e) {}
+
+  if (state === 'success') {
+    const timeFormatted = formatCitacionSyncTime(savedTs || Date.now());
+    textEl.textContent = customText || `Citación al día • ${timeFormatted}`;
+  } else if (state === 'offline' || state === 'error') {
+    dot.classList.add('offline');
+    if (savedTs) {
+      const timeFormatted = formatCitacionSyncTime(savedTs);
+      textEl.textContent = customText || `Sin conexión • Guardado ${timeFormatted}`;
+    } else {
+      textEl.textContent = customText || 'Sin conexión a Google Sheets';
+    }
+  }
+}
+
+function setupCitacionSyncUI() {
+  const btnRefresh = document.getElementById('btnRefreshCitacion');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', (e) => {
+      e.preventDefault();
+      syncWithGoogleSheets(true);
+    });
+  }
+  updateCitacionSyncBadge('success');
+}
+
 async function syncWithGoogleSheets(manual = false) {
   const sheetId = (matchData && matchData.spreadsheetId) || SPREADSHEET_ID;
+  updateCitacionSyncBadge('syncing');
 
   try {
     const fetchTab = async (tabName) => {
@@ -169,13 +244,20 @@ async function syncWithGoogleSheets(manual = false) {
       render();
     }
 
+    try {
+      localStorage.setItem(CITACION_LAST_SYNC_KEY, Date.now().toString());
+    } catch (e) {}
+
+    updateCitacionSyncBadge('success');
+
     if (manual) {
-      showToast('¡Datos sincronizados con Google Sheets!');
+      showToast('✅ ¡Citación sincronizada con Google Sheets!');
     }
   } catch (err) {
     console.warn('Error sincronizando con Google Sheets:', err);
+    updateCitacionSyncBadge('offline');
     if (manual) {
-      showToast('No se pudo conectar con la planilla (verificá tu conexión)');
+      showToast('⚠️ No se pudo conectar con Google Sheets (sin señal)');
     }
   }
 }

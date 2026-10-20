@@ -1,11 +1,15 @@
 const http = require('http');
+const https = require('https');
+
+const AMH_BASE_URL = process.env.AMH_BASE_URL || 'http://15.235.75.172:8080';
 
 function fetchAmhStandings(division) {
   return new Promise((resolve, reject) => {
     const divId = division === '2' ? '2' : '1';
-    const url = `http://15.235.75.172:8080/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=${divId}`;
+    const url = `${AMH_BASE_URL}/ords/r/amh/torneos/5?p5_torneos_f=97&p5_jug_cod_division_f=${divId}`;
+    const client = url.startsWith('https:') ? https : http;
 
-    const req = http.get(url, (res) => {
+    const req = client.get(url, (res) => {
       let html = '';
       res.on('data', (chunk) => { html += chunk; });
       res.on('end', () => {
