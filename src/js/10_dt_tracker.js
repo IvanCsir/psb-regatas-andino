@@ -1,3 +1,23 @@
+function cleanupEmptyDtMatches() {
+  if (!dtMatchesStore) return;
+  let changed = false;
+  Object.keys(dtMatchesStore).forEach(k => {
+    if (k === dtCurrentMatchKey) return;
+    const m = dtMatchesStore[k];
+    const hasEvents = m && Array.isArray(m.events) && m.events.length > 0;
+    const hasScore = m && m.score && (m.score.home > 0 || m.score.away > 0);
+    if (!hasEvents && !hasScore) {
+      delete dtMatchesStore[k];
+      changed = true;
+    }
+  });
+  if (changed) {
+    try {
+      localStorage.setItem(DT_MATCHES_STORE_KEY, JSON.stringify(dtMatchesStore));
+    } catch (e) {}
+  }
+}
+
 // VISTA 4: BOTONERA DE INCIDENCIAS DT EN VIVO (HOCKEY LIVE TRACKER)
 // ============================================================================
 
@@ -245,6 +265,8 @@ function loadDtMatchesStore() {
 
   const savedActiveKey = localStorage.getItem(DT_ACTIVE_MATCH_KEY);
   dtCurrentMatchKey = savedActiveKey || 'primera_fecha_12';
+
+  cleanupEmptyDtMatches();
 
   ensureMatchStateExists(dtCurrentMatchKey);
   dtMatchState = dtMatchesStore[dtCurrentMatchKey];

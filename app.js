@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T21:26:06.157Z
+ * Última actualización: 2026-10-20T21:36:47.449Z
  */
 
 // ============================================================================
@@ -2059,6 +2059,26 @@ async function syncWithGoogleSheets(manual = false) {
 // MÓDULO: 10_dt_tracker.js
 // ============================================================================
 
+function cleanupEmptyDtMatches() {
+  if (!dtMatchesStore) return;
+  let changed = false;
+  Object.keys(dtMatchesStore).forEach(k => {
+    if (k === dtCurrentMatchKey) return;
+    const m = dtMatchesStore[k];
+    const hasEvents = m && Array.isArray(m.events) && m.events.length > 0;
+    const hasScore = m && m.score && (m.score.home > 0 || m.score.away > 0);
+    if (!hasEvents && !hasScore) {
+      delete dtMatchesStore[k];
+      changed = true;
+    }
+  });
+  if (changed) {
+    try {
+      localStorage.setItem(DT_MATCHES_STORE_KEY, JSON.stringify(dtMatchesStore));
+    } catch (e) {}
+  }
+}
+
 // VISTA 4: BOTONERA DE INCIDENCIAS DT EN VIVO (HOCKEY LIVE TRACKER)
 // ============================================================================
 
@@ -2306,6 +2326,8 @@ function loadDtMatchesStore() {
 
   const savedActiveKey = localStorage.getItem(DT_ACTIVE_MATCH_KEY);
   dtCurrentMatchKey = savedActiveKey || 'primera_fecha_12';
+
+  cleanupEmptyDtMatches();
 
   ensureMatchStateExists(dtCurrentMatchKey);
   dtMatchState = dtMatchesStore[dtCurrentMatchKey];
@@ -4084,13 +4106,17 @@ function populateStatsMatchFilter() {
   const currentVal = select.value || statsCurrentSelectedFilter || 'all';
   let html = `<option value="all">🌟 Todos los Partidos (Acumulado General)</option>`;
 
-  // Partidos guardados en dtMatchesStore
+  // Partidos guardados en dtMatchesStore con incidencias reales
   const matchKeys = Object.keys(dtMatchesStore || {});
-  if (matchKeys.length > 0) {
-    html += `<optgroup label="📋 Partidos Registrados">`;
-    matchKeys.forEach(k => {
+  const matchesWithData = matchKeys.filter(k => {
+    const m = dtMatchesStore[k];
+    return m && ((m.events && m.events.length > 0) || (m.score && (m.score.home > 0 || m.score.away > 0)));
+  });
+
+  if (matchesWithData.length > 0) {
+    html += `<optgroup label="📋 Partidos con Incidencias">`;
+    matchesWithData.forEach(k => {
       const m = dtMatchesStore[k];
-      if (!m) return;
       const count = (m.events || []).length;
       const score = m.score ? `${m.score.home}-${m.score.away}` : '0-0';
       const round = m.round || k;
@@ -4112,12 +4138,11 @@ function populateStatsMatchFilter() {
 function getAggregatedQuarterStats(selectedKey = 'all') {
   statsCurrentSelectedFilter = selectedKey;
 
-  // Colección de partidos a incluir
+  // Colección de partidos a incluir (solo con datos reales cuando es acumulado)
   let targetMatches = [];
   if (selectedKey === 'all') {
-    targetMatches = Object.values(dtMatchesStore || {});
-    // Si no hay partidos registrados en store, considerar al menos el actual
-    if (targetMatches.length === 0 && dtMatchState) {
+    targetMatches = Object.values(dtMatchesStore || {}).filter(m => m && ((m.events && m.events.length > 0) || (m.score && (m.score.home > 0 || m.score.away > 0))));
+    if (targetMatches.length === 0 && dtMatchState && ((dtMatchState.events && dtMatchState.events.length > 0) || (dtMatchState.score && (dtMatchState.score.home > 0 || dtMatchState.score.away > 0)))) {
       targetMatches = [dtMatchState];
     }
   } else if (dtMatchesStore[selectedKey]) {
@@ -4262,12 +4287,12 @@ function getSeasonTrendsData(selectedKey = 'all') {
     if (matchKeys.length > 0) {
       matchKeys.forEach(k => {
         const m = dtMatchesStore[k];
-        if (m) {
+        if (m && ((m.events && m.events.length > 0) || (m.score && (m.score.home > 0 || m.score.away > 0)))) {
           recalculateMatchStats(m);
           matchesList.push(m);
         }
       });
-    } else if (dtMatchState) {
+    } else if (dtMatchState && ((dtMatchState.events && dtMatchState.events.length > 0) || (dtMatchState.score && (dtMatchState.score.home > 0 || dtMatchState.score.away > 0)))) {
       recalculateMatchStats(dtMatchState);
       matchesList.push(dtMatchState);
     }
