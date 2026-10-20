@@ -1,7 +1,7 @@
 /*
  * Estilos Oficiales - Club Regatas Andino (Hockey Femenino)
  * Compilado automáticamente desde /src/css/
- * Última actualización: 2026-10-20T15:58:46.001Z
+ * Última actualización: 2026-10-20T16:09:26.816Z
  */
 
 /* ==========================================================================
@@ -6974,11 +6974,70 @@ body.dt-sun-mode .toast {
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+.amh-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.amh-btn-text {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.amh-btn-text:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
 /* Lista de Tags de Citadas */
 .amh-cited-tags-grid {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.amh-player-cb-label {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.amh-player-cb-label:hover {
+  background: rgba(76, 173, 212, 0.12);
+  border-color: rgba(76, 173, 212, 0.3);
+}
+
+.amh-player-cb-label:has(.amh-player-cb:checked) {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #f8fafc;
+}
+
+.amh-player-cb {
+  cursor: pointer;
+  accent-color: #10b981;
+  width: 14px;
+  height: 14px;
+}
   max-height: 160px;
   overflow-y: auto;
   padding-right: 0.25rem;

@@ -88,6 +88,9 @@ function levenshtein(a, b) {
 function matchPlayer(citedName, amhPlayers) {
   const normCited = normalizeStr(citedName);
   const citedTokens = normCited.split(' ').filter(t => t.length >= 2);
+  if (citedTokens.length === 0) return null;
+
+  const citedSurname = citedTokens[0];
 
   let bestMatch = null;
   let bestScore = -1;
@@ -95,6 +98,9 @@ function matchPlayer(citedName, amhPlayers) {
   for (const amh of amhPlayers) {
     const normAmh = normalizeStr(amh.name);
     const amhTokens = normAmh.split(' ').filter(t => t.length >= 2);
+    if (amhTokens.length === 0) continue;
+
+    const amhSurname = amhTokens[0];
 
     let matchedTokens = 0;
     for (const cToken of citedTokens) {
@@ -110,15 +116,23 @@ function matchPlayer(citedName, amhPlayers) {
 
     const tokenScore = matchedTokens / citedTokens.length;
 
+    // Coincidencia por apellido principal
+    const surnameMatch = (amhSurname === citedSurname || (citedSurname.length >= 4 && amhSurname.includes(citedSurname)) || (citedSurname.length >= 5 && levenshtein(amhSurname, citedSurname) <= 1));
+
     let levBonus = 0;
-    if (tokenScore >= 0.5) {
+    if (tokenScore >= 0.5 || surnameMatch) {
       const dist = levenshtein(normCited, normAmh);
       levBonus = 1 - (dist / Math.max(normCited.length, normAmh.length));
     }
 
-    const totalScore = (tokenScore * 0.7) + (levBonus * 0.3);
+    let totalScore = (tokenScore * 0.7) + (levBonus * 0.3);
 
-    if (tokenScore >= 0.5 && totalScore > bestScore) {
+    // Si coincide el apellido principal, asegurar buen puntaje
+    if (surnameMatch) {
+      totalScore = Math.max(totalScore, 0.75 + (tokenScore * 0.25));
+    }
+
+    if (totalScore >= 0.65 && totalScore > bestScore) {
       bestScore = totalScore;
       bestMatch = { amh, score: totalScore, tokenScore };
     }
@@ -361,7 +375,7 @@ async function executeAmhPrecarga(params = {}) {
 
     for (const cited of players) {
       const match = matchPlayer(cited, amhPlayers);
-      if (match && match.score >= 0.7) {
+      if (match && match.score >= 0.65) {
         matchesFound.push({
           cited,
           amhName: match.amh.name,

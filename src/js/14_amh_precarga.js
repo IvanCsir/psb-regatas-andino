@@ -16,12 +16,14 @@ function setupAmhPrecargaEvents() {
   const btnExecute = document.getElementById('btnExecuteAmhPrecarga');
   const tabPrimera = document.getElementById('tabAmhPrimera');
   const tabInter = document.getElementById('tabAmhIntermedia');
+  const btnSelectAll = document.getElementById('btnAmhSelectAll');
+  const btnDeselectAll = document.getElementById('btnAmhDeselectAll');
 
   if (drawerBtn) {
     drawerBtn.addEventListener('click', () => {
       closeNavDrawer();
       if (!isCtAuthenticated()) {
-        openSheetsAuthModal(); // Abre el modal de contraseña de Cuerpo Técnico
+        openSheetsAuthModal();
       } else {
         openAmhPrecargaModal();
       }
@@ -53,11 +55,23 @@ function setupAmhPrecargaEvents() {
   if (btnExecute) {
     btnExecute.addEventListener('click', handleExecuteAmhPrecarga);
   }
+
+  if (btnSelectAll) {
+    btnSelectAll.addEventListener('click', () => setAllAmhPlayerCheckboxes(true));
+  }
+  if (btnDeselectAll) {
+    btnDeselectAll.addEventListener('click', () => setAllAmhPlayerCheckboxes(false));
+  }
 }
 
 function openAmhPrecargaModal() {
   const modal = document.getElementById('modalAmhPrecarga');
   if (!modal) return;
+
+  // Intentar sincronizar citadas en vivo con Google Sheets antes de abrir
+  if (typeof syncWithGoogleSheets === 'function') {
+    syncWithGoogleSheets(false).catch(() => {});
+  }
 
   // Sincronizar con la categoría activa en la web si es posible
   const currentCat = (typeof currentCategory !== 'undefined' && currentCategory === 'intermedia') 
@@ -98,22 +112,66 @@ function switchAmhPrecargaCategory(cat) {
   resetAmhPrecargaStatus();
 }
 
+/**
+ * Obtiene las jugadoras citadas priorizando los datos en vivo sincronizados con Google Sheets
+ */
 function getCitedPlayersForCategory(cat) {
   try {
+    // 1. Prioridad: matchData en memoria (actualizado por sincronización con Google Sheets)
+    if (typeof matchData !== 'undefined' && matchData && matchData[cat] && Array.isArray(matchData[cat].players) && matchData[cat].players.length > 0) {
+      return matchData[cat].players;
+    }
+    // 2. Segunda opción: localStorage persistente
+    const storageKey = typeof STORAGE_KEY !== 'undefined' ? STORAGE_KEY : 'regatas_match_data';
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed[cat] && Array.isArray(parsed[cat].players) && parsed[cat].players.length > 0) {
+        return parsed[cat].players;
+      }
+    }
+    // 3. Fallback: DEFAULT_MATCH_DATA
     if (typeof DEFAULT_MATCH_DATA !== 'undefined' && DEFAULT_MATCH_DATA[cat] && DEFAULT_MATCH_DATA[cat].players) {
       return DEFAULT_MATCH_DATA[cat].players;
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[AMH] Error al leer jugadoras citadas:', e);
+  }
   return [];
 }
 
 function getRivalNameForCategory(cat) {
   try {
+    if (typeof matchData !== 'undefined' && matchData && matchData.rival) {
+      return matchData.rival;
+    }
+    const storageKey = typeof STORAGE_KEY !== 'undefined' ? STORAGE_KEY : 'regatas_match_data';
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.rival) return parsed.rival;
+    }
     if (typeof DEFAULT_MATCH_DATA !== 'undefined' && DEFAULT_MATCH_DATA.rival) {
       return DEFAULT_MATCH_DATA.rival;
     }
   } catch (e) {}
   return '';
+}
+
+function updateAmhSelectionCount() {
+  const container = document.getElementById('amhCitedList');
+  const countEl = document.getElementById('amhCitedCount');
+  if (!container || !countEl) return;
+
+  const total = container.querySelectorAll('.amh-player-cb').length;
+  const checked = container.querySelectorAll('.amh-player-cb:checked').length;
+  countEl.textContent = `${checked} de ${total} seleccionadas`;
+}
+
+function setAllAmhPlayerCheckboxes(checked) {
+  const cbs = document.querySelectorAll('.amh-player-cb');
+  cbs.forEach(cb => { cb.checked = checked; });
+  updateAmhSelectionCount();
 }
 
 function renderAmhCitedPlayers(cat) {
@@ -123,22 +181,30 @@ function renderAmhCitedPlayers(cat) {
   const players = getCitedPlayersForCategory(cat);
   const rival = getRivalNameForCategory(cat);
 
-  if (countEl) countEl.textContent = `${players.length} citadas`;
   if (rivalEl) rivalEl.textContent = rival ? `Rival: ${rival}` : 'Rival próximo';
 
   if (!container) return;
 
   if (players.length === 0) {
+    if (countEl) countEl.textContent = '0 citadas';
     container.innerHTML = '<span class="amh-no-players">No hay jugadoras citadas cargadas para esta categoría.</span>';
     return;
   }
 
   container.innerHTML = players.map((p, idx) => `
-    <span class="amh-player-tag">
+    <label class="amh-player-cb-label">
+      <input type="checkbox" class="amh-player-cb" value="${p}" checked>
       <span class="amh-tag-num">${idx + 1}</span>
       <span class="amh-tag-name">${p}</span>
-    </span>
+    </label>
   `).join('');
+
+  // Event listener para actualizar conteo ante cada cambio
+  container.querySelectorAll('.amh-player-cb').forEach(cb => {
+    cb.addEventListener('change', updateAmhSelectionCount);
+  });
+
+  updateAmhSelectionCount();
 }
 
 async function loadAmhMatchesForCategory(cat, forceRefresh = false) {
@@ -221,19 +287,22 @@ async function handleExecuteAmhPrecarga() {
   if (isAmhPrecargaInProgress) return;
 
   const cat = currentAmhCategory;
-  const players = getCitedPlayersForCategory(cat);
-  const rival = getRivalNameForCategory(cat);
   const select = document.getElementById('selectAmhPartido');
   const partidoId = select ? select.value : '';
+  const rival = getRivalNameForCategory(cat);
 
-  if (players.length === 0) {
-    alert('No hay jugadoras citadas para precargar en esta categoría.');
+  // Obtener exclusivamente las jugadoras tildadas en el modal
+  const checkedBoxes = Array.from(document.querySelectorAll('.amh-player-cb:checked'));
+  const selectedPlayers = checkedBoxes.map(cb => cb.value.trim()).filter(Boolean);
+
+  if (selectedPlayers.length === 0) {
+    alert('Por favor, seleccioná al menos una jugadora para precargar.');
     return;
   }
 
   const catName = cat === 'intermedia' ? 'Intermedia' : '1ra División';
   const confirmMsg = `¿Confirmás ejecutar la precarga en AMH para ${catName}?\n\n` +
-    `• Jugadoras citadas: ${players.length}\n` +
+    `• Jugadoras a inscribir: ${selectedPlayers.length}\n` +
     `• Torneo: Clausura Damas B\n` +
     `• Bloque: B\n\n` +
     `⚠️ MODO SEGURO: El sistema SOLO inscribirá a las jugadoras tildadas. NUNCA cerrará la precarga. Podrás entrar a la AMH luego para cerrarla manualmente.`;
@@ -257,7 +326,7 @@ async function handleExecuteAmhPrecarga() {
   if (statusBox) {
     statusBox.style.display = 'flex';
     if (statusText) {
-      statusText.textContent = 'Iniciando conexión con AMH e inscribiendo jugadoras... Esperá unos segundos.';
+      statusText.textContent = `Inscribiendo ${selectedPlayers.length} jugadoras en AMH... Esperá unos segundos.`;
     }
   }
 
@@ -269,7 +338,7 @@ async function handleExecuteAmhPrecarga() {
         division: cat === 'intermedia' ? '2' : '1',
         partidoId: partidoId || null,
         rival: rival || null,
-        players: players
+        players: selectedPlayers
       })
     });
 
@@ -278,7 +347,7 @@ async function handleExecuteAmhPrecarga() {
     if (data.success && data.result) {
       showAmhSuccessResult(data.result);
       if (typeof showToast === 'function') {
-        showToast('✅ Precarga AMH realizada con éxito');
+        showToast(`✅ Precarga AMH: ${data.result.inscribedCount} jugadoras inscriptas`);
       }
     } else {
       throw new Error(data.error || 'Error desconocido durante la precarga.');
@@ -315,7 +384,7 @@ function showAmhSuccessResult(result) {
   if (result.unmatched && result.unmatched.length > 0) {
     unmatchedHtml = `
       <div class="amh-unmatched-card">
-        <span class="amh-warn-title">⚠️ Jugadoras citadas no encontradas en el padrón AMH (${result.unmatched.length}):</span>
+        <span class="amh-warn-title">⚠️ Jugadoras seleccionadas no encontradas en el padrón AMH (${result.unmatched.length}):</span>
         <div class="amh-unmatched-tags">
           ${result.unmatched.map(u => `<span class="amh-unmatched-tag">${u}</span>`).join('')}
         </div>

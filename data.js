@@ -27,7 +27,10 @@ const DEFAULT_MATCH_DATA = {
       "Cesetti Giuliana",
       "Chacón Aldana",
       "D’Inocencio Priscila",
+      "Ferrería Abril",
       "Figuero Victoria",
+      "Narvaez Renata",
+      "Ponce Ana Paula",
       "Prato Delfina",
       "Puppato Valentina",
       "Moyano Lara",
@@ -54,16 +57,12 @@ const DEFAULT_MATCH_DATA = {
       "Dinocencio Priscila",
       "Gil Gabriela",
       "Lascano Romina",
-      "Marquet Margarita",
       "Martinez Martina",
       "Menoyo Brisa",
       "Oviedo Lua",
       "Pistis Luciana",
-      "Ponce Martina",
-      "Segura Cairo Delfina",
-      "Lucero Candela",
-      "Prato Delfina",
-      "Chacón Aldana"
+      "Puppato Luciana",
+      "Segura Cairo Delfina"
     ]
   }
 };
