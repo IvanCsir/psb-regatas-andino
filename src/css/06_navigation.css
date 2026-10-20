@@ -73,6 +73,16 @@
   }
 }
 
+/* Ocultar barra flotante inferior en vistas protegidas o cuando hay modales abiertos */
+body:has(.modal-overlay.active) .bottom-nav-dock,
+body:has(.amh-modal.active) .bottom-nav-dock,
+body.modal-open .bottom-nav-dock,
+body.amh-modal-open .bottom-nav-dock,
+body.in-dt-view .bottom-nav-dock,
+body.in-stats-view .bottom-nav-dock {
+  display: none !important;
+}
+
 
 /* ==========================================================================
    BOTÓN HAMBURGUESA & MENÚ LATERAL (DRAWER)

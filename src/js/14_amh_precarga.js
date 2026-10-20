@@ -90,6 +90,8 @@ function openAmhPrecargaModal() {
   modal.classList.add('active');
   document.body.classList.add('amh-modal-open');
   document.body.style.overflow = 'hidden';
+  const bottomNavDock = document.getElementById('bottomNavDock');
+  if (bottomNavDock) bottomNavDock.style.display = 'none';
 }
 
 function closeAmhPrecargaModal() {
@@ -102,6 +104,11 @@ function closeAmhPrecargaModal() {
   if (modal) modal.classList.remove('active');
   document.body.classList.remove('amh-modal-open');
   document.body.style.overflow = '';
+  const bottomNavDock = document.getElementById('bottomNavDock');
+  if (bottomNavDock) {
+    const isSpecialView = typeof currentActiveView !== 'undefined' && (currentActiveView === 'dt' || currentActiveView === 'estadisticas');
+    bottomNavDock.style.display = isSpecialView ? 'none' : 'flex';
+  }
 }
 
 function switchAmhPrecargaCategory(cat) {

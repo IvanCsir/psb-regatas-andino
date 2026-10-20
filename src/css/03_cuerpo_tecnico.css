@@ -12,7 +12,7 @@
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 200;
+  z-index: 2500;
   display: none;
   align-items: center;
   justify-content: center;
@@ -256,7 +256,7 @@
   font-size: 0.82rem;
   padding: 8px 18px;
   border-radius: var(--radius-full);
-  z-index: 300;
+  z-index: 10000;
   display: none;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
 }

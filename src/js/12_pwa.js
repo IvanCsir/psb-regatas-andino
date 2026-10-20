@@ -93,12 +93,25 @@ function triggerPwaInstall() {
 
 function openIosInstallModal() {
   const modal = document.getElementById('modalIosInstall');
-  if (modal) modal.classList.add('active');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.classList.add('modal-open');
+    const bottomNavDock = document.getElementById('bottomNavDock');
+    if (bottomNavDock) bottomNavDock.style.display = 'none';
+  }
 }
 
 function closeIosInstallModal() {
   const modal = document.getElementById('modalIosInstall');
-  if (modal) modal.classList.remove('active');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    const bottomNavDock = document.getElementById('bottomNavDock');
+    if (bottomNavDock) {
+      const isSpecialView = typeof currentActiveView !== 'undefined' && (currentActiveView === 'dt' || currentActiveView === 'estadisticas');
+      bottomNavDock.style.display = isSpecialView ? 'none' : 'flex';
+    }
+  }
 }
 
 window.triggerPwaInstall = triggerPwaInstall;

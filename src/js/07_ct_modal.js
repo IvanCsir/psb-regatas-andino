@@ -38,6 +38,7 @@ function openSheetsAuthModal() {
   const body = document.getElementById('sheetsAuthBody');
   const input = document.getElementById('inputSheetsPassword');
   const error = document.getElementById('sheetsAuthErrorMsg');
+  const bottomNavDock = document.getElementById('bottomNavDock');
 
   if (!modal) return;
 
@@ -56,11 +57,21 @@ function openSheetsAuthModal() {
   }
 
   modal.classList.add('active');
+  document.body.classList.add('modal-open');
+  if (bottomNavDock) {
+    bottomNavDock.style.display = 'none';
+  }
 }
 
 function closeSheetsAuthModal() {
   const modal = document.getElementById('modalSheetsAuth');
   if (modal) modal.classList.remove('active');
+  document.body.classList.remove('modal-open');
+  const bottomNavDock = document.getElementById('bottomNavDock');
+  if (bottomNavDock) {
+    const isSpecialView = typeof currentActiveView !== 'undefined' && (currentActiveView === 'dt' || currentActiveView === 'estadisticas');
+    bottomNavDock.style.display = isSpecialView ? 'none' : 'flex';
+  }
 }
 
 async function verifySheetsPassword() {

@@ -1,7 +1,7 @@
 /*
  * Estilos Oficiales - Club Regatas Andino (Hockey Femenino)
  * Compilado automáticamente desde /src/css/
- * Última actualización: 2026-10-20T18:49:42.496Z
+ * Última actualización: 2026-10-20T21:06:59.773Z
  */
 
 /* ==========================================================================
@@ -627,7 +627,7 @@ body {
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 200;
+  z-index: 2500;
   display: none;
   align-items: center;
   justify-content: center;
@@ -871,7 +871,7 @@ body {
   font-size: 0.82rem;
   padding: 8px 18px;
   border-radius: var(--radius-full);
-  z-index: 300;
+  z-index: 10000;
   display: none;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
 }
@@ -2498,6 +2498,16 @@ body {
   .nav-dock-btn .dock-icon {
     font-size: 0.95rem;
   }
+}
+
+/* Ocultar barra flotante inferior en vistas protegidas o cuando hay modales abiertos */
+body:has(.modal-overlay.active) .bottom-nav-dock,
+body:has(.amh-modal.active) .bottom-nav-dock,
+body.modal-open .bottom-nav-dock,
+body.amh-modal-open .bottom-nav-dock,
+body.in-dt-view .bottom-nav-dock,
+body.in-stats-view .bottom-nav-dock {
+  display: none !important;
 }
 
 
@@ -4845,6 +4855,7 @@ body.in-dt-view .dt-live-panel {
     animation: slideUpModal 0.25s cubic-bezier(0.2, 0.9, 0.3, 1) forwards !important;
     max-height: 90vh !important;
     margin: 0 !important;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
   }
 
   @keyframes slideUpModal {

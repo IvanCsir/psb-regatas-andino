@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T18:49:42.404Z
+ * Última actualización: 2026-10-20T21:06:59.685Z
  */
 
 // ============================================================================
@@ -1365,6 +1365,7 @@ function openSheetsAuthModal() {
   const body = document.getElementById('sheetsAuthBody');
   const input = document.getElementById('inputSheetsPassword');
   const error = document.getElementById('sheetsAuthErrorMsg');
+  const bottomNavDock = document.getElementById('bottomNavDock');
 
   if (!modal) return;
 
@@ -1383,11 +1384,21 @@ function openSheetsAuthModal() {
   }
 
   modal.classList.add('active');
+  document.body.classList.add('modal-open');
+  if (bottomNavDock) {
+    bottomNavDock.style.display = 'none';
+  }
 }
 
 function closeSheetsAuthModal() {
   const modal = document.getElementById('modalSheetsAuth');
   if (modal) modal.classList.remove('active');
+  document.body.classList.remove('modal-open');
+  const bottomNavDock = document.getElementById('bottomNavDock');
+  if (bottomNavDock) {
+    const isSpecialView = typeof currentActiveView !== 'undefined' && (currentActiveView === 'dt' || currentActiveView === 'estadisticas');
+    bottomNavDock.style.display = isSpecialView ? 'none' : 'flex';
+  }
 }
 
 async function verifySheetsPassword() {
@@ -5549,12 +5560,25 @@ function triggerPwaInstall() {
 
 function openIosInstallModal() {
   const modal = document.getElementById('modalIosInstall');
-  if (modal) modal.classList.add('active');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.classList.add('modal-open');
+    const bottomNavDock = document.getElementById('bottomNavDock');
+    if (bottomNavDock) bottomNavDock.style.display = 'none';
+  }
 }
 
 function closeIosInstallModal() {
   const modal = document.getElementById('modalIosInstall');
-  if (modal) modal.classList.remove('active');
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    const bottomNavDock = document.getElementById('bottomNavDock');
+    if (bottomNavDock) {
+      const isSpecialView = typeof currentActiveView !== 'undefined' && (currentActiveView === 'dt' || currentActiveView === 'estadisticas');
+      bottomNavDock.style.display = isSpecialView ? 'none' : 'flex';
+    }
+  }
 }
 
 window.triggerPwaInstall = triggerPwaInstall;
@@ -5712,6 +5736,8 @@ function openAmhPrecargaModal() {
   modal.classList.add('active');
   document.body.classList.add('amh-modal-open');
   document.body.style.overflow = 'hidden';
+  const bottomNavDock = document.getElementById('bottomNavDock');
+  if (bottomNavDock) bottomNavDock.style.display = 'none';
 }
 
 function closeAmhPrecargaModal() {
@@ -5724,6 +5750,11 @@ function closeAmhPrecargaModal() {
   if (modal) modal.classList.remove('active');
   document.body.classList.remove('amh-modal-open');
   document.body.style.overflow = '';
+  const bottomNavDock = document.getElementById('bottomNavDock');
+  if (bottomNavDock) {
+    const isSpecialView = typeof currentActiveView !== 'undefined' && (currentActiveView === 'dt' || currentActiveView === 'estadisticas');
+    bottomNavDock.style.display = isSpecialView ? 'none' : 'flex';
+  }
 }
 
 function switchAmhPrecargaCategory(cat) {
