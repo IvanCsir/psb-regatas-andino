@@ -1,7 +1,7 @@
 /*
  * Estilos Oficiales - Club Regatas Andino (Hockey Femenino)
  * Compilado automáticamente desde /src/css/
- * Última actualización: 2026-10-20T18:21:08.178Z
+ * Última actualización: 2026-10-20T18:32:17.671Z
  */
 
 /* ==========================================================================
@@ -6777,6 +6777,14 @@ body.dt-sun-mode .toast {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.amh-modal *,
+.amh-modal *::before,
+.amh-modal *::after {
+  box-sizing: border-box;
 }
 
 .amh-modal.active {
@@ -6796,6 +6804,7 @@ body.dt-sun-mode .toast {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   overflow: hidden;
   animation: amhModalZoom 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 @keyframes amhModalZoom {
@@ -6857,11 +6866,14 @@ body.dt-sun-mode .toast {
 
 /* Modal Body */
 .amh-modal-body {
-  padding: 1.5rem;
+  padding: 1.25rem 1rem;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Banner de Seguridad */
@@ -6933,14 +6945,21 @@ body.dt-sun-mode .toast {
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
-  padding: 1rem;
+  padding: 0.9rem 1rem;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .amh-card-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .amh-card-title {
@@ -6962,6 +6981,7 @@ body.dt-sun-mode .toast {
   padding: 0.2rem 0.55rem;
   border-radius: 12px;
   border: 1px solid rgba(76, 173, 212, 0.3);
+  white-space: nowrap;
 }
 
 .amh-badge-rival {
@@ -6972,12 +6992,14 @@ body.dt-sun-mode .toast {
   padding: 0.2rem 0.55rem;
   border-radius: 6px;
   border: 1px solid rgba(245, 158, 11, 0.3);
+  white-space: nowrap;
 }
 
 .amh-title-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  flex-wrap: wrap;
 }
 
 .amh-btn-text {
@@ -7000,10 +7022,13 @@ body.dt-sun-mode .toast {
 .amh-cited-tags-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
   max-height: 180px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 0.25rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .amh-player-cb-label {
@@ -7038,10 +7063,6 @@ body.dt-sun-mode .toast {
   width: 14px;
   height: 14px;
 }
-  max-height: 160px;
-  overflow-y: auto;
-  padding-right: 0.25rem;
-}
 
 .amh-player-tag {
   background: rgba(255, 255, 255, 0.06);
@@ -7072,10 +7093,15 @@ body.dt-sun-mode .toast {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .amh-select {
   flex: 1;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   background: #0f172a;
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #f8fafc;
@@ -7083,6 +7109,10 @@ body.dt-sun-mode .toast {
   border-radius: 8px;
   font-size: 0.85rem;
   outline: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .amh-select:focus {
@@ -7428,5 +7458,74 @@ body.dt-sun-mode .toast {
 .amh-btn-cancel:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
+}
+
+
+/* Responsive Mobile Fixes */
+@media (max-width: 640px) {
+  .amh-modal {
+    padding: 0.4rem;
+  }
+
+  .amh-modal-dialog {
+    max-height: 94vh;
+    border-radius: 12px;
+  }
+
+  .amh-modal-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .amh-header-title {
+    font-size: 1.05rem;
+  }
+
+  .amh-header-sub {
+    font-size: 0.75rem;
+  }
+
+  .amh-modal-body {
+    padding: 0.85rem 0.75rem;
+    gap: 0.85rem;
+  }
+
+  .amh-card {
+    padding: 0.8rem 0.75rem;
+  }
+
+  .amh-card-title-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.45rem;
+  }
+
+  .amh-card-title {
+    font-size: 0.82rem;
+  }
+
+  .amh-title-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.35rem;
+  }
+
+  .amh-badge-rival {
+    align-self: flex-start;
+  }
+
+  .amh-tab-btn {
+    padding: 0.55rem 0.6rem;
+    font-size: 0.82rem;
+  }
+
+  .amh-execute-btn {
+    padding: 0.85rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .amh-player-cb-label {
+    font-size: 0.76rem;
+    padding: 0.3rem 0.45rem;
+  }
 }
 
