@@ -521,7 +521,10 @@
 }
 
 .dt-team-away {
-  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.dt-team-away .dt-team-names {
   text-align: right;
 }
 
@@ -559,20 +562,6 @@
   margin: 0;
 }
 
-.btn-edit-rival-name {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 0.85rem;
-  opacity: 0.6;
-  padding: 2px;
-  transition: opacity 0.2s;
-}
-
-.btn-edit-rival-name:hover {
-  opacity: 1;
-}
-
 .dt-score-number {
   font-size: 2.2rem;
   font-weight: 900;
@@ -582,6 +571,7 @@
   padding: 0 6px;
   min-width: 38px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .dt-team-home .dt-score-number {

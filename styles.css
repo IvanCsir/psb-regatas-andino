@@ -1,7 +1,7 @@
 /*
  * Estilos Oficiales - Club Regatas Andino (Hockey Femenino)
  * Compilado automáticamente desde /src/css/
- * Última actualización: 2026-10-20T21:06:59.773Z
+ * Última actualización: 2026-10-20T21:26:06.252Z
  */
 
 /* ==========================================================================
@@ -3340,7 +3340,10 @@ body.in-stats-view .bottom-nav-dock {
 }
 
 .dt-team-away {
-  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.dt-team-away .dt-team-names {
   text-align: right;
 }
 
@@ -3378,20 +3381,6 @@ body.in-stats-view .bottom-nav-dock {
   margin: 0;
 }
 
-.btn-edit-rival-name {
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-size: 0.85rem;
-  opacity: 0.6;
-  padding: 2px;
-  transition: opacity 0.2s;
-}
-
-.btn-edit-rival-name:hover {
-  opacity: 1;
-}
-
 .dt-score-number {
   font-size: 2.2rem;
   font-weight: 900;
@@ -3401,6 +3390,7 @@ body.in-stats-view .bottom-nav-dock {
   padding: 0 6px;
   min-width: 38px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .dt-team-home .dt-score-number {
@@ -6410,12 +6400,6 @@ body.dt-sun-mode .dt-vs-badge {
   background: #0f172a !important;
   color: #ffffff !important;
   border: 2px solid #0f172a !important;
-}
-
-body.dt-sun-mode .btn-edit-rival-name {
-  background: #ffffff !important;
-  border: 1.5px solid #0f172a !important;
-  color: #0f172a !important;
 }
 
 /* Selector de Cuartos y Cronómetro Táctico */

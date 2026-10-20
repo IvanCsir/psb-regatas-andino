@@ -886,21 +886,6 @@ function initDtModule() {
     });
   }
 
-  // 5. Edición rápida del nombre del Rival
-  const btnEditRival = document.getElementById('btnEditRivalName');
-  if (btnEditRival) {
-    btnEditRival.addEventListener('click', () => {
-      const cur = dtMatchState.rivalName || 'RIVAL';
-      const nuevo = prompt(`Ingresá el nombre del club rival para ${dtMatchState.round || 'este partido'}:`, cur);
-      if (nuevo && nuevo.trim()) {
-        dtMatchState.rivalName = nuevo.trim().toUpperCase();
-        saveDtMatchesStore();
-        renderDtView();
-        showToast(`✏️ Rival actualizado: ${dtMatchState.rivalName}`);
-      }
-    });
-  }
-
   // 5. Selector de Cuarto (1C, 2C, 3C, 4C)
   const qBtns = document.querySelectorAll('.dt-quarter-btn');
   qBtns.forEach(btn => {

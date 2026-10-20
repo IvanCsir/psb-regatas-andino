@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T21:06:59.685Z
+ * Última actualización: 2026-10-20T21:26:06.157Z
  */
 
 // ============================================================================
@@ -2943,21 +2943,6 @@ function initDtModule() {
       if (chosenKey && chosenKey !== dtCurrentMatchKey) {
         switchDtMatch(chosenKey);
         showToast(`📍 Partido cargado: ${dtMatchState.round} vs ${dtMatchState.rivalName}`);
-      }
-    });
-  }
-
-  // 5. Edición rápida del nombre del Rival
-  const btnEditRival = document.getElementById('btnEditRivalName');
-  if (btnEditRival) {
-    btnEditRival.addEventListener('click', () => {
-      const cur = dtMatchState.rivalName || 'RIVAL';
-      const nuevo = prompt(`Ingresá el nombre del club rival para ${dtMatchState.round || 'este partido'}:`, cur);
-      if (nuevo && nuevo.trim()) {
-        dtMatchState.rivalName = nuevo.trim().toUpperCase();
-        saveDtMatchesStore();
-        renderDtView();
-        showToast(`✏️ Rival actualizado: ${dtMatchState.rivalName}`);
       }
     });
   }

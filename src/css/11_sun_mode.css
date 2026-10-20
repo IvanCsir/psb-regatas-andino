@@ -182,12 +182,6 @@ body.dt-sun-mode .dt-vs-badge {
   border: 2px solid #0f172a !important;
 }
 
-body.dt-sun-mode .btn-edit-rival-name {
-  background: #ffffff !important;
-  border: 1.5px solid #0f172a !important;
-  color: #0f172a !important;
-}
-
 /* Selector de Cuartos y Cronómetro Táctico */
 body.dt-sun-mode .dt-quarter-btn {
   background: #ffffff !important;
