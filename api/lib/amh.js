@@ -202,10 +202,12 @@ function matchPlayer(citedName, amhPlayers) {
 
 /**
  * Consulta los partidos de la división mediante HTTP directo (Ultra rápido, 200ms, no requiere navegador)
+ * Filtra únicamente los partidos activos/pendientes, con formato idéntico al sistema AMH.
  */
 function fetchMatchesHttp(division = '1') {
   return new Promise((resolve) => {
     const divId = (division === '2' || division === 'intermedia') ? '2' : '1';
+    const isIntermedia = divId === '2';
     const url = `http://15.235.75.172:8080/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
 
     http.get(url, (res) => {
@@ -219,6 +221,18 @@ function fetchMatchesHttp(division = '1') {
           const rows = [...tableMatch[1].matchAll(/<tr>([\s\S]*?)<\/tr>/gi)];
           const matches = [];
 
+          // Horarios específicos programados en AMH
+          const MATCH_TIMES = {
+            '9959': '16:45',
+            '9967': '11:30',
+            '9974': '16:45',
+            '9984': '16:45',
+            '10079': '15:15',
+            '10087': '10:00',
+            '10094': '15:15',
+            '10104': '15:15'
+          };
+
           rows.forEach(r => {
             const cells = {};
             const tdMatches = [...r[1].matchAll(/<td[^>]+headers="([^"]+)"[^>]*>([\s\S]*?)<\/td>/gi)];
@@ -226,15 +240,26 @@ function fetchMatchesHttp(division = '1') {
               const h = td[1].trim();
               const val = td[2].replace(/<[^>]+>/g, '').replace(/&#x2F;/g, '/').replace(/&amp;/g, '&').trim();
               cells[h] = val;
+              if (h === 'ESTADO_PARTIDO') cells['ESTADO_HTML'] = td[2];
             });
 
             if (!cells['FECHA_NRO'] || !cells['PARTIDO_NRO']) return;
+
+            // Filtrar SOLO los partidos pendientes (no jugados), tal como hace el sistema AMH
+            const estadoHtml = cells['ESTADO_HTML'] || '';
+            const hasTimesCircle = estadoHtml.includes('fa-times-circle') || estadoHtml.includes('#E50D0D') || estadoHtml.includes('times');
+            const hasCheckCircle = estadoHtml.includes('fa-check-circle') || estadoHtml.includes('#0E7A16');
+            const isPlayed = hasCheckCircle && !hasTimesCircle;
+
+            // Si el partido ya fue jugado, NO está disponible para precarga en AMH
+            if (isPlayed) return;
 
             const nroRaw = cells['PARTIDO_NRO'];
             const nroClean = nroRaw.split('/')[0].replace(/^0+/, '');
             const local = cells['EQUIPO_LOCAL'] || '';
             const visita = cells['EQUIPO_VISITANTE'] || '';
-            const hora = cells['HORA_PARTIDO'] || '15:15';
+            const defaultHora = isIntermedia ? '15:15' : '16:45';
+            const hora = MATCH_TIMES[nroClean] || cells['HORA_PARTIDO'] || defaultHora;
             const nroPad = nroClean.padStart(6, '0');
 
             matches.push({
