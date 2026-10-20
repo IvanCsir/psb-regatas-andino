@@ -27,6 +27,7 @@
   pointer-events: none;
   transition: opacity 0.25s ease;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
@@ -770,6 +771,11 @@
   .amh-execute-btn {
     padding: 0.85rem 1rem;
     font-size: 0.9rem;
+  }
+
+  .amh-cited-tags-grid {
+    max-height: none;
+    overflow-y: visible;
   }
 
   .amh-player-cb-label {

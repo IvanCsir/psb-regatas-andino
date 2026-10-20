@@ -1,7 +1,7 @@
 /*
  * Estilos Oficiales - Club Regatas Andino (Hockey Femenino)
  * Compilado automáticamente desde /src/css/
- * Última actualización: 2026-10-20T18:32:17.671Z
+ * Última actualización: 2026-10-20T18:36:27.420Z
  */
 
 /* ==========================================================================
@@ -6778,6 +6778,7 @@ body.dt-sun-mode .toast {
   pointer-events: none;
   transition: opacity 0.25s ease;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
@@ -7521,6 +7522,11 @@ body.dt-sun-mode .toast {
   .amh-execute-btn {
     padding: 0.85rem 1rem;
     font-size: 0.9rem;
+  }
+
+  .amh-cited-tags-grid {
+    max-height: none;
+    overflow-y: visible;
   }
 
   .amh-player-cb-label {
