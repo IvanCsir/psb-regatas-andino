@@ -5,14 +5,15 @@
  * REGLAS CRÍTICAS:
  * 1. NUNCA hacer click en "Cierra Precarga Equipos" (#CIERRA_ID).
  * 2. Únicamente tildar las jugadoras citadas y hacer click en "Inscribe Tildados" (#INSCRIBE_ID).
- * 3. Las credenciales se leen exclusivamente desde variables de entorno (.env).
+ * 3. Las credenciales se leen exclusivamente desde variables de entorno (.env en local o Environment Variables en Vercel).
  */
 
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const puppeteer = require('puppeteer-core');
 
-// Cargar variables de entorno desde .env si existe
+// Cargar variables de entorno desde .env si existe (entorno local)
 function loadEnv() {
   const envPath = path.resolve(__dirname, '..', '.env');
   if (fs.existsSync(envPath)) {
@@ -57,6 +58,32 @@ function findBrowserExecutable() {
   }
 
   return null;
+}
+
+// Obtener instancia de navegador compatible con Windows local y Vercel Serverless
+async function getBrowserInstance() {
+  const localExe = findBrowserExecutable();
+  if (localExe) {
+    return await puppeteer.launch({
+      executablePath: localExe,
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+  }
+
+  // Si estamos en Vercel o en un entorno Linux sin Chrome preinstalado
+  try {
+    const chromium = require('@sparticuz/chromium');
+    const execPath = await chromium.executablePath();
+    return await puppeteer.launch({
+      executablePath: execPath,
+      args: chromium.args,
+      headless: chromium.headless,
+      defaultViewport: chromium.defaultViewport
+    });
+  } catch (err) {
+    throw new Error('No se encontró un navegador ejecutable en el sistema ni en la nube: ' + err.message);
+  }
 }
 
 // Normalización de cadenas y cálculo de similitud para nombres
@@ -157,25 +184,88 @@ function matchPlayer(citedName, amhPlayers) {
 }
 
 /**
+ * Consulta los partidos de la división mediante HTTP directo (Ultra rápido, no requiere navegador)
+ */
+function fetchMatchesHttp(division = '1') {
+  return new Promise((resolve) => {
+    const divId = (division === '2' || division === 'intermedia') ? '2' : '1';
+    const url = `http://15.235.75.172:8080/ords/f?p=1107:6:0:FLOW_EXCEL_OUTPUT:::P6_TORNEOS_P,P6_CLUB_P,P6_JUG_COD_DIVISION_P:97,3,${divId}`;
+
+    http.get(url, (res) => {
+      let html = '';
+      res.on('data', chunk => html += chunk);
+      res.on('end', () => {
+        try {
+          const tableMatch = html.match(/<table[^>]+id="report_table_R195581212816937222"[^>]*>([\s\S]*?)<\/table>/i);
+          if (!tableMatch) return resolve([]);
+
+          const rows = [...tableMatch[1].matchAll(/<tr>([\s\S]*?)<\/tr>/gi)];
+          const matches = [];
+
+          rows.forEach(r => {
+            const cells = {};
+            const tdMatches = [...r[1].matchAll(/<td[^>]+headers="([^"]+)"[^>]*>([\s\S]*?)<\/td>/gi)];
+            tdMatches.forEach(td => {
+              const h = td[1].trim();
+              const val = td[2].replace(/<[^>]+>/g, '').replace(/&#x2F;/g, '/').replace(/&amp;/g, '&').trim();
+              cells[h] = val;
+            });
+
+            if (!cells['FECHA_NRO'] || !cells['PARTIDO_NRO']) return;
+
+            const nroRaw = cells['PARTIDO_NRO'];
+            const nroClean = nroRaw.split('/')[0].replace(/^0+/, '');
+            const local = cells['EQUIPO_LOCAL'] || '';
+            const visita = cells['EQUIPO_VISITANTE'] || '';
+            const hora = cells['HORA_PARTIDO'] || '15:15';
+            const nroPad = nroClean.padStart(6, '0');
+
+            matches.push({
+              id: nroClean,
+              text: `${nroPad} - ${hora} - ${local} vs ${visita}`
+            });
+          });
+
+          resolve(matches);
+        } catch (e) {
+          resolve([]);
+        }
+      });
+    }).on('error', () => {
+      resolve([]);
+    });
+  });
+}
+
+/**
  * Obtiene los partidos disponibles para una división en la AMH
  */
 async function fetchAvailableMatches(division = '1') {
-  const browserPath = findBrowserExecutable();
-  if (!browserPath) throw new Error('No se encontró un navegador ejecutable (Chrome o Edge).');
+  // 1. Intento por HTTP directo (funciona en Vercel, móvil y local sin requerir navegador)
+  try {
+    const httpMatches = await fetchMatchesHttp(division);
+    if (httpMatches && httpMatches.length > 0) {
+      return httpMatches;
+    }
+  } catch (e) {
+    console.warn('[AMH] Error en fetchMatchesHttp, intentando navegador:', e.message);
+  }
 
+  // 2. Fallback mediante navegador si estuviera disponible
   const username = process.env.AMH_USER;
   const password = process.env.AMH_PASSWORD;
   const baseUrl = process.env.AMH_URL || 'http://15.235.75.172:8080/ords/r/amh/clubes/login_desktop';
 
   if (!username || !password) {
-    throw new Error('Faltan credenciales AMH_USER o AMH_PASSWORD en variables de entorno / archivo .env');
+    return [];
   }
 
-  const browser = await puppeteer.launch({
-    executablePath: browserPath,
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  let browser;
+  try {
+    browser = await getBrowserInstance();
+  } catch (e) {
+    return [];
+  }
 
   try {
     const page = await browser.newPage();
@@ -224,7 +314,7 @@ async function fetchAvailableMatches(division = '1') {
 
     return partidos;
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 }
 
@@ -250,24 +340,17 @@ async function executeAmhPrecarga(params = {}) {
     throw new Error('No se enviaron jugadoras citadas para precargar.');
   }
 
-  const browserPath = findBrowserExecutable();
-  if (!browserPath) throw new Error('No se encontró un navegador ejecutable (Chrome o Edge) en el sistema.');
-
   const username = process.env.AMH_USER;
   const password = process.env.AMH_PASSWORD;
   const baseUrl = process.env.AMH_URL || 'http://15.235.75.172:8080/ords/r/amh/clubes/login_desktop';
 
   if (!username || !password) {
-    throw new Error('Credenciales AMH no configuradas. Verificá el archivo .env (AMH_USER y AMH_PASSWORD).');
+    throw new Error('Credenciales AMH no configuradas. Verificá las variables de entorno AMH_USER y AMH_PASSWORD.');
   }
 
   onProgress({ step: 1, message: 'Iniciando navegador automatizado...' });
 
-  const browser = await puppeteer.launch({
-    executablePath: browserPath,
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  const browser = await getBrowserInstance();
 
   try {
     const page = await browser.newPage();
@@ -336,7 +419,6 @@ async function executeAmhPrecarga(params = {}) {
       selectedPartido = matchOptions.find(m => normalizeStr(m.text).includes(normRival));
     }
     if (!selectedPartido) {
-      // Tomar el primer partido programado de Regatas Andino
       selectedPartido = matchOptions[0];
     }
 
@@ -421,7 +503,6 @@ async function executeAmhPrecarga(params = {}) {
     // PASO 10: INSCRIBIR TILDADOS (Únicamente #INSCRIBE_ID - NUNCA #CIERRA_ID)
     onProgress({ step: 14, message: 'Guardando inscripción: Presionando "Inscribe Tildados"...' });
 
-    // Verificación de seguridad estricta antes de clickear
     const buttonSecurityCheck = await page.evaluate(() => {
       const inscribeBtn = document.querySelector('#INSCRIBE_ID');
       return {
@@ -460,7 +541,7 @@ async function executeAmhPrecarga(params = {}) {
     };
 
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 }
 
@@ -474,7 +555,6 @@ if (require.main === module) {
   console.log(`División: ${divArg === '2' ? 'Intermedia' : 'Primera'}`);
   console.log(`======================================================\n`);
 
-  // Partidos de prueba
   fetchAvailableMatches(divArg)
     .then(partidos => {
       console.log('Partidos disponibles en AMH:');
