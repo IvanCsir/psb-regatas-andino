@@ -805,9 +805,12 @@
                 <option value="all">🌟 Todos los Partidos (Acumulado General)</option>
               </select>
             </div>
-            <button type="button" class="btn-stats-sync-cloud" id="btnSyncAllMatchesCloud" title="Descargar e importar todos los partidos de Google Sheets">
-              <span>🔄</span> Sincronizar Google Sheets
-            </button>
+            <div class="stats-sync-row">
+              <button type="button" class="btn-stats-sync-cloud" id="btnSyncAllMatchesCloud" title="Descargar e importar todos los partidos de Google Sheets">
+                <span>🔄</span> Sincronizar Google Sheets
+              </button>
+              <span class="stats-last-sync-badge" id="statsLastSyncTime" title="Hora de la última sincronización con Google Sheets">Última sinc: --:-- hs</span>
+            </div>
           </div>
         </section>
 
@@ -859,7 +862,10 @@
         <!-- Botón de Exportar / Compartir por WhatsApp -->
         <div class="stats-share-box">
           <button type="button" class="btn-stats-share-wa" id="btnShareStatsWhatsApp">
-            <span>📲</span> Compartir Análisis Táctico por WhatsApp
+            <span>📲</span> Compartir WhatsApp
+          </button>
+          <button type="button" class="btn-stats-share-img" id="btnShareStatsImage">
+            <span>📸</span> Descargar Imagen Táctica
           </button>
         </div>
 
@@ -1176,7 +1182,10 @@
 
       <div class="dt-summary-actions">
         <button type="button" class="btn-share-modal-wa" id="btnModalShareWhatsApp">
-          <span>📲</span> Compartir por WhatsApp
+          <span>📲</span> WhatsApp
+        </button>
+        <button type="button" class="btn-share-modal-img" id="btnModalShareImage">
+          <span>📸</span> Compartir Imagen
         </button>
         <button type="button" class="btn-close-summary-bottom" id="btnCloseDtSummaryBottom">
           Cerrar

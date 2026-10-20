@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T21:36:47.449Z
+ * Última actualización: 2026-10-20T22:08:51.404Z
  */
 
 // ============================================================================
@@ -368,6 +368,12 @@ function setupViewSwitching() {
   const btnShareStatsWa = document.getElementById('btnShareStatsWhatsApp');
   if (btnShareStatsWa) {
     btnShareStatsWa.addEventListener('click', shareStatsWhatsApp);
+  }
+
+  // Descargar/Compartir Reporte Gráfico Táctico
+  const btnShareStatsImg = document.getElementById('btnShareStatsImage');
+  if (btnShareStatsImg) {
+    btnShareStatsImg.addEventListener('click', exportStatsVisualCard);
   }
 
   // Auth Gate de Estadísticas por Cuartos
@@ -2109,17 +2115,23 @@ function triggerDtHaptic(type = 'default') {
   if (!('vibrate' in navigator)) return;
   try {
     if (type === 'goal') {
-      navigator.vibrate([60, 50, 75]); // Doble pulso vigoroso para gol
-    } else if (type === 'card' || type === 'stroke') {
-      navigator.vibrate([45, 40, 45]);
+      navigator.vibrate([80, 50, 100, 50, 120]); // Celebración rítmica enérgica para gol
+    } else if (type === 'corner') {
+      navigator.vibrate([35, 45, 35]); // Doble pulso nítido para córner corto
+    } else if (type === 'stroke') {
+      navigator.vibrate([50, 40, 70]); // Pulso firme para penal / stroke
+    } else if (type === 'entry') {
+      navigator.vibrate(22); // Pulso ágil para ingreso al área
+    } else if (type === 'card' || type.startsWith('card')) {
+      navigator.vibrate([50, 50, 50]); // Triple pulso para tarjeta
     } else if (type === 'undo') {
-      navigator.vibrate(35);
+      navigator.vibrate([70, 40, 30]); // Secuencia descendente de advertencia para deshacer
     } else if (type === 'quarter') {
-      navigator.vibrate([30, 25, 30]);
-    } else if (type === 'tap') {
-      navigator.vibrate(25); // Pulso ágil de confirmación táctil
+      navigator.vibrate([40, 30, 40, 30, 40]); // Cambio de cuarto
+    } else if (type === 'timer') {
+      navigator.vibrate(30);
     } else {
-      navigator.vibrate(35);
+      navigator.vibrate(20);
     }
   } catch (e) {}
 }
@@ -3112,6 +3124,9 @@ function initDtModule() {
   const btnModalShareWa = document.getElementById('btnModalShareWhatsApp');
   if (btnModalShareWa) btnModalShareWa.addEventListener('click', shareDtMatchWhatsApp);
 
+  const btnModalShareImg = document.getElementById('btnModalShareImage');
+  if (btnModalShareImg) btnModalShareImg.addEventListener('click', exportDtMatchImage);
+
   const modalSummary = document.getElementById('modalDtSummary');
   if (modalSummary) {
     modalSummary.addEventListener('click', (e) => {
@@ -3190,8 +3205,20 @@ function logIncident(type, team, endedInGoal = false, player = '') {
     sheetName: getDtMatchSheetName(dtMatchState)
   });
 
-  // Vibración háptica en móviles si está disponible
-  triggerDtHaptic(endedInGoal ? 'goal' : (type.startsWith('card') ? 'card' : 'tap'));
+  // Vibración háptica diferenciada en móviles
+  if (endedInGoal) {
+    triggerDtHaptic('goal');
+  } else if (type.startsWith('card')) {
+    triggerDtHaptic('card');
+  } else if (type === 'entry') {
+    triggerDtHaptic('entry');
+  } else if (type === 'corner') {
+    triggerDtHaptic('corner');
+  } else if (type === 'stroke') {
+    triggerDtHaptic('stroke');
+  } else {
+    triggerDtHaptic('tap');
+  }
 
   showToast(`${evt.team === 'home' ? '🔵' : '🔴'} ${evt.label}`);
   renderDtView();
@@ -3914,6 +3941,420 @@ function renderDtView() {
 // ============================================================================
 
 // ============================================================================
+// GENERADOR DE IMAGEN RESUMEN DEPORTIVA DEL PARTIDO (CANVAS HD)
+// ============================================================================
+async function exportDtMatchImage() {
+  if (!dtMatchState) {
+    showToast('⚠️ No hay partido seleccionado.');
+    return;
+  }
+
+  showToast('🎨 Generando imagen oficial del partido...');
+
+  const canvas = document.createElement('canvas');
+  const W = 1080;
+  const H = 1350;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  function roundRect(x, y, w, h, r, fill = true, stroke = false) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  // Fondo Degradado Deep Night Blue oficial
+  const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#02081f');
+  bgGrad.addColorStop(0.5, '#031238');
+  bgGrad.addColorStop(1, '#051d54');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Acentos de luz sutil en esquinas
+  const cyanRadial = ctx.createRadialGradient(W * 0.2, H * 0.15, 20, W * 0.2, H * 0.15, 500);
+  cyanRadial.addColorStop(0, 'rgba(0, 162, 255, 0.14)');
+  cyanRadial.addColorStop(1, 'rgba(0, 162, 255, 0)');
+  ctx.fillStyle = cyanRadial;
+  ctx.fillRect(0, 0, W, H);
+
+  // Marco exterior
+  ctx.strokeStyle = 'rgba(0, 162, 255, 0.35)';
+  ctx.lineWidth = 4;
+  roundRect(24, 24, W - 48, H - 48, 28, false, true);
+
+  // Cabecera Institucional
+  const rival = (dtMatchState.rivalName || 'RIVAL').toUpperCase();
+  const round = (dtMatchState.round || 'Fecha').toUpperCase();
+  const hGoals = (dtMatchState.score && typeof dtMatchState.score.home === 'number') ? dtMatchState.score.home : 0;
+  const aGoals = (dtMatchState.score && typeof dtMatchState.score.away === 'number') ? dtMatchState.score.away : 0;
+
+  // Cargar imagen de escudo
+  await new Promise(resolve => {
+    const crestImg = new Image();
+    crestImg.crossOrigin = 'anonymous';
+    crestImg.onload = () => {
+      try {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(110, 105, 46, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#00a2ff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.clip();
+        ctx.drawImage(crestImg, 64, 59, 92, 92);
+        ctx.restore();
+      } catch (e) {}
+      resolve();
+    };
+    crestImg.onerror = () => resolve();
+    crestImg.src = 'escudo-regatas-andino.png';
+  });
+
+  // Textos Cabecera
+  ctx.fillStyle = '#00a2ff';
+  ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('CLUB REGATAS ANDINO', 180, 85);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 36px system-ui, -apple-system, sans-serif';
+  ctx.fillText('PLANTEL SUPERIOR B', 180, 126);
+
+  // Badge de Reporte
+  ctx.fillStyle = 'rgba(0, 162, 255, 0.15)';
+  ctx.strokeStyle = 'rgba(0, 162, 255, 0.4)';
+  ctx.lineWidth = 1.5;
+  roundRect(W - 275, 78, 205, 42, 21, true, true);
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '800 15px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('REPORTE OFICIAL DT', W - 172, 105);
+
+  // Línea divisoria
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(60, 165);
+  ctx.lineTo(W - 60, 165);
+  ctx.stroke();
+
+  // Torneo & Fecha Pill
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.12)';
+  ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+  ctx.lineWidth = 1.5;
+  roundRect(W / 2 - 210, 185, 420, 42, 21, true, true);
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = '900 18px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${round} • TORNEO CLAUSURA AMH`, W / 2, 212);
+
+  // Tarjeta Principal de Marcador (Scoreboard)
+  const scoreCardY = 250;
+  const scoreCardH = 210;
+  ctx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+  ctx.strokeStyle = 'rgba(0, 162, 255, 0.3)';
+  ctx.lineWidth = 2;
+  roundRect(60, scoreCardY, W - 120, scoreCardH, 24, true, true);
+
+  // Regatas (Local)
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '800 16px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('LOCAL', 100, scoreCardY + 65);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 36px system-ui, -apple-system, sans-serif';
+  ctx.fillText('REGATAS', 100, scoreCardY + 115);
+
+  // Círculo Tanteador Regatas
+  ctx.fillStyle = '#0284c7';
+  ctx.beginPath();
+  ctx.arc(W / 2 - 110, scoreCardY + scoreCardH / 2, 54, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 64px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${hGoals}`, W / 2 - 110, scoreCardY + scoreCardH / 2 + 22);
+
+  // VS Badge
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+  roundRect(W / 2 - 32, scoreCardY + scoreCardH / 2 - 22, 64, 44, 12, true, false);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '900 18px system-ui, -apple-system, sans-serif';
+  ctx.fillText('VS', W / 2, scoreCardY + scoreCardH / 2 + 6);
+
+  // Círculo Tanteador Rival
+  ctx.fillStyle = '#b91c1c';
+  ctx.beginPath();
+  ctx.arc(W / 2 + 110, scoreCardY + scoreCardH / 2, 54, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#f87171';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 64px system-ui, -apple-system, sans-serif';
+  ctx.fillText(`${aGoals}`, W / 2 + 110, scoreCardY + scoreCardH / 2 + 22);
+
+  // Rival (Visitante)
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '800 16px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('VISITANTE', W - 100, scoreCardY + 65);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 36px system-ui, -apple-system, sans-serif';
+  let rivalDisplay = rival;
+  if (ctx.measureText(rivalDisplay).width > 240) {
+    while (ctx.measureText(rivalDisplay + '...').width > 240 && rivalDisplay.length > 3) {
+      rivalDisplay = rivalDisplay.slice(0, -1);
+    }
+    rivalDisplay += '...';
+  }
+  ctx.fillText(rivalDisplay, W - 100, scoreCardY + 115);
+
+  // Pill de Resultado
+  let statusText = 'FINAL';
+  let statusBg = 'rgba(56, 189, 248, 0.2)';
+  let statusColor = '#38bdf8';
+  if (hGoals > aGoals) {
+    statusText = 'VICTORIA DE REGATAS';
+    statusBg = 'rgba(52, 211, 153, 0.25)';
+    statusColor = '#34d399';
+  } else if (hGoals < aGoals) {
+    statusText = 'RESULTADO FINAL';
+    statusBg = 'rgba(239, 68, 68, 0.2)';
+    statusColor = '#f87171';
+  } else {
+    statusText = 'EMPATE';
+    statusBg = 'rgba(251, 191, 36, 0.2)';
+    statusColor = '#fbbf24';
+  }
+  ctx.fillStyle = statusBg;
+  roundRect(W / 2 - 130, scoreCardY + scoreCardH - 42, 260, 30, 15, true, false);
+  ctx.fillStyle = statusColor;
+  ctx.font = '900 14px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(statusText, W / 2, scoreCardY + scoreCardH - 22);
+
+  // 4. Tabla de Rendimiento por Cuartos
+  const tableY = 485;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  roundRect(60, tableY, W - 120, 310, 18, true, true);
+
+  // Encabezado de la tabla
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  roundRect(60, tableY, W - 120, 48, 18, true, false);
+  ctx.fillRect(60, tableY + 28, W - 120, 20);
+
+  ctx.font = '900 15px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'left';
+  ctx.fillText('MÉTRICA TÁCTICA', 90, tableY + 30);
+
+  const cols = [360, 480, 600, 720, 850];
+  const colLabels = ['1°C', '2°C', '3°C', '4°C', 'TOTAL'];
+  ctx.textAlign = 'center';
+  cols.forEach((cx, idx) => {
+    ctx.fillStyle = idx === 4 ? '#00a2ff' : '#ffffff';
+    ctx.fillText(colLabels[idx], cx, tableY + 30);
+  });
+
+  const qStats = dtMatchState.quarters || {};
+  const tot = {
+    home: { entries: 0, corners: 0, cornerGoals: 0, goals: 0 },
+    away: { entries: 0, corners: 0, cornerGoals: 0, goals: 0 }
+  };
+  [1, 2, 3, 4].forEach(q => {
+    const cur = qStats[q] || createDefaultQuarterStats();
+    ['home', 'away'].forEach(tm => {
+      tot[tm].entries += cur[tm].entries || 0;
+      tot[tm].corners += cur[tm].corners || 0;
+      tot[tm].cornerGoals += cur[tm].cornerGoals || 0;
+      tot[tm].goals += cur[tm].goals || 0;
+    });
+  });
+
+  const rowData = [
+    {
+      label: '⚽ Goles (Reg - Riv)',
+      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.goals) || 0} - ${(qStats[q] && qStats[q].away && qStats[q].away.goals) || 0}`),
+      totVal: `${tot.home.goals} - ${tot.away.goals}`,
+      highlight: true
+    },
+    {
+      label: '🏑 Córners Cortos',
+      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.corners) || 0} vs ${(qStats[q] && qStats[q].away && qStats[q].away.corners) || 0}`),
+      totVal: `${tot.home.corners} vs ${tot.away.corners}`
+    },
+    {
+      label: '📥 Ingresos al Área 25 yd',
+      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.entries) || 0} vs ${(qStats[q] && qStats[q].away && qStats[q].away.entries) || 0}`),
+      totVal: `${tot.home.entries} vs ${tot.away.entries}`
+    },
+    {
+      label: '🎯 Efectividad de Cortos',
+      qVals: [1, 2, 3, 4].map(q => {
+        const c = (qStats[q] && qStats[q].home && qStats[q].home.corners) || 0;
+        const cg = (qStats[q] && qStats[q].home && qStats[q].home.cornerGoals) || 0;
+        return c > 0 ? Math.round((cg / c) * 100) + '%' : '-';
+      }),
+      totVal: tot.home.corners > 0 ? Math.round((tot.home.cornerGoals / tot.home.corners) * 100) + '%' : '-'
+    },
+    {
+      label: '🥅 Goles de Corto',
+      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.cornerGoals) || 0}`),
+      totVal: `${tot.home.cornerGoals}`
+    }
+  ];
+
+  rowData.forEach((row, rIdx) => {
+    const ry = tableY + 52 + (rIdx * 51);
+    if (rIdx % 2 === 1) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+      ctx.fillRect(60, ry, W - 120, 51);
+    }
+    ctx.textAlign = 'left';
+    ctx.fillStyle = row.highlight ? '#38bdf8' : '#ffffff';
+    ctx.font = row.highlight ? '900 16px system-ui, sans-serif' : '600 15px system-ui, sans-serif';
+    ctx.fillText(row.label, 90, ry + 32);
+
+    ctx.textAlign = 'center';
+    cols.forEach((cx, cIdx) => {
+      const val = cIdx === 4 ? row.totVal : row.qVals[cIdx];
+      ctx.fillStyle = cIdx === 4 ? '#34d399' : (row.highlight ? '#ffffff' : '#94a3b8');
+      ctx.font = cIdx === 4 ? '900 17px system-ui, sans-serif' : '600 15px system-ui, sans-serif';
+      ctx.fillText(val, cx, ry + 32);
+    });
+  });
+
+  // 5. Goleadoras y Tarjetas Box
+  const extraY = 820;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  roundRect(60, extraY, W - 120, 160, 18, true, true);
+
+  const scorersMap = {};
+  (dtMatchState.events || []).forEach(evt => {
+    if (evt.team === 'home' && evt.endedInGoal && evt.player) {
+      scorersMap[evt.player] = (scorersMap[evt.player] || 0) + 1;
+    }
+  });
+  const scorersList = Object.entries(scorersMap).sort((a, b) => b[1] - a[1]);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#00a2ff';
+  ctx.font = '900 18px system-ui, sans-serif';
+  ctx.fillText('⚽ GOLEADORAS REGATAS', 90, extraY + 45);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '600 17px system-ui, sans-serif';
+  if (scorersList.length > 0) {
+    const textScorers = scorersList.map(([p, count]) => `${p} (${count} gol${count > 1 ? 'es' : ''})`).join('   •   ');
+    ctx.fillText(textScorers, 90, extraY + 82);
+  } else {
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('No se registraron autoras de gol en este partido', 90, extraY + 82);
+  }
+
+  const cardsMap = { green: 0, yellow: 0, red: 0 };
+  (dtMatchState.events || []).forEach(evt => {
+    if (evt.team === 'home') {
+      if (evt.type === 'cardGreen') cardsMap.green++;
+      if (evt.type === 'cardYellow') cardsMap.yellow++;
+      if (evt.type === 'cardRed') cardsMap.red++;
+    }
+  });
+  ctx.fillStyle = '#fbbf24';
+  ctx.font = '900 16px system-ui, sans-serif';
+  ctx.fillText('🟨 DISCIPLINA REGATAS:', 90, extraY + 125);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '600 16px system-ui, sans-serif';
+  ctx.fillText(`🟩 ${cardsMap.green} Verdes  |  🟨 ${cardsMap.yellow} Amarillas  |  🟥 ${cardsMap.red} Rojas`, 310, extraY + 125);
+
+  // 6. Pie de Página Institucional
+  const footerY = 1010;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.beginPath();
+  ctx.moveTo(60, footerY);
+  ctx.lineTo(W - 60, footerY);
+  ctx.stroke();
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 15px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Club Regatas Andino • Hockey Damas B', 60, footerY + 38);
+
+  ctx.fillStyle = '#00a2ff';
+  ctx.font = 'italic 700 15px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('« Juntas somos más »', W / 2, footerY + 38);
+
+  const nowStr = new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) + ' hs';
+  ctx.fillStyle = '#64748b';
+  ctx.font = '600 14px system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(nowStr, W - 60, footerY + 38);
+
+  // 7. Descargar o Compartir imagen
+  canvas.toBlob(async (blob) => {
+    if (!blob) {
+      showToast('⚠️ Error al generar la imagen');
+      return;
+    }
+    const cleanRound = (dtMatchState.round || 'partido').replace(/\s+/g, '-').toLowerCase();
+    const cleanRival = rival.replace(/\s+/g, '-').toLowerCase();
+    const fileName = `regatas-${cleanRound}-vs-${cleanRival}.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `Regatas Andino vs ${rival}`,
+          text: `Reporte oficial: Regatas Andino ${hGoals} - ${aGoals} ${rival}`
+        });
+        showToast('📲 ¡Imagen compartida con éxito!');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('📸 ¡Imagen oficial descargada!');
+  }, 'image/png');
+}
+
+window.exportDtMatchImage = exportDtMatchImage;
+
+// ============================================================================
 // MÓDULO: 11_estadisticas.js
 // ============================================================================
 
@@ -3981,6 +4422,26 @@ function recalculateMatchStats(targetMatch) {
 }
 
 // Al abrir la vista de estadísticas
+
+// Actualizar y persistir indicador de última sincronización
+function updateStatsLastSyncBadge(customTime) {
+  let timeStr = customTime;
+  if (!timeStr) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    timeStr = `${hh}:${mm} hs`;
+  }
+  try {
+    localStorage.setItem('psb_stats_last_sync_time', timeStr);
+  } catch (e) {}
+
+  const el = document.getElementById('statsLastSyncTime');
+  if (el) {
+    el.textContent = `Última sinc: ${timeStr}`;
+  }
+}
+
 function handleStatsViewOpen() {
   const gateCard = document.getElementById('statsAuthGateCard');
   const mainContent = document.getElementById('statsMainContent');
@@ -5371,6 +5832,7 @@ async function syncAllMatchesFromCloud(options = {}) {
     saveDtMatchesStore();
     populateStatsMatchFilter();
     renderAnalyticsDashboard(statsCurrentSelectedFilter);
+    updateStatsLastSyncBadge();
     if (!isSilent) {
       showToast(`✅ Sincronización exitosa: ${updatedCount} fecha(s) actualizada(s).`);
     }
@@ -5470,6 +5932,457 @@ function shareStatsWhatsApp() {
 }
 
 // ============================================================================
+
+
+// ============================================================================
+// GENERADOR DE IMAGEN TÁCTICA / ESTADÍSTICA (CANVAS HD)
+// ============================================================================
+async function exportStatsVisualCard() {
+  const filterSelect = document.getElementById('selectStatsMatchFilter');
+  const selectedLabel = filterSelect && filterSelect.options[filterSelect.selectedIndex] 
+    ? filterSelect.options[filterSelect.selectedIndex].text 
+    : 'Todos los Partidos';
+
+  showToast('🎨 Generando reporte táctico visual...');
+
+  const canvas = document.createElement('canvas');
+  const W = 1080;
+  const H = 1350;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  function roundRect(x, y, w, h, r, fill = true, stroke = false) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  // Fondo Degradado Deep Night Blue oficial
+  const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+  bgGrad.addColorStop(0, '#02081f');
+  bgGrad.addColorStop(0.5, '#031238');
+  bgGrad.addColorStop(1, '#051d54');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Acentos de luz sutil en esquinas
+  const cyanRadial = ctx.createRadialGradient(W * 0.2, H * 0.15, 20, W * 0.2, H * 0.15, 500);
+  cyanRadial.addColorStop(0, 'rgba(0, 162, 255, 0.14)');
+  cyanRadial.addColorStop(1, 'rgba(0, 162, 255, 0)');
+  ctx.fillStyle = cyanRadial;
+  ctx.fillRect(0, 0, W, H);
+
+  const magentaRadial = ctx.createRadialGradient(W * 0.85, H * 0.85, 20, W * 0.85, H * 0.85, 500);
+  magentaRadial.addColorStop(0, 'rgba(37, 99, 235, 0.12)');
+  magentaRadial.addColorStop(1, 'rgba(37, 99, 235, 0)');
+  ctx.fillStyle = magentaRadial;
+  ctx.fillRect(0, 0, W, H);
+
+  // Marco exterior
+  ctx.strokeStyle = 'rgba(0, 162, 255, 0.35)';
+  ctx.lineWidth = 4;
+  roundRect(24, 24, W - 48, H - 48, 28, false, true);
+
+  // Cargar imagen de escudo
+  await new Promise(resolve => {
+    const crestImg = new Image();
+    crestImg.crossOrigin = 'anonymous';
+    crestImg.onload = () => {
+      try {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(110, 105, 46, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#00a2ff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.clip();
+        ctx.drawImage(crestImg, 64, 59, 92, 92);
+        ctx.restore();
+      } catch (e) {}
+      resolve();
+    };
+    crestImg.onerror = () => resolve();
+    crestImg.src = 'escudo-regatas-andino.png';
+  });
+
+  // Textos Cabecera
+  ctx.fillStyle = '#00a2ff';
+  ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('CLUB REGATAS ANDINO', 180, 85);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 36px system-ui, -apple-system, sans-serif';
+  ctx.fillText('PLANTEL SUPERIOR DAMAS B', 180, 126);
+
+  // Badge Reporte Táctico
+  const badgeText = statsActiveSubTab === 'trends' ? 'TENDENCIAS DE TEMPORADA' : 'DESGLOSE POR CUARTOS';
+  ctx.font = '800 13px system-ui, -apple-system, sans-serif';
+  const badgeW = ctx.measureText(badgeText).width + 24;
+  ctx.fillStyle = 'rgba(0, 162, 255, 0.2)';
+  ctx.strokeStyle = '#00a2ff';
+  ctx.lineWidth = 1.5;
+  roundRect(W - 60 - badgeW, 68, badgeW, 30, 8, true, true);
+  ctx.fillStyle = '#38bdf8';
+  ctx.textAlign = 'center';
+  ctx.fillText(badgeText, W - 60 - (badgeW / 2), 88);
+
+  // Muestra seleccionada
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  roundRect(60, 175, W - 120, 52, 12, true, true);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+  ctx.fillText('📊 MUESTRA:', 85, 207);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 17px system-ui, -apple-system, sans-serif';
+  ctx.fillText(selectedLabel.toUpperCase(), 200, 207);
+
+  if (statsActiveSubTab === 'trends') {
+    // -------------------------------------------------------------
+    // CONTENIDO: TENDENCIAS DE TEMPORADA
+    // -------------------------------------------------------------
+    const trends = getSeasonTrendsData(statsCurrentSelectedFilter);
+    const h1 = trends.halves.first;
+    const h2 = trends.halves.second;
+    const goalDiffStr = trends.goalDiff > 0 ? `+${trends.goalDiff}` : `${trends.goalDiff}`;
+
+    // 4 KPI Cards Grid (2x2)
+    const cardY = 250;
+    const cardW = (W - 120 - 24) / 2;
+    const cardH = 145;
+
+    const kpis = [
+      {
+        title: '🏆 RÉCORD Y PUNTOS',
+        val: `${trends.wins}V  ${trends.draws}E  ${trends.losses}D`,
+        sub: `${trends.points} pts • ${trends.pointsEff}% efectividad (${trends.playedCount} PJ)`,
+        accent: '#38bdf8'
+      },
+      {
+        title: '⚽ GOLES (TOTAL TEMPORADA)',
+        val: `${trends.totalGF} GF  vs  ${trends.totalGC} GC`,
+        sub: `Diferencial de gol: ${goalDiffStr}`,
+        accent: '#34d399'
+      },
+      {
+        title: '🎯 INGRESOS AL ÁREA',
+        val: `${trends.avgEntriesHome}  vs  ${trends.avgEntriesAway}`,
+        sub: 'Promedio Regatas vs Rivales por partido',
+        accent: '#fbbf24'
+      },
+      {
+        title: '🏑 CÓRNERS CORTOS',
+        val: `${trends.cornerEffHome}%  /  ${trends.cornerDefHome}%`,
+        sub: `Ataque (${trends.cornerGoalsHome}/${trends.totalCornersHome} CC) • Defensa (${trends.cornerGoalsAway} recibidos)`,
+        accent: '#a78bfa'
+      }
+    ];
+
+    kpis.forEach((kpi, idx) => {
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
+      const kx = 60 + col * (cardW + 24);
+      const ky = cardY + row * (cardH + 20);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      roundRect(kx, ky, cardW, cardH, 16, true, true);
+
+      // Línea superior de acento
+      ctx.fillStyle = kpi.accent;
+      ctx.fillRect(kx + 20, ky + 4, cardW - 40, 3);
+
+      ctx.textAlign = 'left';
+      ctx.font = '800 13px system-ui, sans-serif';
+      ctx.fillText(kpi.title, kx + 24, ky + 36);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 28px system-ui, sans-serif';
+      ctx.fillText(kpi.val, kx + 24, ky + 82);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 14px system-ui, sans-serif';
+      ctx.fillText(kpi.sub, kx + 24, ky + 118);
+    });
+
+    // Diagnóstico 1T vs 2T Box
+    const halvesY = 585;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    roundRect(60, halvesY, W - 120, 215, 18, true, true);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#00a2ff';
+    ctx.font = '900 18px system-ui, sans-serif';
+    ctx.fillText('⏱️ DIAGNÓSTICO COMPARATIVO: 1° TIEMPO vs 2° TIEMPO', 90, halvesY + 42);
+
+    // Columna 1T
+    const hBoxW = (W - 120 - 70) / 2;
+    ctx.fillStyle = 'rgba(0, 162, 255, 0.08)';
+    ctx.strokeStyle = 'rgba(0, 162, 255, 0.25)';
+    roundRect(90, halvesY + 62, hBoxW, 125, 12, true, true);
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '800 16px system-ui, sans-serif';
+    ctx.fillText('1° TIEMPO (1°C + 2°C)', 110, halvesY + 95);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.fillText(`⚽ Goles: ${h1.goalsHome} a favor  /  ${h1.goalsAway} en contra`, 110, halvesY + 130);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(`🎯 Ingresos al Área: ${h1.entriesHome} Regatas vs ${h1.entriesAway} rivales`, 110, halvesY + 160);
+
+    // Columna 2T
+    const h2X = 90 + hBoxW + 30;
+    ctx.fillStyle = 'rgba(52, 211, 153, 0.08)';
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.25)';
+    roundRect(h2X, halvesY + 62, hBoxW, 125, 12, true, true);
+
+    ctx.fillStyle = '#34d399';
+    ctx.font = '800 16px system-ui, sans-serif';
+    ctx.fillText('2° TIEMPO (3°C + 4°C)', h2X + 20, halvesY + 95);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.fillText(`⚽ Goles: ${h2.goalsHome} a favor  /  ${h2.goalsAway} en contra`, h2X + 20, halvesY + 130);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText(`🎯 Ingresos al Área: ${h2.entriesHome} Regatas vs ${h2.entriesAway} rivales`, h2X + 20, halvesY + 160);
+
+    // Top Goleadoras Box
+    const topY = 825;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    roundRect(60, topY, W - 120, 160, 18, true, true);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = '900 18px system-ui, sans-serif';
+    ctx.fillText('⭐ TOP GOLEADORAS DEL EQUIPO', 90, topY + 44);
+
+    if (trends.scorersList && trends.scorersList.length > 0) {
+      const topStr = trends.scorersList.slice(0, 4).map((s, i) => `${i + 1}. ${s.name} (${s.total} gol${s.total === 1 ? '' : 'es'})`).join('    •    ');
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 17px system-ui, sans-serif';
+      ctx.fillText(topStr, 90, topY + 86);
+    } else {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 16px system-ui, sans-serif';
+      ctx.fillText('No se registran goleadoras individuales en esta muestra', 90, topY + 86);
+    }
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 14px system-ui, sans-serif';
+    ctx.fillText('Datos sincronizados directamente desde la botonera táctica oficial.', 90, topY + 128);
+
+  } else {
+    // -------------------------------------------------------------
+    // CONTENIDO: DESGLOSE POR CUARTOS
+    // -------------------------------------------------------------
+    const stats = getAggregatedQuarterStats(statsCurrentSelectedFilter);
+    const q = stats.quarters;
+    const totH = q.total.home;
+    const totA = q.total.away;
+
+    // Resumen General Scorecard
+    const scoreY = 250;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    roundRect(60, scoreY, W - 120, 110, 18, true, true);
+
+    const miniMetrics = [
+      { l: 'MARCADOR', v: `${totH.goals} - ${totA.goals}`, c: '#ffffff' },
+      { l: 'INGRESOS TOTALES', v: `${totH.entries} vs ${totA.entries}`, c: '#38bdf8' },
+      { l: 'CÓRNERS CORTOS', v: `${totH.corners} (${totH.cornerGoals}g)`, c: '#34d399' },
+      { l: 'CONVERSIÓN ÁREA', v: `${totH.conversion}%`, c: '#fbbf24' }
+    ];
+
+    const colW = (W - 120) / 4;
+    miniMetrics.forEach((m, i) => {
+      const mx = 60 + i * colW + (colW / 2);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '800 13px system-ui, sans-serif';
+      ctx.fillText(m.l, mx, scoreY + 40);
+
+      ctx.fillStyle = m.c;
+      ctx.font = '900 26px system-ui, sans-serif';
+      ctx.fillText(m.v, mx, scoreY + 82);
+    });
+
+    // Tabla Cuarto por Cuarto
+    const tableY = 385;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    roundRect(60, tableY, W - 120, 395, 18, true, true);
+
+    // Cabecera de la tabla
+    ctx.fillStyle = 'rgba(0, 162, 255, 0.12)';
+    roundRect(60, tableY, W - 120, 52, 18, true, false);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '800 15px system-ui, sans-serif';
+    ctx.fillText('MÉTRICA / INCIDENCIA', 90, tableY + 33);
+
+    const cols = [570, 680, 790, 900, 990];
+    const colLabels = ['1°C', '2°C', '3°C', '4°C', 'TOTAL'];
+    ctx.textAlign = 'center';
+    cols.forEach((cx, cIdx) => {
+      ctx.fillStyle = cIdx === 4 ? '#34d399' : '#ffffff';
+      ctx.font = '800 15px system-ui, sans-serif';
+      ctx.fillText(colLabels[cIdx], cx, tableY + 33);
+    });
+
+    // Filas de la tabla
+    const rows = [
+      {
+        label: '⚽ Goles (Regatas vs Rival)',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.goals} - ${q[idx].away.goals}`),
+        totVal: `${totH.goals} - ${totA.goals}`,
+        highlight: true
+      },
+      {
+        label: '🎯 Ingresos al Área (Reg vs Riv)',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.entries} vs ${q[idx].away.entries}`),
+        totVal: `${totH.entries} vs ${totA.entries}`
+      },
+      {
+        label: '🏑 Córners Cortos (Reg vs Riv)',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.corners} vs ${q[idx].away.corners}`),
+        totVal: `${totH.corners} vs ${totA.corners}`
+      },
+      {
+        label: '🥅 Goles de Córner Corto',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.cornerGoals}`),
+        totVal: `${totH.cornerGoals}`
+      },
+      {
+        label: '🏑 Penales / Strokes Registrados',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.strokes}`),
+        totVal: `${totH.strokes}`
+      },
+      {
+        label: '🟨 Tarjetas Regatas (V-A-R)',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.green}-${q[idx].home.yellow}-${q[idx].home.red}`),
+        totVal: `${totH.green}-${totH.yellow}-${totH.red}`
+      }
+    ];
+
+    rows.forEach((row, rIdx) => {
+      const ry = tableY + 52 + (rIdx * 56);
+      if (rIdx % 2 === 1) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+        ctx.fillRect(60, ry, W - 120, 56);
+      }
+      ctx.textAlign = 'left';
+      ctx.fillStyle = row.highlight ? '#38bdf8' : '#ffffff';
+      ctx.font = row.highlight ? '900 16px system-ui, sans-serif' : '600 15px system-ui, sans-serif';
+      ctx.fillText(row.label, 90, ry + 35);
+
+      ctx.textAlign = 'center';
+      cols.forEach((cx, cIdx) => {
+        const val = cIdx === 4 ? row.totVal : row.qVals[cIdx];
+        ctx.fillStyle = cIdx === 4 ? '#34d399' : (row.highlight ? '#ffffff' : '#94a3b8');
+        ctx.font = cIdx === 4 ? '900 16px system-ui, sans-serif' : '600 15px system-ui, sans-serif';
+        ctx.fillText(val, cx, ry + 35);
+      });
+    });
+
+    // Insight Clave Box
+    const insightY = 810;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.035)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    roundRect(60, insightY, W - 120, 175, 18, true, true);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#34d399';
+    ctx.font = '900 18px system-ui, sans-serif';
+    ctx.fillText('💡 INSIGHT TÁCTICO DESTACADO', 90, insightY + 45);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 17px system-ui, sans-serif';
+    ctx.fillText(`Mejor cuarto ofensivo: ${stats.bestQByEntries.q}° Cuarto con ${stats.bestQByEntries.val} ingresos y ${stats.bestQByGoals.val} goles.`, 90, insightY + 88);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '600 15px system-ui, sans-serif';
+    ctx.fillText(`Muestra analizada: ${stats.matchesCount} partido(s) • ${stats.totalEventsCount} incidencias oficiales cargadas.`, 90, insightY + 128);
+  }
+
+  // 6. Pie de Página Institucional
+  const footerY = 1010;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.beginPath();
+  ctx.moveTo(60, footerY);
+  ctx.lineTo(W - 60, footerY);
+  ctx.stroke();
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '700 15px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Club Regatas Andino • Hockey Damas B', 60, footerY + 38);
+
+  ctx.fillStyle = '#00a2ff';
+  ctx.font = 'italic 700 15px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('« Juntas somos más »', W / 2, footerY + 38);
+
+  const nowStr = new Date().toLocaleDateString('es-AR') + ' ' + new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) + ' hs';
+  ctx.fillStyle = '#64748b';
+  ctx.font = '600 14px system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(nowStr, W - 60, footerY + 38);
+
+  // 7. Descargar o Compartir imagen
+  canvas.toBlob(async (blob) => {
+    if (!blob) {
+      showToast('⚠️ Error al generar la imagen estadística.');
+      return;
+    }
+    const cleanSub = statsActiveSubTab === 'trends' ? 'tendencias' : 'cuartos';
+    const cleanFilter = selectedLabel.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+    const fileName = `regatas-${cleanSub}-${cleanFilter}.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `Reporte Estadístico - Regatas Andino B`,
+          text: `Reporte oficial de estadísticas tácticas: Regatas Andino B (${selectedLabel})`
+        });
+        showToast('📲 ¡Reporte compartido con éxito!');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    showToast('📸 ¡Reporte táctico descargado!');
+  }, 'image/png');
+}
+
+window.exportStatsVisualCard = exportStatsVisualCard;
 
 // ============================================================================
 // MÓDULO: 12_pwa.js

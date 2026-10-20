@@ -141,6 +141,12 @@ function setupViewSwitching() {
     btnShareStatsWa.addEventListener('click', shareStatsWhatsApp);
   }
 
+  // Descargar/Compartir Reporte Gráfico Táctico
+  const btnShareStatsImg = document.getElementById('btnShareStatsImage');
+  if (btnShareStatsImg) {
+    btnShareStatsImg.addEventListener('click', exportStatsVisualCard);
+  }
+
   // Auth Gate de Estadísticas por Cuartos
   const btnStatsGateSubmit = document.getElementById('btnStatsGateSubmit');
   const inputStatsGatePassword = document.getElementById('inputStatsGatePassword');
