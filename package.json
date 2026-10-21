@@ -22,7 +22,7 @@
   "author": "Club Regatas Andino",
   "license": "ISC",
   "dependencies": {
-    "@sparticuz/chromium": "^153.0.0",
+    "@sparticuz/chromium-min": "^153.0.0",
     "puppeteer-core": "^25.15.0"
   }
 }

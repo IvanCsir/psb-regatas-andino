@@ -3,7 +3,7 @@
  * Reenvía la ejecución a la librería centralizada en api/lib/amh.js
  */
 
-const { fetchAvailableMatches, fetchMatchesHttp, executeAmhPrecarga, matchPlayer } = require('../api/lib/amh.js');
+const { fetchAvailableMatches, fetchMatchesHttp, executeAmhPrecarga, matchPlayer } = require('../api/_lib/amh.js');
 
 // Ejecución directa por CLI si se llama desde terminal
 if (require.main === module) {

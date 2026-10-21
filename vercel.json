@@ -3,6 +3,12 @@
   "framework": null,
   "buildCommand": null,
   "outputDirectory": ".",
+  "rewrites": [
+    {
+      "source": "/api/precarga",
+      "destination": "/api/torneo/precarga"
+    }
+  ],
   "functions": {
     "api/**/*.js": {
       "maxDuration": 60,

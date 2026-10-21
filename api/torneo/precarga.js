@@ -4,7 +4,7 @@
  * Compatible con Node.js local y Vercel Serverless Functions
  */
 
-const { fetchAvailableMatches, executeAmhPrecarga } = require('../lib/amh.js');
+const { fetchAvailableMatches, executeAmhPrecarga } = require('../_lib/amh.js');
 
 module.exports = async function handler(req, res) {
   // Configuración de CORS

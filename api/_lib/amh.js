@@ -77,7 +77,7 @@ async function getBrowserInstance() {
 
   // Si estamos en Vercel o en un entorno Linux Serverless
   try {
-    const chromiumModule = await import('@sparticuz/chromium');
+    const chromiumModule = await import('@sparticuz/chromium-min');
     const chromium = chromiumModule.default || chromiumModule;
 
     // Desactivar stack gráfico para optimizar velocidad y memoria en serverless
@@ -87,11 +87,10 @@ async function getBrowserInstance() {
 
     let execPath;
     try {
-      execPath = await chromium.executablePath();
-    } catch (e1) {
-      console.warn('[AMH] Error al obtener chromium bin local, intentando pack remoto:', e1.message);
-      // Fallback a tarball remoto oficial en caso de que los binarios locales falten en el bundle
       execPath = await chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v153.0.0/chromium-v153.0.0-pack.x64.tar');
+    } catch (e1) {
+      console.warn('[AMH] Error al obtener chromium bin remoto, intentando fallback sin URL:', e1.message);
+      execPath = await chromium.executablePath();
     }
 
     return await puppeteer.launch({
