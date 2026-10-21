@@ -1276,3 +1276,163 @@
   color: var(--color-regatas-cyan);
   border: 1px solid rgba(0, 162, 255, 0.35);
 }
+
+/* ==========================================================================
+   RADAR DE PERFIL ATLÉTICO INTEGRAL
+   ========================================================================== */
+
+.player-radar-card {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.radar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+.radar-title-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.radar-title {
+  font-size: 0.92rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.radar-score-badge {
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 162, 255, 0.15);
+  color: var(--color-regatas-cyan);
+  border: 1px solid rgba(0, 162, 255, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.radar-chart-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 6px 0;
+}
+
+.radar-svg {
+  width: 100%;
+  max-width: 350px;
+  height: auto;
+  overflow: visible;
+}
+
+.radar-axis-label {
+  font-family: var(--font-main);
+  font-size: 0.7rem;
+  font-weight: 800;
+  fill: #e2e8f0;
+}
+
+.radar-axis-score {
+  font-family: var(--font-main);
+  font-size: 0.64rem;
+  font-weight: 800;
+  fill: var(--color-regatas-cyan);
+}
+
+.radar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 2px 0;
+}
+
+.radar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.radar-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.radar-legend-dot.player {
+  background: var(--color-regatas-cyan);
+  box-shadow: 0 0 6px rgba(0, 162, 255, 0.6);
+}
+
+.radar-legend-dot.category {
+  background: #64748b;
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+}
+
+.radar-insights-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.radar-insight-box {
+  background: rgba(3, 13, 45, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radar-insight-lbl {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.radar-insight-lbl.strength {
+  color: #34d399;
+}
+
+.radar-insight-lbl.focus {
+  color: #fbbf24;
+}
+
+.radar-insight-val {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.radar-insight-val small {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}

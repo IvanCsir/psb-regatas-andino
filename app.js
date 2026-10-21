@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T17:33:56.538Z
+ * Última actualización: 2026-10-21T17:49:31.650Z
  */
 
 // ============================================================================
@@ -2337,6 +2337,258 @@ function selectPlayer(id) {
   profileCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+// ============================================================================
+// PERFIL ATLÉTICO INTEGRAL (RADAR)
+// ============================================================================
+
+const RADAR_DIMENSIONS = [
+  { key: 'velocidad', name: 'Velocidad', icon: '💨', tests: ['sprint'] },
+  { key: 'potencia', name: 'Salto / Pot.', icon: '🚀', tests: ['cmj', 'broadJump', 'platform'] },
+  { key: 'fuerzaSup', name: 'Fuerza Sup.', icon: '🏋️‍♀️', tests: ['bench'] },
+  { key: 'fuerzaInf', name: 'Fuerza Inf.', icon: '🦵', tests: ['squat', 'deadlift'] },
+  { key: 'resistencia', name: 'Resistencia', icon: '🫁', tests: ['yoyo'] },
+  { key: 'agilidad', name: 'Agilidad', icon: '⏱️', tests: ['agility'] }
+];
+
+function getRadarTestMinMax(testKey, category = 'all') {
+  if (!physicalPlayers || physicalPlayers.length === 0) return { min: 0, max: 100 };
+  const catPlayers = (category === 'all')
+    ? physicalPlayers
+    : physicalPlayers.filter(p => p.filterTag === category);
+
+  const pool = (catPlayers.length >= 3) ? catPlayers : physicalPlayers;
+  const values = [];
+
+  pool.forEach(p => {
+    const t = p.tests ? p.tests[testKey] : null;
+    if (!t || !t.evals || t.evals.length === 0) return;
+    const lastEv = t.evals[t.evals.length - 1];
+    if (lastEv && typeof lastEv.value === 'number') {
+      values.push(lastEv.value);
+    }
+  });
+
+  if (values.length === 0) return { min: 0, max: 100 };
+  return {
+    min: Math.min(...values),
+    max: Math.max(...values)
+  };
+}
+
+function getRadarTestScore(testKey, val, category = 'all') {
+  const cfg = TESTS_CONFIG.find(c => c.key === testKey);
+  if (!cfg || typeof val !== 'number') return 50;
+
+  const { min, max } = getRadarTestMinMax(testKey, category);
+  if (max === min) return 70;
+
+  let ratio;
+  if (cfg.higherIsBetter) {
+    ratio = (val - min) / (max - min);
+  } else {
+    ratio = (max - val) / (max - min);
+  }
+  ratio = Math.max(0, Math.min(1, ratio));
+  return Math.round(32 + ratio * 64);
+}
+
+function getPlayerDimensionScore(player, dim, category = 'all') {
+  const testScores = [];
+  dim.tests.forEach(tKey => {
+    const pTest = player.tests ? player.tests[tKey] : null;
+    if (pTest && pTest.evals && pTest.evals.length > 0) {
+      const lastEv = pTest.evals[pTest.evals.length - 1];
+      if (lastEv && typeof lastEv.value === 'number') {
+        testScores.push(getRadarTestScore(tKey, lastEv.value, category));
+      }
+    }
+  });
+
+  if (testScores.length > 0) {
+    const sum = testScores.reduce((a, b) => a + b, 0);
+    return Math.round(sum / testScores.length);
+  }
+  return 50;
+}
+
+function getCategoryDimensionScore(category, dim) {
+  const catPlayers = (category === 'all')
+    ? physicalPlayers
+    : physicalPlayers.filter(p => p.filterTag === category);
+
+  const pool = (catPlayers.length > 0) ? catPlayers : physicalPlayers;
+  const scores = [];
+
+  pool.forEach(p => {
+    scores.push(getPlayerDimensionScore(p, dim, category));
+  });
+
+  if (scores.length === 0) return 50;
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+}
+
+function renderPlayerRadar(player, category = 'all', scopeName = '1ra División', scopeShort = '1ra') {
+  const container = document.getElementById('playerRadarCard');
+  if (!container) return;
+
+  const numAxes = RADAR_DIMENSIONS.length;
+  const cx = 175;
+  const cy = 155;
+  const r = 85;
+
+  const playerDimScores = RADAR_DIMENSIONS.map((dim, i) => {
+    const score = getPlayerDimensionScore(player, dim, category);
+    return { dim, score, index: i };
+  });
+
+  const catDimScores = RADAR_DIMENSIONS.map((dim, i) => {
+    const score = getCategoryDimensionScore(category, dim);
+    return { dim, score, index: i };
+  });
+
+  const playerOverall = Math.round(playerDimScores.reduce((acc, s) => acc + s.score, 0) / numAxes);
+  const catOverall = Math.round(catDimScores.reduce((acc, s) => acc + s.score, 0) / numAxes);
+
+  const sortedScores = [...playerDimScores].sort((a, b) => b.score - a.score);
+  const topDim = sortedScores[0];
+  const lowDim = sortedScores[sortedScores.length - 1];
+
+  const gridLevels = [0.25, 0.50, 0.75, 1.00];
+  const gridPolygonsHtml = gridLevels.map(lvl => {
+    const pts = RADAR_DIMENSIONS.map((d, i) => {
+      const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+      const x = cx + (r * lvl) * Math.cos(angleRad);
+      const y = cy + (r * lvl) * Math.sin(angleRad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    const strokeOp = lvl === 1.0 ? '0.25' : '0.12';
+    return `<polygon points="${pts}" fill="none" stroke="rgba(255, 255, 255, ${strokeOp})" stroke-width="1"/>`;
+  }).join('');
+
+  const gridSpokesHtml = RADAR_DIMENSIONS.map((d, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const x = cx + r * Math.cos(angleRad);
+    const y = cy + r * Math.sin(angleRad);
+    return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1"/>`;
+  }).join('');
+
+  const catPoints = catDimScores.map((s, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const radius = r * (s.score / 100);
+    const x = cx + radius * Math.cos(angleRad);
+    const y = cy + radius * Math.sin(angleRad);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const playerPointsArr = playerDimScores.map((s, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const radius = r * (s.score / 100);
+    const x = cx + radius * Math.cos(angleRad);
+    const y = cy + radius * Math.sin(angleRad);
+    return { x, y, score: s.score, dim: s.dim };
+  });
+
+  const playerPoints = playerPointsArr.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+  const playerDotsHtml = playerPointsArr.map(p => `
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#38bdf8" stroke="#ffffff" stroke-width="1.5"/>
+  `).join('');
+
+  const labelsHtml = RADAR_DIMENSIONS.map((d, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const cos = Math.cos(angleRad);
+    const sin = Math.sin(angleRad);
+
+    let anchor = 'middle';
+    if (cos > 0.25) anchor = 'start';
+    else if (cos < -0.25) anchor = 'end';
+
+    const lx = cx + (r + 26) * cos;
+    let ly = cy + (r + 26) * sin;
+    if (sin < -0.7) ly -= 4;
+    if (sin > 0.7) ly += 8;
+
+    const pScore = playerDimScores[i].score;
+
+    return `
+      <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${anchor}" class="radar-axis-label">
+        ${d.icon} ${d.name}
+        <tspan x="${lx.toFixed(1)}" dy="12" class="radar-axis-score">${pScore} pts</tspan>
+      </text>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="radar-header">
+      <div class="radar-title-box">
+        <span style="font-size: 1.15rem;">🕸️</span>
+        <h4 class="radar-title">PERFIL ATLÉTICO INTEGRAL</h4>
+      </div>
+      <span class="radar-score-badge">Índice: ${playerOverall} / 100</span>
+    </div>
+
+    <div class="radar-chart-wrapper">
+      <svg class="radar-svg" viewBox="0 0 350 310" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="radarRadialGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#0284c7" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#0284c7" stop-opacity="0"/>
+          </radialGradient>
+          <linearGradient id="playerPolyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00a2ff" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#10b981" stop-opacity="0.35"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Fondo sutil con brillo central -->
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#radarRadialGlow)"/>
+
+        <!-- Rejilla concéntrica -->
+        ${gridPolygonsHtml}
+
+        <!-- Ejes radiales -->
+        ${gridSpokesHtml}
+
+        <!-- Polígono Media Categoría -->
+        <polygon points="${catPoints}" fill="rgba(148, 163, 184, 0.12)" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+        <!-- Polígono Jugadora -->
+        <polygon points="${playerPoints}" fill="url(#playerPolyGrad)" stroke="var(--color-regatas-cyan)" stroke-width="2.5"/>
+
+        <!-- Vértices Jugadora -->
+        ${playerDotsHtml}
+
+        <!-- Etiquetas de Dimensiones -->
+        ${labelsHtml}
+      </svg>
+    </div>
+
+    <!-- Leyenda -->
+    <div class="radar-legend">
+      <div class="radar-legend-item">
+        <span class="radar-legend-dot player"></span>
+        <span>${escapeHtml(player.name.split(' ')[0])} (${playerOverall} pts)</span>
+      </div>
+      <div class="radar-legend-item">
+        <span class="radar-legend-dot category"></span>
+        <span>Media ${escapeHtml(scopeShort)} (${catOverall} pts)</span>
+      </div>
+    </div>
+
+    <!-- Insights -->
+    <div class="radar-insights-bar">
+      <div class="radar-insight-box">
+        <span class="radar-insight-lbl strength">🌟 Mayor Fortaleza</span>
+        <span class="radar-insight-val">${topDim.dim.icon} ${topDim.dim.name} <small>(${topDim.score} pts)</small></span>
+      </div>
+      <div class="radar-insight-box">
+        <span class="radar-insight-lbl focus">🎯 A Trabajar</span>
+        <span class="radar-insight-val">${lowDim.dim.icon} ${lowDim.dim.name} <small>(${lowDim.score} pts)</small></span>
+      </div>
+    </div>
+  `;
+}
+
 // Renderizar Perfil y Comparativas de la Jugadora vs Medias de Cada Evaluación
 function renderPlayerCard(player) {
   const nameEl = document.getElementById('profilePlayerName');
@@ -2415,6 +2667,9 @@ function renderPlayerCard(player) {
       ? summaryParts.join(' &nbsp;•&nbsp; ')
       : 'Mediciones físicas registradas.';
   }
+
+  // Renderizar Radar de Perfil Atlético Integral
+  renderPlayerRadar(player, benchCatKey, benchScopeName, benchScopeShort);
 
   if (!testsGrid) return;
 
