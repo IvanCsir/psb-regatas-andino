@@ -83,30 +83,30 @@ const DEFAULT_TOURNAMENT_DATA = {
       { club: "SAN JORGE S.R.", player: "MOYANO PRISCILA", goals: 5 }
     ],
     matches: [
-      { round: "Fecha 1", fecha: "25/07/2026", rival: "BCO MZA", homeAway: "Local", score: "2 - 0", result: "win", status: "Jugado" },
-      { round: "Fecha 2", fecha: "01/08/2026", rival: "MARISTA", homeAway: "Visitante", score: "1 - 2", result: "loss", status: "Jugado" },
-      { round: "Fecha 3", fecha: "04/08/2026", rival: "OBRAS MENDOZA", homeAway: "Local", score: "0 - 9", result: "loss", status: "Jugado" },
-      { round: "Fecha 4", fecha: "15/08/2026", rival: "RIVADAVIA", homeAway: "Visitante", score: "2 - 5", result: "loss", status: "Jugado" },
-      { round: "Fecha 5", fecha: "22/08/2026", rival: "PUMAI RUGBY CLUB", homeAway: "Local", score: "0 - 2", result: "loss", status: "Jugado" },
-      { round: "Fecha 6", fecha: "29/08/2026", rival: "CABNA", homeAway: "Local", score: "2 - 2", result: "draw", status: "Jugado" },
-      { round: "Fecha 7", fecha: "12/09/2026", rival: "MARISTA", homeAway: "Visitante", score: "1 - 3", result: "loss", status: "Jugado" },
-      { round: "Fecha 8", fecha: "26/09/2026", rival: "TEQÜE RUGBY CLUB", homeAway: "Local", score: "1 - 2", result: "loss", status: "Jugado" },
-      { round: "Fecha 9", fecha: "03/10/2026", rival: "LOS TORDOS", homeAway: "Visitante", score: "2 - 3", result: "loss", status: "Jugado" },
-      { round: "Fecha 10", fecha: "10/10/2026", rival: "SAN RAFAEL TENIS CLUB", homeAway: "Local", score: "0 - 1", result: "loss", status: "Jugado" },
-      { round: "Fecha 11", fecha: "12/10/2026", rival: "SAN JORGE S.R.", homeAway: "Visitante", score: "1 - 2", result: "loss", status: "Jugado" }
+      { round: "Fecha 1", fecha: "25/07/2026", rival: "BCO MZA (C)", homeAway: "Local", score: "2 - 0", result: "win", status: "Jugado" },
+      { round: "Fecha 2", fecha: "01/08/2026", rival: "MARISTA (C)", homeAway: "Visitante", score: "1 - 2", result: "loss", status: "Jugado" },
+      { round: "Fecha 3", fecha: "04/08/2026", rival: "OBRAS MENDOZA (A)", homeAway: "Local", score: "0 - 9", result: "loss", status: "Jugado" },
+      { round: "Fecha 4", fecha: "15/08/2026", rival: "RIVADAVIA (A)", homeAway: "Visitante", score: "2 - 5", result: "loss", status: "Jugado" },
+      { round: "Fecha 5", fecha: "22/08/2026", rival: "PUMAI RUGBY CLUB (A)", homeAway: "Local", score: "0 - 2", result: "loss", status: "Jugado" },
+      { round: "Fecha 6", fecha: "29/08/2026", rival: "CABNA (A)", homeAway: "Local", score: "2 - 2", result: "draw", status: "Jugado" },
+      { round: "Fecha 7", fecha: "12/09/2026", rival: "MARISTA (B)", homeAway: "Visitante", score: "1 - 3", result: "loss", status: "Jugado" },
+      { round: "Fecha 8", fecha: "26/09/2026", rival: "TEQÜE RUGBY CLUB (B)", homeAway: "Local", score: "1 - 2", result: "loss", status: "Jugado" },
+      { round: "Fecha 9", fecha: "03/10/2026", rival: "LOS TORDOS (C)", homeAway: "Visitante", score: "2 - 3", result: "loss", status: "Jugado" },
+      { round: "Fecha 10", fecha: "10/10/2026", rival: "SAN RAFAEL TENIS CLUB (A)", homeAway: "Local", score: "0 - 1", result: "loss", status: "Jugado" },
+      { round: "Fecha 11", fecha: "12/10/2026", rival: "SAN JORGE S.R. (A)", homeAway: "Visitante", score: "1 - 2", result: "loss", status: "Jugado" }
     ],
     nextMatch: {
       round: "Fecha 12",
       fecha: "24/10/2026",
-      rival: "MURIALDO B",
+      rival: "MURIALDO (B)",
       homeAway: "Local",
       status: "Pendiente"
     },
     pendingMatches: [
-      { round: "Fecha 12", fecha: "24/10/2026", rival: "MURIALDO B", homeAway: "Local", status: "Pendiente" },
-      { round: "Fecha 13", fecha: "25/10/2026", rival: "LICEO", homeAway: "Visitante", status: "Pendiente" },
-      { round: "Fecha 14", fecha: "07/11/2026", rival: "ALEMAN", homeAway: "Local", status: "Pendiente" },
-      { round: "Fecha 15", fecha: "14/11/2026", rival: "LOS TORDOS", homeAway: "Visitante", status: "Pendiente" }
+      { round: "Fecha 12", fecha: "24/10/2026", rival: "MURIALDO (B)", homeAway: "Local", status: "Pendiente" },
+      { round: "Fecha 13", fecha: "25/10/2026", rival: "LICEO (B)", homeAway: "Visitante", status: "Pendiente" },
+      { round: "Fecha 14", fecha: "07/11/2026", rival: "ALEMAN (B)", homeAway: "Local", status: "Pendiente" },
+      { round: "Fecha 15", fecha: "14/11/2026", rival: "LOS TORDOS (B)", homeAway: "Visitante", status: "Pendiente" }
     ]
   },
 
@@ -148,30 +148,30 @@ const DEFAULT_TOURNAMENT_DATA = {
       { club: "RIVADAVIA", player: "OCAMPO, ANA LAURA", goals: 4 }
     ],
     matches: [
-      { round: "Fecha 1", fecha: "25/07/2026", rival: "BCO MZA", homeAway: "Local", score: "0 - 1", result: "loss", status: "Jugado" },
-      { round: "Fecha 2", fecha: "01/08/2026", rival: "MARISTA", homeAway: "Visitante", score: "0 - 0", result: "draw", status: "Jugado" },
-      { round: "Fecha 3", fecha: "04/08/2026", rival: "OBRAS MENDOZA", homeAway: "Local", score: "0 - 3", result: "loss", status: "Jugado" },
-      { round: "Fecha 4", fecha: "15/08/2026", rival: "RIVADAVIA", homeAway: "Visitante", score: "0 - 2", result: "loss", status: "Jugado" },
-      { round: "Fecha 5", fecha: "22/08/2026", rival: "PUMAI RUGBY CLUB", homeAway: "Local", score: "2 - 1", result: "win", status: "Jugado" },
-      { round: "Fecha 6", fecha: "29/08/2026", rival: "CABNA", homeAway: "Local", score: "2 - 1", result: "win", status: "Jugado" },
-      { round: "Fecha 7", fecha: "12/09/2026", rival: "MARISTA", homeAway: "Visitante", score: "0 - 2", result: "loss", status: "Jugado" },
-      { round: "Fecha 8", fecha: "26/09/2026", rival: "TEQÜE RUGBY CLUB", homeAway: "Local", score: "3 - 1", result: "win", status: "Jugado" },
-      { round: "Fecha 9", fecha: "03/10/2026", rival: "LOS TORDOS", homeAway: "Visitante", score: "3 - 1", result: "win", status: "Jugado" },
-      { round: "Fecha 10", fecha: "10/10/2026", rival: "SAN RAFAEL TENIS CLUB", homeAway: "Local", score: "0 - 2", result: "loss", status: "Jugado" },
-      { round: "Fecha 11", fecha: "12/10/2026", rival: "SAN JORGE S.R.", homeAway: "Visitante", score: "3 - 2", result: "win", status: "Jugado" }
+      { round: "Fecha 1", fecha: "25/07/2026", rival: "BCO MZA (C)", homeAway: "Local", score: "0 - 1", result: "loss", status: "Jugado" },
+      { round: "Fecha 2", fecha: "01/08/2026", rival: "MARISTA (C)", homeAway: "Visitante", score: "0 - 0", result: "draw", status: "Jugado" },
+      { round: "Fecha 3", fecha: "04/08/2026", rival: "OBRAS MENDOZA (A)", homeAway: "Local", score: "0 - 3", result: "loss", status: "Jugado" },
+      { round: "Fecha 4", fecha: "15/08/2026", rival: "RIVADAVIA (A)", homeAway: "Visitante", score: "0 - 2", result: "loss", status: "Jugado" },
+      { round: "Fecha 5", fecha: "22/08/2026", rival: "PUMAI RUGBY CLUB (A)", homeAway: "Local", score: "2 - 1", result: "win", status: "Jugado" },
+      { round: "Fecha 6", fecha: "29/08/2026", rival: "CABNA (A)", homeAway: "Local", score: "2 - 1", result: "win", status: "Jugado" },
+      { round: "Fecha 7", fecha: "12/09/2026", rival: "MARISTA (B)", homeAway: "Visitante", score: "0 - 2", result: "loss", status: "Jugado" },
+      { round: "Fecha 8", fecha: "26/09/2026", rival: "TEQÜE RUGBY CLUB (B)", homeAway: "Local", score: "3 - 1", result: "win", status: "Jugado" },
+      { round: "Fecha 9", fecha: "03/10/2026", rival: "LOS TORDOS (C)", homeAway: "Visitante", score: "3 - 1", result: "win", status: "Jugado" },
+      { round: "Fecha 10", fecha: "10/10/2026", rival: "SAN RAFAEL TENIS CLUB (A)", homeAway: "Local", score: "0 - 2", result: "loss", status: "Jugado" },
+      { round: "Fecha 11", fecha: "12/10/2026", rival: "SAN JORGE S.R. (A)", homeAway: "Visitante", score: "3 - 2", result: "win", status: "Jugado" }
     ],
     nextMatch: {
       round: "Fecha 12",
       fecha: "24/10/2026",
-      rival: "MURIALDO",
+      rival: "MURIALDO (B)",
       homeAway: "Local",
       status: "Pendiente"
     },
     pendingMatches: [
-      { round: "Fecha 12", fecha: "24/10/2026", rival: "MURIALDO", homeAway: "Local", status: "Pendiente" },
-      { round: "Fecha 13", fecha: "25/10/2026", rival: "LICEO", homeAway: "Visitante", status: "Pendiente" },
-      { round: "Fecha 14", fecha: "07/11/2026", rival: "ALEMAN", homeAway: "Local", status: "Pendiente" },
-      { round: "Fecha 15", fecha: "14/11/2026", rival: "LOS TORDOS", homeAway: "Visitante", status: "Pendiente" }
+      { round: "Fecha 12", fecha: "24/10/2026", rival: "MURIALDO (B)", homeAway: "Local", status: "Pendiente" },
+      { round: "Fecha 13", fecha: "25/10/2026", rival: "LICEO (B)", homeAway: "Visitante", status: "Pendiente" },
+      { round: "Fecha 14", fecha: "07/11/2026", rival: "ALEMAN (B)", homeAway: "Local", status: "Pendiente" },
+      { round: "Fecha 15", fecha: "14/11/2026", rival: "LOS TORDOS (B)", homeAway: "Visitante", status: "Pendiente" }
     ]
   }
 };

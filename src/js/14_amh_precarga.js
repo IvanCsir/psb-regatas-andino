@@ -275,7 +275,9 @@ function populateAmhMatchesSelect(matches) {
     opt.textContent = m.text;
 
     // Si coincide con el rival, preseleccionarlo
-    if (!autoSelected && rival && m.text.toUpperCase().includes(rival.replace(/\s*[A-Z]$/, ''))) {
+    const cleanText = (m.text || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const cleanRival = (rival || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!autoSelected && cleanRival && cleanText.includes(cleanRival)) {
       opt.selected = true;
       autoSelected = true;
     }

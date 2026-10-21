@@ -43,10 +43,10 @@ function fetchAmhMatches(division) {
             const hasCheckCircle = estadoHtml.includes('fa-check-circle') || estadoHtml.includes('#0E7A16');
             const isPlayed = hasCheckCircle && !hasTimesCircle;
 
-            const local = cells['EQUIPO_LOCAL'] || '';
-            const visita = cells['EQUIPO_VISITANTE'] || '';
+            const local = (cells['EQUIPO_LOCAL'] || '').trim();
+            const visita = (cells['EQUIPO_VISITANTE'] || '').trim();
             const isHome = local.toUpperCase().includes('REGATAS');
-            const rival = (isHome ? visita : local).replace(/\s*\([A-Z]\)\s*$/, '').trim();
+            const rival = (isHome ? visita : local).trim();
             const homeAway = isHome ? 'Local' : 'Visitante';
 
             let score = '-';
