@@ -3,6 +3,26 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
+// Cargar variables de entorno desde .env si existe (modo local)
+(function loadEnv() {
+  const envPath = path.resolve(__dirname, '.env');
+  if (fs.existsSync(envPath)) {
+    try {
+      const content = fs.readFileSync(envPath, 'utf8');
+      content.split(/\r?\n/).forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith('#')) return;
+        const eqIdx = line.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = line.slice(0, eqIdx).trim();
+          const val = line.slice(eqIdx + 1).trim();
+          if (!process.env[key]) process.env[key] = val;
+        }
+      });
+    } catch (_) {}
+  }
+})();
+
 const PORT = 3000;
 const AMH_BASE_URL = process.env.AMH_BASE_URL || 'http://15.235.75.172:8080';
 const MIME_TYPES = {

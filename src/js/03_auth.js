@@ -13,7 +13,7 @@ function getCtSession() {
 }
 
 async function verifyCtPassword(input) {
-  const clean = (input || '').trim().toLowerCase();
+  const clean = (input || '').trim();
   if (!clean) return false;
 
   // 1. Validar contra el Backend Serverless (/api/auth)
@@ -34,18 +34,16 @@ async function verifyCtPassword(input) {
       return false; // Contraseña incorrecta confirmada por el servidor
     }
   } catch (netErr) {
-    console.warn('[Auth] Sin conexión al backend /api/auth, evaluando fallback offline:', netErr);
+    console.warn('[Auth] Sin conexión al backend /api/auth:', netErr);
   }
 
-  // 2. Fallback de emergencia offline (por si no hay señal en la cancha durante el inicio)
-  try {
-    const hash = await sha256Hex(clean);
-    if (hash === '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf05279b26691a4d') {
-      const fallbackExpires = Date.now() + (12 * 60 * 60 * 1000);
-      setCtAuthenticated(true, { expiresAt: fallbackExpires, token: 'offline_token' });
-      return true;
-    }
-  } catch (e) {}
+  // 2. Modo Offline Seguro:
+  // Si no hay conexión con el servidor pero este dispositivo ya tenía una sesión
+  // válida emitida previamente por el backend, permitimos el acceso sin requerir red.
+  const existingSession = getCtSession();
+  if (existingSession && existingSession.authenticated && Date.now() <= Number(existingSession.expiresAt)) {
+    return true;
+  }
 
   return false;
 }

@@ -6,11 +6,43 @@
  * token de sesión firmado con expiración automática de 12 horas.
  */
 
+const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
+
+// Cargar .env en desarrollo local si no se han cargado variables de entorno
+(function loadEnv() {
+  if (!process.env.CT_PASSWORD) {
+    const envPath = path.resolve(__dirname, '..', '.env');
+    if (fs.existsSync(envPath)) {
+      try {
+        const content = fs.readFileSync(envPath, 'utf8');
+        content.split(/\r?\n/).forEach(line => {
+          line = line.trim();
+          if (!line || line.startsWith('#')) return;
+          const eqIdx = line.indexOf('=');
+          if (eqIdx !== -1) {
+            const key = line.slice(0, eqIdx).trim();
+            const val = line.slice(eqIdx + 1).trim();
+            if (!process.env[key]) process.env[key] = val;
+          }
+        });
+      } catch (_) {}
+    }
+  }
+})();
 
 const CT_PASSWORD = process.env.CT_PASSWORD || 'ctandinob';
 const CT_AUTH_SECRET = process.env.CT_AUTH_SECRET || 'regatas_andino_psb_secret_key_2026';
-const SESSION_DURATION_HOURS = 12;
+const SESSION_DURATION_HOURS = 24;
+
+function safeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 function createSessionToken() {
   const expiresAt = Date.now() + (SESSION_DURATION_HOURS * 60 * 60 * 1000);
@@ -33,7 +65,7 @@ function verifySessionToken(token) {
 
     const expectedPayload = `ct:${parsed.expiresAt}`;
     const expectedSig = crypto.createHmac('sha256', CT_AUTH_SECRET).update(expectedPayload).digest('hex');
-    if (parsed.signature !== expectedSig) {
+    if (!safeCompare(parsed.signature, expectedSig)) {
       return { valid: false, error: 'Firma inválida' };
     }
 
@@ -86,10 +118,10 @@ module.exports = async function handler(req, res) {
         try { body = JSON.parse(raw); } catch (_) { body = {}; }
       }
 
-      const submittedPassword = (body.password || '').toString().trim().toLowerCase();
-      const officialPassword = CT_PASSWORD.trim().toLowerCase();
+      const submittedPassword = (body.password || '').toString().trim();
+      const officialPassword = CT_PASSWORD.trim();
 
-      if (submittedPassword && submittedPassword === officialPassword) {
+      if (submittedPassword && safeCompare(submittedPassword, officialPassword)) {
         const session = createSessionToken();
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({

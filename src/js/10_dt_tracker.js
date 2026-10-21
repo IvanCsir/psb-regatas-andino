@@ -146,12 +146,12 @@ function findFixtureMatch(round) {
 }
 
 function createDefaultMatchState(round, rivalName, homeAway, fecha) {
-  const cleanRound = round || 'Fecha 12';
+  const cleanRound = round || 'Próxima Fecha';
   return {
     id: getMatchKey('primera', cleanRound),
     division: 'primera',
     round: cleanRound,
-    rivalName: (rivalName || 'MURIALDO').toUpperCase(),
+    rivalName: (rivalName || 'Rival').toUpperCase(),
     homeAway: homeAway || 'Local',
     fecha: fecha || '',
     currentQuarter: 1,
@@ -171,11 +171,26 @@ function createDefaultMatchState(round, rivalName, homeAway, fecha) {
 }
 
 let dtMatchesStore = {};
-let dtCurrentMatchKey = 'primera_fecha_12';
-let dtMatchState = createDefaultMatchState('Fecha 12', 'MURIALDO B', 'Local', '24/10/2026');
+
+function getInitialTrackerMatchState() {
+  if (typeof tournamentData === 'undefined' || !tournamentData) {
+    try { if (typeof loadTournamentData === 'function') loadTournamentData(); } catch (_) {}
+  }
+  const divData = (typeof tournamentData !== 'undefined' && tournamentData && tournamentData.primera)
+    || (typeof DEFAULT_TOURNAMENT_DATA !== 'undefined' && DEFAULT_TOURNAMENT_DATA && DEFAULT_TOURNAMENT_DATA.primera);
+
+  if (divData && divData.nextMatch) {
+    const nm = divData.nextMatch;
+    return createDefaultMatchState(nm.round, nm.rival, nm.homeAway || 'Local', nm.fecha || '');
+  }
+  return createDefaultMatchState('Próxima Fecha', 'Rival', 'Local', '');
+}
+
+let dtMatchState = getInitialTrackerMatchState();
+let dtCurrentMatchKey = dtMatchState ? dtMatchState.id : 'primera_proximo';
 
 function ensureMatchStateExists(matchKey, meta = {}) {
-  if (!matchKey) matchKey = 'primera_fecha_12';
+  if (!matchKey) matchKey = dtCurrentMatchKey || 'primera_proximo';
 
   if (!dtMatchesStore[matchKey]) {
     let round = meta.round;
@@ -241,7 +256,7 @@ function loadDtMatchesStore() {
   } catch (e) {}
 
   const savedActiveKey = localStorage.getItem(DT_ACTIVE_MATCH_KEY);
-  dtCurrentMatchKey = savedActiveKey || 'primera_fecha_12';
+  dtCurrentMatchKey = savedActiveKey || (dtMatchState ? dtMatchState.id : 'primera_proximo');
 
   cleanupEmptyDtMatches();
 
@@ -520,11 +535,9 @@ async function processDtSyncQueue() {
 // Nombre canónico de la pestaña de Google Sheets para cada partido
 function getDtMatchSheetName(matchState) {
   const m = matchState || dtMatchState;
-  if (!m) return 'Fecha 12 - MURIALDO B';
-  const round = (m.round || 'Fecha 12').trim();
-  let rival = (m.rivalName || 'MURIALDO B').trim().toUpperCase();
-  // Normalizar para que nunca difiera "MURIALDO" de "MURIALDO B"
-  if (rival === 'MURIALDO') rival = 'MURIALDO B';
+  if (!m) return 'Incidencias';
+  const round = (m.round || 'Fecha').trim();
+  let rival = (m.rivalName || 'RIVAL').trim().toUpperCase();
   return `${round} - ${rival}`;
 }
 

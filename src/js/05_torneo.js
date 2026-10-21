@@ -23,15 +23,13 @@ function loadTournamentData() {
     tournamentData = JSON.parse(JSON.stringify(DEFAULT_TOURNAMENT_DATA));
   }
 
-  // Sanitización de seguridad:
-  // En AMH Oficial, Murialdo es Fecha 12 (programado para 24/10/2026) y tiene estado X (Pendiente).
-  // NUNCA debe figurar como jugado ni con derrota.
+  // Sanitización: asegurar que la lista de jugados solo contenga partidos efectivamente disputados con resultado
   ['primera', 'intermedia'].forEach(div => {
     if (tournamentData[div] && Array.isArray(tournamentData[div].matches)) {
       tournamentData[div].matches = tournamentData[div].matches.filter(m => {
-        const rivalName = (m.rival || '').toUpperCase();
-        if (rivalName.includes('MURIALDO')) return false;
-        return m.status === 'Jugado' || m.played === true;
+        const isPlayed = m.status === 'Jugado' || m.played === true;
+        const hasScore = m.score && m.score !== '-' && !m.score.includes('undefined');
+        return isPlayed && hasScore;
       });
     }
     if ((!tournamentData[div].matches || tournamentData[div].matches.length === 0) && DEFAULT_TOURNAMENT_DATA[div] && DEFAULT_TOURNAMENT_DATA[div].matches) {
@@ -182,10 +180,11 @@ function renderRegatasSummary(divData) {
 function renderTournamentMatches(divData) {
   const subtitle = document.getElementById('matchesCategorySubtitle');
 
-  // Filtrar estrictamente solo jugados (sin Murialdo ni partidos pendientes con X)
+  // Filtrar estrictamente solo jugados que cuenten con resultado
   const rawPlayed = (divData.matches || []).filter(m => {
-    if ((m.rival || '').toUpperCase().includes('MURIALDO')) return false;
-    return m.status === 'Jugado' || m.played === true;
+    const isPlayed = m.status === 'Jugado' || m.played === true;
+    const hasScore = m.score && m.score !== '-' && !m.score.includes('undefined');
+    return isPlayed && hasScore;
   });
 
   // Partidos pendientes de jugar
@@ -436,14 +435,18 @@ async function syncTournamentData(manual = false) {
     const [m1, m2] = await Promise.all([fetchMatches('1'), fetchMatches('2')]);
 
     if (m1) {
-      const played = (m1.playedMatches || (m1.matches || []).filter(m => m.played)).filter(m => !(m.rival || '').toUpperCase().includes('MURIALDO'));
+      const played = (m1.playedMatches || (m1.matches || []).filter(m => m.played)).filter(m => {
+        return (m.status === 'Jugado' || m.played === true) && m.score && m.score !== '-' && !m.score.includes('undefined');
+      });
       if (played.length > 0) tournamentData.primera.matches = played;
       if (m1.nextMatch) tournamentData.primera.nextMatch = m1.nextMatch;
       if (m1.pendingMatches && m1.pendingMatches.length > 0) tournamentData.primera.pendingMatches = m1.pendingMatches;
     }
 
     if (m2) {
-      const played = (m2.playedMatches || (m2.matches || []).filter(m => m.played)).filter(m => !(m.rival || '').toUpperCase().includes('MURIALDO'));
+      const played = (m2.playedMatches || (m2.matches || []).filter(m => m.played)).filter(m => {
+        return (m.status === 'Jugado' || m.played === true) && m.score && m.score !== '-' && !m.score.includes('undefined');
+      });
       if (played.length > 0) tournamentData.intermedia.matches = played;
       if (m2.nextMatch) tournamentData.intermedia.nextMatch = m2.nextMatch;
       if (m2.pendingMatches && m2.pendingMatches.length > 0) tournamentData.intermedia.pendingMatches = m2.pendingMatches;

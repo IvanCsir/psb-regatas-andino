@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T13:03:48.511Z
+ * Última actualización: 2026-10-21T13:59:06.878Z
  */
 
 // ============================================================================
@@ -140,7 +140,7 @@ function getCtSession() {
 }
 
 async function verifyCtPassword(input) {
-  const clean = (input || '').trim().toLowerCase();
+  const clean = (input || '').trim();
   if (!clean) return false;
 
   // 1. Validar contra el Backend Serverless (/api/auth)
@@ -161,18 +161,16 @@ async function verifyCtPassword(input) {
       return false; // Contraseña incorrecta confirmada por el servidor
     }
   } catch (netErr) {
-    console.warn('[Auth] Sin conexión al backend /api/auth, evaluando fallback offline:', netErr);
+    console.warn('[Auth] Sin conexión al backend /api/auth:', netErr);
   }
 
-  // 2. Fallback de emergencia offline (por si no hay señal en la cancha durante el inicio)
-  try {
-    const hash = await sha256Hex(clean);
-    if (hash === '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf05279b26691a4d') {
-      const fallbackExpires = Date.now() + (12 * 60 * 60 * 1000);
-      setCtAuthenticated(true, { expiresAt: fallbackExpires, token: 'offline_token' });
-      return true;
-    }
-  } catch (e) {}
+  // 2. Modo Offline Seguro:
+  // Si no hay conexión con el servidor pero este dispositivo ya tenía una sesión
+  // válida emitida previamente por el backend, permitimos el acceso sin requerir red.
+  const existingSession = getCtSession();
+  if (existingSession && existingSession.authenticated && Date.now() <= Number(existingSession.expiresAt)) {
+    return true;
+  }
 
   return false;
 }
@@ -569,15 +567,13 @@ function loadTournamentData() {
     tournamentData = JSON.parse(JSON.stringify(DEFAULT_TOURNAMENT_DATA));
   }
 
-  // Sanitización de seguridad:
-  // En AMH Oficial, Murialdo es Fecha 12 (programado para 24/10/2026) y tiene estado X (Pendiente).
-  // NUNCA debe figurar como jugado ni con derrota.
+  // Sanitización: asegurar que la lista de jugados solo contenga partidos efectivamente disputados con resultado
   ['primera', 'intermedia'].forEach(div => {
     if (tournamentData[div] && Array.isArray(tournamentData[div].matches)) {
       tournamentData[div].matches = tournamentData[div].matches.filter(m => {
-        const rivalName = (m.rival || '').toUpperCase();
-        if (rivalName.includes('MURIALDO')) return false;
-        return m.status === 'Jugado' || m.played === true;
+        const isPlayed = m.status === 'Jugado' || m.played === true;
+        const hasScore = m.score && m.score !== '-' && !m.score.includes('undefined');
+        return isPlayed && hasScore;
       });
     }
     if ((!tournamentData[div].matches || tournamentData[div].matches.length === 0) && DEFAULT_TOURNAMENT_DATA[div] && DEFAULT_TOURNAMENT_DATA[div].matches) {
@@ -728,10 +724,11 @@ function renderRegatasSummary(divData) {
 function renderTournamentMatches(divData) {
   const subtitle = document.getElementById('matchesCategorySubtitle');
 
-  // Filtrar estrictamente solo jugados (sin Murialdo ni partidos pendientes con X)
+  // Filtrar estrictamente solo jugados que cuenten con resultado
   const rawPlayed = (divData.matches || []).filter(m => {
-    if ((m.rival || '').toUpperCase().includes('MURIALDO')) return false;
-    return m.status === 'Jugado' || m.played === true;
+    const isPlayed = m.status === 'Jugado' || m.played === true;
+    const hasScore = m.score && m.score !== '-' && !m.score.includes('undefined');
+    return isPlayed && hasScore;
   });
 
   // Partidos pendientes de jugar
@@ -982,14 +979,18 @@ async function syncTournamentData(manual = false) {
     const [m1, m2] = await Promise.all([fetchMatches('1'), fetchMatches('2')]);
 
     if (m1) {
-      const played = (m1.playedMatches || (m1.matches || []).filter(m => m.played)).filter(m => !(m.rival || '').toUpperCase().includes('MURIALDO'));
+      const played = (m1.playedMatches || (m1.matches || []).filter(m => m.played)).filter(m => {
+        return (m.status === 'Jugado' || m.played === true) && m.score && m.score !== '-' && !m.score.includes('undefined');
+      });
       if (played.length > 0) tournamentData.primera.matches = played;
       if (m1.nextMatch) tournamentData.primera.nextMatch = m1.nextMatch;
       if (m1.pendingMatches && m1.pendingMatches.length > 0) tournamentData.primera.pendingMatches = m1.pendingMatches;
     }
 
     if (m2) {
-      const played = (m2.playedMatches || (m2.matches || []).filter(m => m.played)).filter(m => !(m.rival || '').toUpperCase().includes('MURIALDO'));
+      const played = (m2.playedMatches || (m2.matches || []).filter(m => m.played)).filter(m => {
+        return (m.status === 'Jugado' || m.played === true) && m.score && m.score !== '-' && !m.score.includes('undefined');
+      });
       if (played.length > 0) tournamentData.intermedia.matches = played;
       if (m2.nextMatch) tournamentData.intermedia.nextMatch = m2.nextMatch;
       if (m2.pendingMatches && m2.pendingMatches.length > 0) tournamentData.intermedia.pendingMatches = m2.pendingMatches;
@@ -2304,12 +2305,12 @@ function findFixtureMatch(round) {
 }
 
 function createDefaultMatchState(round, rivalName, homeAway, fecha) {
-  const cleanRound = round || 'Fecha 12';
+  const cleanRound = round || 'Próxima Fecha';
   return {
     id: getMatchKey('primera', cleanRound),
     division: 'primera',
     round: cleanRound,
-    rivalName: (rivalName || 'MURIALDO').toUpperCase(),
+    rivalName: (rivalName || 'Rival').toUpperCase(),
     homeAway: homeAway || 'Local',
     fecha: fecha || '',
     currentQuarter: 1,
@@ -2329,11 +2330,26 @@ function createDefaultMatchState(round, rivalName, homeAway, fecha) {
 }
 
 let dtMatchesStore = {};
-let dtCurrentMatchKey = 'primera_fecha_12';
-let dtMatchState = createDefaultMatchState('Fecha 12', 'MURIALDO B', 'Local', '24/10/2026');
+
+function getInitialTrackerMatchState() {
+  if (typeof tournamentData === 'undefined' || !tournamentData) {
+    try { if (typeof loadTournamentData === 'function') loadTournamentData(); } catch (_) {}
+  }
+  const divData = (typeof tournamentData !== 'undefined' && tournamentData && tournamentData.primera)
+    || (typeof DEFAULT_TOURNAMENT_DATA !== 'undefined' && DEFAULT_TOURNAMENT_DATA && DEFAULT_TOURNAMENT_DATA.primera);
+
+  if (divData && divData.nextMatch) {
+    const nm = divData.nextMatch;
+    return createDefaultMatchState(nm.round, nm.rival, nm.homeAway || 'Local', nm.fecha || '');
+  }
+  return createDefaultMatchState('Próxima Fecha', 'Rival', 'Local', '');
+}
+
+let dtMatchState = getInitialTrackerMatchState();
+let dtCurrentMatchKey = dtMatchState ? dtMatchState.id : 'primera_proximo';
 
 function ensureMatchStateExists(matchKey, meta = {}) {
-  if (!matchKey) matchKey = 'primera_fecha_12';
+  if (!matchKey) matchKey = dtCurrentMatchKey || 'primera_proximo';
 
   if (!dtMatchesStore[matchKey]) {
     let round = meta.round;
@@ -2399,7 +2415,7 @@ function loadDtMatchesStore() {
   } catch (e) {}
 
   const savedActiveKey = localStorage.getItem(DT_ACTIVE_MATCH_KEY);
-  dtCurrentMatchKey = savedActiveKey || 'primera_fecha_12';
+  dtCurrentMatchKey = savedActiveKey || (dtMatchState ? dtMatchState.id : 'primera_proximo');
 
   cleanupEmptyDtMatches();
 
@@ -2678,11 +2694,9 @@ async function processDtSyncQueue() {
 // Nombre canónico de la pestaña de Google Sheets para cada partido
 function getDtMatchSheetName(matchState) {
   const m = matchState || dtMatchState;
-  if (!m) return 'Fecha 12 - MURIALDO B';
-  const round = (m.round || 'Fecha 12').trim();
-  let rival = (m.rivalName || 'MURIALDO B').trim().toUpperCase();
-  // Normalizar para que nunca difiera "MURIALDO" de "MURIALDO B"
-  if (rival === 'MURIALDO') rival = 'MURIALDO B';
+  if (!m) return 'Incidencias';
+  const round = (m.round || 'Fecha').trim();
+  let rival = (m.rivalName || 'RIVAL').trim().toUpperCase();
   return `${round} - ${rival}`;
 }
 
@@ -5838,10 +5852,7 @@ async function syncAllMatchesFromCloud(options = {}) {
       const divMatches = (tournamentData && tournamentData.primera && tournamentData.primera.matches) || [];
       const divPending = (tournamentData && tournamentData.primera && tournamentData.primera.pendingMatches) || [];
       const allM = [...divMatches, ...divPending];
-      sheetsToFetch = allM.map(m => getDtMatchSheetName({ round: m.round, rivalName: m.rival }));
-      if (!sheetsToFetch.includes('Fecha 12 - MURIALDO B')) {
-        sheetsToFetch.push('Fecha 12 - MURIALDO B');
-      }
+      sheetsToFetch = Array.from(new Set(allM.map(m => getDtMatchSheetName({ round: m.round, rivalName: m.rival })).filter(Boolean)));
     }
 
     let updatedCount = 0;

@@ -1434,10 +1434,7 @@ async function syncAllMatchesFromCloud(options = {}) {
       const divMatches = (tournamentData && tournamentData.primera && tournamentData.primera.matches) || [];
       const divPending = (tournamentData && tournamentData.primera && tournamentData.primera.pendingMatches) || [];
       const allM = [...divMatches, ...divPending];
-      sheetsToFetch = allM.map(m => getDtMatchSheetName({ round: m.round, rivalName: m.rival }));
-      if (!sheetsToFetch.includes('Fecha 12 - MURIALDO B')) {
-        sheetsToFetch.push('Fecha 12 - MURIALDO B');
-      }
+      sheetsToFetch = Array.from(new Set(allM.map(m => getDtMatchSheetName({ round: m.round, rivalName: m.rival })).filter(Boolean)));
     }
 
     let updatedCount = 0;
