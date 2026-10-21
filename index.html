@@ -28,12 +28,27 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v17">
+  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v18">
 </head>
 <body>
 
   <!-- Mensaje Flotante Toast -->
   <div id="toast" class="toast">¡Citación actualizada!</div>
+
+  <!-- Indicador Pull to Refresh (Deslizar hacia abajo en móvil) -->
+  <div class="pull-refresh-indicator" id="pullRefreshIndicator" aria-hidden="true">
+    <div class="pull-refresh-bubble">
+      <div class="pull-refresh-icon-box">
+        <svg class="pull-refresh-svg-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <polyline points="19 12 12 19 5 12"></polyline>
+        </svg>
+        <div class="pull-refresh-spinner"></div>
+        <span class="pull-refresh-check">✓</span>
+      </div>
+      <span class="pull-refresh-label" id="pullRefreshLabel">Deslizá para actualizar</span>
+    </div>
+  </div>
 
   <!-- Botón Menú Hamburguesa Superior Izquierda -->
   <button type="button" class="btn-hamburger" id="btnOpenNavDrawer" aria-label="Abrir menú" title="Menú Principal">
@@ -1251,7 +1266,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261021_mobile_v17"></script>
-  <script src="app.js?v=20261021_mobile_v17"></script>
+  <script src="data.js?v=20261021_mobile_v18"></script>
+  <script src="app.js?v=20261021_mobile_v18"></script>
 </body>
 </html>

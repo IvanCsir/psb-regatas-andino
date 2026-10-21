@@ -385,3 +385,107 @@ body.in-stats-view .bottom-nav-dock {
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
+
+/* ==========================================================================
+   INDICADOR PULL TO REFRESH NATIVO (MÓVIL)
+   ========================================================================== */
+
+.pull-refresh-indicator {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top, 12px));
+  left: 50%;
+  transform: translate(-50%, -150%);
+  z-index: 9999;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
+  opacity: 0;
+}
+
+.pull-refresh-indicator.visible {
+  opacity: 1;
+}
+
+.pull-refresh-indicator.refreshing,
+.pull-refresh-indicator.success {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translate(-50%, 0) !important;
+  opacity: 1;
+}
+
+.pull-refresh-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(5, 17, 54, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 162, 255, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 162, 255, 0.25);
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+}
+
+.pull-refresh-icon-box {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-regatas-cyan);
+  position: relative;
+}
+
+.pull-refresh-svg-arrow {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.pull-refresh-indicator.ready .pull-refresh-svg-arrow {
+  transform: rotate(180deg);
+  color: #34d399;
+}
+
+.pull-refresh-spinner {
+  display: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgba(0, 162, 255, 0.25);
+  border-top-color: var(--color-regatas-cyan);
+  border-radius: 50%;
+  animation: ptr-spin 0.75s linear infinite;
+}
+
+.pull-refresh-check {
+  display: none;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #34d399;
+  line-height: 1;
+}
+
+.pull-refresh-indicator.refreshing .pull-refresh-svg-arrow {
+  display: none;
+}
+.pull-refresh-indicator.refreshing .pull-refresh-spinner {
+  display: block;
+}
+
+.pull-refresh-indicator.success .pull-refresh-svg-arrow,
+.pull-refresh-indicator.success .pull-refresh-spinner {
+  display: none;
+}
+.pull-refresh-indicator.success .pull-refresh-check {
+  display: block;
+}
+
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}
+
+.pull-refresh-label {
+  font-family: var(--font-main);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}

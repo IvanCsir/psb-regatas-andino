@@ -54,6 +54,7 @@ body {
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
+  overscroll-behavior-y: contain;
   padding: 14px 12px calc(95px + env(safe-area-inset-bottom, 0px)) 12px;
   padding: max(14px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(95px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   background-image: 
