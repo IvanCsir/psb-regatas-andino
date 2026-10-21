@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T18:21:46.036Z
+ * Última actualización: 2026-10-21T18:35:46.170Z
  */
 
 // ============================================================================
@@ -2733,6 +2733,15 @@ function renderPlayerCard(player) {
       diffBadgeHtml = `<span class="test-diff-badge info">1° Medición</span>`;
     }
 
+    // Promedio Personal de la Jugadora
+    let avgPillHtml = '';
+    const validEvalsForAvg = evals.filter(e => typeof e.value === 'number');
+    if (validEvalsForAvg.length > 0) {
+      const sumEvals = validEvalsForAvg.reduce((acc, ev) => acc + ev.value, 0);
+      const personalAvg = +(sumEvals / validEvalsForAvg.length).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+      avgPillHtml = `<span class="test-diff-badge info" style="background: rgba(0, 162, 255, 0.15); border-color: rgba(0, 162, 255, 0.4); color: #38bdf8;">Promedio: <strong>${personalAvg}${unit}</strong></span>`;
+    }
+
     // Fila de Cajas de Evaluación (con subtítulo de media de cada evaluación por categoría)
     const evalsBoxesHtml = evals.map((ev, i) => {
       const isLast = (i === evals.length - 1 && evals.length > 1);
@@ -2883,6 +2892,7 @@ function renderPlayerCard(player) {
           </div>
           <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
             ${rankPillHtml}
+            ${avgPillHtml}
             ${diffBadgeHtml}
           </div>
         </div>
@@ -2948,10 +2958,16 @@ function sharePlayerProfileWhatsApp(player) {
     const t = player.tests ? player.tests[cfg.key] : null;
     if (!t || !t.evals || t.evals.length === 0) return;
 
-    const lastEv = t.evals[t.evals.length - 1];
-    const unit = cfg.unit ? ` ${cfg.unit}` : '';
+    const validEvals = t.evals.filter(e => typeof e.value === 'number');
+    if (validEvals.length === 0) return;
 
-    if (t.evals.length >= 2) {
+    const unit = cfg.unit ? ` ${cfg.unit}` : '';
+    const u = cfg.unit ? (cfg.unit === 'seg' ? 's' : (cfg.unit === ' ' ? '' : cfg.unit)) : '';
+
+    const sum = validEvals.reduce((acc, ev) => acc + ev.value, 0);
+    const avgVal = +(sum / validEvals.length).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+
+    if (validEvals.length >= 2) {
       comparableCount++;
       if (t.improved) improvedCount++;
     }
@@ -2960,17 +2976,28 @@ function sharePlayerProfileWhatsApp(player) {
     if (t.diff !== null) {
       const sign = t.diff > 0 ? '+' : '';
       const arrow = t.improved ? '↗' : '↘';
-      diffTag = ` (${sign}${t.diff}${unit} ${arrow})`;
+      diffTag = ` (${sign}${t.diff}${u} ${arrow})`;
     }
 
     let rankTag = '';
-    const rankInfo = getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'latest');
+    const rankInfo = getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'avg') || getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'latest');
     if (rankInfo && rankInfo.rank <= 10) {
       const medal = rankInfo.rank === 1 ? '🥇' : (rankInfo.rank === 2 ? '🥈' : (rankInfo.rank === 3 ? '🥉' : '🏆'));
-      rankTag = ` | ${medal} #${rankInfo.rank}`;
+      rankTag = ` | ${medal} #${rankInfo.rank} en ${benchScopeShort}`;
     }
 
-    testLines.push(`• ${cfg.icon} *${cfg.name}:* ${lastEv.value}${unit}${diffTag}${rankTag}`);
+    if (validEvals.length > 1) {
+      const evalsStr = validEvals.map(ev => `${ev.round}°: ${ev.value}${u}`).join(' • ');
+      testLines.push(
+        `• ${cfg.icon} *${cfg.name}*\n` +
+        `   ├ 📋 *Evaluaciones:* ${evalsStr}\n` +
+        `   └ ⚡ *Promedio: ${avgVal}${unit}*${diffTag}${rankTag}`
+      );
+    } else {
+      testLines.push(
+        `• ${cfg.icon} *${cfg.name}:* ${validEvals[0].value}${unit} *(Promedio: ${avgVal}${unit})*${rankTag}`
+      );
+    }
   });
 
   let progressText = '';
@@ -3010,7 +3037,7 @@ function generateAndSharePlayerImage(player) {
 
   const canvas = document.createElement('canvas');
   canvas.width = 840;
-  canvas.height = 1260;
+  canvas.height = 1350;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -3031,11 +3058,11 @@ function generateAndSharePlayerImage(player) {
   const topDim = [...playerDimScores].sort((a, b) => b.score - a.score)[0];
 
   // 1. Fondo degradé
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1260);
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1350);
   bgGrad.addColorStop(0, '#030d2d');
   bgGrad.addColorStop(1, '#071542');
   ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, 840, 1260);
+  ctx.fillRect(0, 0, 840, 1350);
 
   // Línea de acento superior
   ctx.fillStyle = '#00a2ff';
@@ -3289,10 +3316,16 @@ function generateAndSharePlayerImage(player) {
   ctx.font = '900 15px Outfit, system-ui, sans-serif';
   ctx.fillText('RESULTADOS DE MEDICIONES FÍSICAS', 40, 698);
 
+  ctx.fillStyle = '#9bb1d6';
+  ctx.font = '700 11px Outfit, system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('Detalle por Evaluación y Promedio', 800, 698);
+  ctx.textAlign = 'left';
+
   const colW = 370;
-  const colH = 82;
-  const startY = 715;
-  const gapY = 10;
+  const colH = 96;
+  const startY = 718;
+  const gapY = 12;
 
   TESTS_CONFIG.forEach((cfg, idx) => {
     const colIdx = idx % 2;
@@ -3300,58 +3333,90 @@ function generateAndSharePlayerImage(player) {
     const x = colIdx === 0 ? 40 : 430;
     const y = startY + rowIdx * (colH + gapY);
 
-    if (y + colH > 1180) return;
+    if (y + colH > 1260) return;
+
+    const t = player.tests ? player.tests[cfg.key] : null;
+    const validEvals = (t && t.evals) ? t.evals.filter(e => typeof e.value === 'number') : [];
+    const hasData = validEvals.length > 0;
+    const unit = cfg.unit ? ` ${cfg.unit}` : '';
+    const u = cfg.unit ? (cfg.unit === 'seg' ? 's' : (cfg.unit === ' ' ? '' : cfg.unit)) : '';
 
     // Caja del Test
     drawRoundRect(ctx, x, y, colW, colH, 10);
-    ctx.fillStyle = 'rgba(4, 16, 52, 0.75)';
+    ctx.fillStyle = hasData ? 'rgba(6, 18, 56, 0.85)' : 'rgba(4, 16, 52, 0.45)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.strokeStyle = hasData ? 'rgba(0, 162, 255, 0.25)' : 'rgba(255, 255, 255, 0.06)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    const t = player.tests ? player.tests[cfg.key] : null;
-
-    // Nombre e Icono
+    // 1. Línea Superior Izquierda: Icono y Nombre
     ctx.fillStyle = '#ffffff';
     ctx.font = '800 13px Outfit, system-ui, sans-serif';
-    ctx.fillText(`${cfg.icon} ${cfg.name}`, x + 14, y + 26);
+    ctx.fillText(`${cfg.icon} ${cfg.name}`, x + 14, y + 23);
 
-    // Tipo
     ctx.fillStyle = '#9bb1d6';
     ctx.font = '600 11px Outfit, system-ui, sans-serif';
-    ctx.fillText(cfg.type, x + 14, y + 44);
+    ctx.fillText(cfg.type, x + 14, y + 40);
 
-    if (t && t.evals && t.evals.length > 0) {
-      const lastEv = t.evals[t.evals.length - 1];
-      const unit = cfg.unit ? ` ${cfg.unit}` : '';
+    // 2. Línea Superior Derecha: Promedio
+    if (hasData) {
+      const sum = validEvals.reduce((acc, ev) => acc + ev.value, 0);
+      const avgVal = +(sum / validEvals.length).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
 
-      // Valor de la marca
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = '900 19px Outfit, system-ui, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText(`${lastEv.value}${unit}`, x + colW - 14, y + 32);
+      ctx.fillStyle = '#ffd700';
+      ctx.font = '800 10px Outfit, system-ui, sans-serif';
+      ctx.fillText('★ PROMEDIO', x + colW - 14, y + 21);
 
-      // Ranking o Evolución abajo
-      const rankInfo = getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'latest');
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '900 18px Outfit, system-ui, sans-serif';
+      ctx.fillText(`${avgVal}${unit}`, x + colW - 14, y + 42);
+      ctx.textAlign = 'left';
+
+      // 3. Línea Divisoria interna
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 12, y + 51);
+      ctx.lineTo(x + colW - 12, y + 51);
+      ctx.stroke();
+
+      // 4. Línea Inferior Izquierda: Resultados de todas las evaluaciones
+      let evalsText = '';
+      if (validEvals.length > 1) {
+        evalsText = validEvals.map(ev => `${ev.round}°: ${ev.value}${u}`).join('  •  ');
+      } else {
+        evalsText = `1° Medición: ${validEvals[0].value}${u}`;
+      }
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '700 11px Outfit, system-ui, sans-serif';
+      ctx.fillText(evalsText, x + 14, y + 74);
+
+      // 5. Línea Inferior Derecha: Ranking en la categoría o Evolución
+      const rankInfo = getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'avg') || getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'latest');
+      ctx.textAlign = 'right';
       if (rankInfo && rankInfo.rank <= 10) {
         const medal = rankInfo.rank === 1 ? '🥇' : (rankInfo.rank === 2 ? '🥈' : (rankInfo.rank === 3 ? '🥉' : '🏆'));
         ctx.fillStyle = '#fbbf24';
         ctx.font = '800 11px Outfit, system-ui, sans-serif';
-        ctx.fillText(`${medal} #${rankInfo.rank} en ${benchScopeShort}`, x + colW - 14, y + 52);
-      } else if (t.diff !== null) {
+        ctx.fillText(`${medal} #${rankInfo.rank} en ${benchScopeShort}`, x + colW - 14, y + 74);
+      } else if (t && t.diff !== null) {
         const sign = t.diff > 0 ? '+' : '';
         const arrow = t.improved ? '↗' : '↘';
         ctx.fillStyle = t.improved ? '#34d399' : '#f87171';
         ctx.font = '800 11px Outfit, system-ui, sans-serif';
-        ctx.fillText(`${sign}${t.diff}${unit} ${arrow}`, x + colW - 14, y + 52);
+        ctx.fillText(`${sign}${t.diff}${u} ${arrow}`, x + colW - 14, y + 74);
+      } else {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '600 10.5px Outfit, system-ui, sans-serif';
+        ctx.fillText('1 registro', x + colW - 14, y + 74);
       }
       ctx.textAlign = 'left';
     } else {
+      ctx.textAlign = 'right';
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.font = '700 12px Outfit, system-ui, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText('Sin datos', x + colW - 14, y + 38);
+      ctx.fillText('Sin datos', x + colW - 14, y + 36);
       ctx.textAlign = 'left';
     }
   });
@@ -3360,20 +3425,20 @@ function generateAndSharePlayerImage(player) {
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(40, 1195);
-  ctx.lineTo(800, 1195);
+  ctx.moveTo(40, 1272);
+  ctx.lineTo(800, 1272);
   ctx.stroke();
 
   ctx.fillStyle = '#9bb1d6';
   ctx.font = '700 12px Outfit, system-ui, sans-serif';
-  ctx.fillText('Preparación Física • Club Regatas Andino Hockey Femenino', 40, 1224);
+  ctx.fillText('Preparación Física • Club Regatas Andino Hockey Femenino', 40, 1302);
 
   ctx.fillStyle = '#64748b';
   ctx.font = '600 11px Outfit, system-ui, sans-serif';
   ctx.textAlign = 'right';
   const now = new Date();
   const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-  ctx.fillText(`Generado el ${dateStr}`, 800, 1224);
+  ctx.fillText(`Generado el ${dateStr}`, 800, 1302);
   ctx.textAlign = 'left';
 
   // Exportar a Blob y Compartir/Descargar
