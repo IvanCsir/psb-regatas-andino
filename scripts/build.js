@@ -63,6 +63,25 @@ function build() {
   fs.writeFileSync(outCssFile, cssOutput, 'utf8');
   console.log(`✅ [CSS] styles.css generado con éxito (${cssFiles.length} módulos, ${cssOutput.split('\n').length} líneas).`);
 
+  // 3. Validar versión de caché (PWA Service Worker vs index.html)
+  try {
+    const swContent = fs.readFileSync(path.join(rootDir, 'sw.js'), 'utf8');
+    const indexContent = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
+    const swMatch = swContent.match(/CACHE_NAME\s*=\s*['"]regatas-hockey-(v[a-zA-Z0-9_\-]+)['"]/);
+    const indexMatch = indexContent.match(/styles\.css\?v=([a-zA-Z0-9_\-]+)/);
+
+    const swVer = swMatch ? swMatch[1] : 'desconocida';
+    const indexVer = indexMatch ? indexMatch[1] : 'desconocida';
+
+    const norm = s => s.toLowerCase().replace(/^v/, '').replace(/[-_]/g, '');
+    console.log(`🔖 [CACHE] Versión en sw.js: ${swVer} | Versión en index.html: ${indexVer}`);
+    if (swMatch && indexMatch && norm(swVer) !== norm(indexVer)) {
+      console.warn(`⚠️ [CACHE WARNING] Las versiones difieren: sw.js (${swVer}) vs index.html (${indexVer}).`);
+    } else {
+      console.log(`✅ [CACHE] Versiones sincronizadas (${swVer}).`);
+    }
+  } catch (_) {}
+
   const elapsed = Date.now() - startTime;
   console.log(`✨ [BUILD] Compilación finalizada en ${elapsed}ms.`);
 }

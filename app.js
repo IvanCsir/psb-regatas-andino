@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T13:59:06.878Z
+ * Última actualización: 2026-10-21T14:07:14.631Z
  */
 
 // ============================================================================
