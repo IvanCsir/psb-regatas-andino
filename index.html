@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v26">
+  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v27">
 </head>
 <body>
 
@@ -475,16 +475,6 @@
           <span class="summary-text" id="profileSummaryText">Comparativa de evolución entre evaluaciones</span>
         </div>
 
-        <!-- Barra de Acciones para Compartir Ficha -->
-        <div class="profile-share-actions-bar">
-          <button type="button" class="btn-share-profile btn-share-wa" id="btnShareProfileWhatsApp" title="Enviar reporte a WhatsApp">
-            <span>📲</span> Enviar a WhatsApp
-          </button>
-          <button type="button" class="btn-share-profile btn-share-img" id="btnShareProfileImage" title="Descargar o compartir placa en imagen">
-            <span>🖼️</span> Guardar Placa Imagen
-          </button>
-        </div>
-
         <!-- Radar de Perfil Atlético Integral -->
         <div class="player-radar-card" id="playerRadarCard">
           <!-- Renderizado dinámicamente por app.js -->
@@ -493,6 +483,16 @@
         <!-- Grilla de Tarjetas de Tests Físicos -->
         <div class="tests-grid" id="testsGrid">
           <!-- Renderizado dinámicamente por app.js -->
+        </div>
+
+        <!-- Barra de Acciones para Compartir Ficha (Al final de la ficha) -->
+        <div class="profile-share-actions-bar">
+          <button type="button" class="btn-share-profile btn-share-wa" id="btnShareProfileWhatsApp" title="Enviar reporte a WhatsApp">
+            <span>📲</span> Enviar a WhatsApp
+          </button>
+          <button type="button" class="btn-share-profile btn-share-img" id="btnShareProfileImage" title="Descargar o compartir placa con radar en imagen">
+            <span>🖼️</span> Guardar Placa Imagen
+          </button>
         </div>
       </section>
 
@@ -1317,7 +1317,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261021_mobile_v26"></script>
-  <script src="app.js?v=20261021_mobile_v26"></script>
+  <script src="data.js?v=20261021_mobile_v27"></script>
+  <script src="app.js?v=20261021_mobile_v27"></script>
 </body>
 </html>

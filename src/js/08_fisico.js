@@ -1544,7 +1544,7 @@ function generateAndSharePlayerImage(player) {
 
   const canvas = document.createElement('canvas');
   canvas.width = 840;
-  canvas.height = 1140;
+  canvas.height = 1260;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -1556,15 +1556,20 @@ function generateAndSharePlayerImage(player) {
     dim: d,
     score: getPlayerDimensionScore(player, d, benchCatKey)
   }));
+  const catDimScores = RADAR_DIMENSIONS.map(d => ({
+    dim: d,
+    score: getCategoryDimensionScore(benchCatKey, d)
+  }));
   const playerOverall = Math.round(playerDimScores.reduce((acc, s) => acc + s.score, 0) / RADAR_DIMENSIONS.length);
+  const catOverall = Math.round(catDimScores.reduce((acc, s) => acc + s.score, 0) / RADAR_DIMENSIONS.length);
   const topDim = [...playerDimScores].sort((a, b) => b.score - a.score)[0];
 
   // 1. Fondo degradé
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1140);
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1260);
   bgGrad.addColorStop(0, '#030d2d');
   bgGrad.addColorStop(1, '#071542');
   ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, 840, 1140);
+  ctx.fillRect(0, 0, 840, 1260);
 
   // Línea de acento superior
   ctx.fillStyle = '#00a2ff';
@@ -1573,22 +1578,22 @@ function generateAndSharePlayerImage(player) {
   // 2. Cabecera
   ctx.fillStyle = '#38bdf8';
   ctx.font = '900 24px Outfit, system-ui, sans-serif';
-  ctx.fillText('CLUB REGATAS ANDINO', 40, 52);
+  ctx.fillText('CLUB REGATAS ANDINO', 40, 48);
 
   ctx.fillStyle = '#9bb1d6';
-  ctx.font = '700 13px Outfit, system-ui, sans-serif';
-  ctx.fillText('HOCKEY FEMENINO • EVALUACIONES FÍSICAS 2026', 40, 75);
+  ctx.font = '700 12px Outfit, system-ui, sans-serif';
+  ctx.fillText('HOCKEY FEMENINO • EVALUACIONES FÍSICAS 2026', 40, 68);
 
   // Línea divisoria
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(40, 95);
-  ctx.lineTo(800, 95);
+  ctx.moveTo(40, 86);
+  ctx.lineTo(800, 86);
   ctx.stroke();
 
   // 3. Ficha de la Jugadora (Tarjeta Superior)
-  drawRoundRect(ctx, 40, 115, 760, 175, 16);
+  drawRoundRect(ctx, 40, 102, 760, 155, 16);
   ctx.fillStyle = 'rgba(9, 24, 73, 0.9)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(0, 162, 255, 0.4)';
@@ -1596,11 +1601,11 @@ function generateAndSharePlayerImage(player) {
   ctx.stroke();
 
   // Avatar / Círculo inicial
-  const avatarGrad = ctx.createLinearGradient(60, 140, 120, 200);
+  const avatarGrad = ctx.createLinearGradient(60, 125, 120, 185);
   avatarGrad.addColorStop(0, '#0284c7');
   avatarGrad.addColorStop(1, '#00a2ff');
   ctx.beginPath();
-  ctx.arc(100, 170, 36, 0, Math.PI * 2);
+  ctx.arc(95, 150, 32, 0, Math.PI * 2);
   ctx.fillStyle = avatarGrad;
   ctx.fill();
   ctx.strokeStyle = '#ffffff';
@@ -1609,18 +1614,18 @@ function generateAndSharePlayerImage(player) {
 
   // Letra inicial
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 32px Outfit, system-ui, sans-serif';
+  ctx.font = '900 28px Outfit, system-ui, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText((player.name.trim().charAt(0) || 'P').toUpperCase(), 100, 181);
+  ctx.fillText((player.name.trim().charAt(0) || 'P').toUpperCase(), 95, 160);
   ctx.textAlign = 'left';
 
   // Nombre de la jugadora
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 28px Outfit, system-ui, sans-serif';
-  ctx.fillText(player.name.toUpperCase(), 155, 165);
+  ctx.font = '900 26px Outfit, system-ui, sans-serif';
+  ctx.fillText(player.name.toUpperCase(), 145, 146);
 
   // Badge de División
-  drawRoundRect(ctx, 155, 178, 125, 26, 13);
+  drawRoundRect(ctx, 145, 156, 115, 24, 12);
   ctx.fillStyle = 'rgba(0, 162, 255, 0.2)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(0, 162, 255, 0.5)';
@@ -1628,13 +1633,13 @@ function generateAndSharePlayerImage(player) {
   ctx.stroke();
 
   ctx.fillStyle = '#38bdf8';
-  ctx.font = '800 12px Outfit, system-ui, sans-serif';
+  ctx.font = '800 11px Outfit, system-ui, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(player.divisionLabel.toUpperCase(), 217, 195);
+  ctx.fillText(player.divisionLabel.toUpperCase(), 202, 172);
   ctx.textAlign = 'left';
 
   // Badge de Índice Atlético (derecha)
-  drawRoundRect(ctx, 600, 135, 180, 65, 12);
+  drawRoundRect(ctx, 610, 120, 170, 58, 12);
   ctx.fillStyle = 'rgba(3, 13, 45, 0.9)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
@@ -1642,21 +1647,21 @@ function generateAndSharePlayerImage(player) {
   ctx.stroke();
 
   ctx.fillStyle = '#ffd700';
-  ctx.font = '900 26px Outfit, system-ui, sans-serif';
+  ctx.font = '900 24px Outfit, system-ui, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`${playerOverall}`, 665, 172);
+  ctx.fillText(`${playerOverall}`, 670, 154);
 
   ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-  ctx.font = '700 14px Outfit, system-ui, sans-serif';
-  ctx.fillText('/ 100', 730, 172);
+  ctx.font = '700 13px Outfit, system-ui, sans-serif';
+  ctx.fillText('/ 100', 730, 154);
 
   ctx.fillStyle = '#9bb1d6';
   ctx.font = '800 10px Outfit, system-ui, sans-serif';
-  ctx.fillText('ÍNDICE ATLÉTICO', 690, 190);
+  ctx.fillText('ÍNDICE ATLÉTICO', 695, 170);
   ctx.textAlign = 'left';
 
   // Banner de Mayor Fortaleza (inferior de la tarjeta)
-  drawRoundRect(ctx, 60, 222, 720, 48, 10);
+  drawRoundRect(ctx, 56, 198, 728, 42, 8);
   ctx.fillStyle = 'rgba(3, 13, 45, 0.7)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
@@ -1664,18 +1669,164 @@ function generateAndSharePlayerImage(player) {
   ctx.stroke();
 
   ctx.fillStyle = '#34d399';
-  ctx.font = '800 14px Outfit, system-ui, sans-serif';
-  ctx.fillText(`🌟 Mayor Fortaleza: ${topDim.dim.icon} ${topDim.dim.name} (${topDim.score} pts)`, 80, 252);
+  ctx.font = '800 13px Outfit, system-ui, sans-serif';
+  ctx.fillText(`🌟 Mayor Fortaleza: ${topDim.dim.icon} ${topDim.dim.name} (${topDim.score} pts)`, 75, 224);
 
-  // 4. Grilla de Tests Físicos (2 Columnas)
+  // 4. RADAR DE PERFIL ATLÉTICO INTEGRAL
+  const rx = 40;
+  const ry = 275;
+  const rw = 760;
+  const rh = 390;
+
+  drawRoundRect(ctx, rx, ry, rw, rh, 16);
+  ctx.fillStyle = 'rgba(6, 18, 56, 0.9)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0, 162, 255, 0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Título de la tarjeta de Radar
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 16px Outfit, system-ui, sans-serif';
-  ctx.fillText('RESULTADOS DE MEDICIONES FÍSICAS', 40, 325);
+  ctx.font = '900 15px Outfit, system-ui, sans-serif';
+  ctx.fillText('🕸️ PERFIL ATLÉTICO INTEGRAL', rx + 20, ry + 30);
+
+  // Centro y radio del Radar en Canvas
+  const rcx = 420;
+  const rcy = 475;
+  const rr = 95;
+  const numAxes = RADAR_DIMENSIONS.length;
+
+  // Brillo radial central
+  const glow = ctx.createRadialGradient(rcx, rcy, 0, rcx, rcy, rr);
+  glow.addColorStop(0, 'rgba(2, 132, 199, 0.25)');
+  glow.addColorStop(1, 'rgba(2, 132, 199, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(rcx, rcy, rr, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rejilla concéntrica (25%, 50%, 75%, 100%)
+  [0.25, 0.50, 0.75, 1.00].forEach(lvl => {
+    ctx.beginPath();
+    RADAR_DIMENSIONS.forEach((d, i) => {
+      const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+      const x = rcx + (rr * lvl) * Math.cos(angleRad);
+      const y = rcy + (rr * lvl) * Math.sin(angleRad);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.strokeStyle = lvl === 1.0 ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Ejes radiales
+  RADAR_DIMENSIONS.forEach((d, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const x = rcx + rr * Math.cos(angleRad);
+    const y = rcy + rr * Math.sin(angleRad);
+    ctx.beginPath();
+    ctx.moveTo(rcx, rcy);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Polígono de la Media de la Categoría
+  ctx.beginPath();
+  catDimScores.forEach((s, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const radius = rr * (s.score / 100);
+    const x = rcx + radius * Math.cos(angleRad);
+    const y = rcy + radius * Math.sin(angleRad);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(148, 163, 184, 0.12)';
+  ctx.fill();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = '#94a3b8';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Polígono de la Jugadora
+  ctx.beginPath();
+  const playerPts = playerDimScores.map((s, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const radius = rr * (s.score / 100);
+    const x = rcx + radius * Math.cos(angleRad);
+    const y = rcy + radius * Math.sin(angleRad);
+    return { x, y, score: s.score, dim: s.dim };
+  });
+  playerPts.forEach((p, i) => {
+    if (i === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0, 162, 255, 0.38)';
+  ctx.fill();
+  ctx.strokeStyle = '#00a2ff';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Vértices de la Jugadora (Puntos)
+  playerPts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // Etiquetas de los ejes del Radar
+  RADAR_DIMENSIONS.forEach((d, i) => {
+    const angleRad = ((-90 + (i * 360 / numAxes)) * Math.PI) / 180;
+    const cos = Math.cos(angleRad);
+    const sin = Math.sin(angleRad);
+    const lx = rcx + (rr + 28) * cos;
+    let ly = rcy + (rr + 28) * sin;
+
+    if (cos > 0.25) ctx.textAlign = 'start';
+    else if (cos < -0.25) ctx.textAlign = 'end';
+    else ctx.textAlign = 'center';
+
+    if (sin < -0.7) ly -= 4;
+    if (sin > 0.7) ly += 6;
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '800 12px Outfit, system-ui, sans-serif';
+    ctx.fillText(`${d.icon} ${d.name}`, lx, ly);
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = '800 11px Outfit, system-ui, sans-serif';
+    ctx.fillText(`${playerDimScores[i].score} pts`, lx, ly + 14);
+    ctx.textAlign = 'left';
+  });
+
+  // Leyenda en la parte inferior del Radar
+  ctx.font = '700 11px Outfit, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText(`■ ${player.name.split(' ')[0]} (${playerOverall} pts)`, rcx - 90, ry + rh - 14);
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(`□ Media ${benchScopeShort} (${catOverall} pts)`, rcx + 90, ry + rh - 14);
+  ctx.textAlign = 'left';
+
+  // 5. Grilla de Tests Físicos (2 Columnas)
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 15px Outfit, system-ui, sans-serif';
+  ctx.fillText('RESULTADOS DE MEDICIONES FÍSICAS', 40, 698);
 
   const colW = 370;
-  const colH = 92;
-  const startY = 345;
-  const gapY = 14;
+  const colH = 82;
+  const startY = 715;
+  const gapY = 10;
 
   TESTS_CONFIG.forEach((cfg, idx) => {
     const colIdx = idx % 2;
@@ -1683,10 +1834,10 @@ function generateAndSharePlayerImage(player) {
     const x = colIdx === 0 ? 40 : 430;
     const y = startY + rowIdx * (colH + gapY);
 
-    if (y + colH > 1050) return;
+    if (y + colH > 1180) return;
 
     // Caja del Test
-    drawRoundRect(ctx, x, y, colW, colH, 12);
+    drawRoundRect(ctx, x, y, colW, colH, 10);
     ctx.fillStyle = 'rgba(4, 16, 52, 0.75)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
@@ -1697,13 +1848,13 @@ function generateAndSharePlayerImage(player) {
 
     // Nombre e Icono
     ctx.fillStyle = '#ffffff';
-    ctx.font = '800 14px Outfit, system-ui, sans-serif';
-    ctx.fillText(`${cfg.icon} ${cfg.name}`, x + 16, y + 28);
+    ctx.font = '800 13px Outfit, system-ui, sans-serif';
+    ctx.fillText(`${cfg.icon} ${cfg.name}`, x + 14, y + 26);
 
     // Tipo
     ctx.fillStyle = '#9bb1d6';
     ctx.font = '600 11px Outfit, system-ui, sans-serif';
-    ctx.fillText(cfg.type, x + 16, y + 46);
+    ctx.fillText(cfg.type, x + 14, y + 44);
 
     if (t && t.evals && t.evals.length > 0) {
       const lastEv = t.evals[t.evals.length - 1];
@@ -1711,9 +1862,9 @@ function generateAndSharePlayerImage(player) {
 
       // Valor de la marca
       ctx.fillStyle = '#38bdf8';
-      ctx.font = '900 20px Outfit, system-ui, sans-serif';
+      ctx.font = '900 19px Outfit, system-ui, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText(`${lastEv.value}${unit}`, x + colW - 16, y + 34);
+      ctx.fillText(`${lastEv.value}${unit}`, x + colW - 14, y + 32);
 
       // Ranking o Evolución abajo
       const rankInfo = getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'latest');
@@ -1721,42 +1872,42 @@ function generateAndSharePlayerImage(player) {
         const medal = rankInfo.rank === 1 ? '🥇' : (rankInfo.rank === 2 ? '🥈' : (rankInfo.rank === 3 ? '🥉' : '🏆'));
         ctx.fillStyle = '#fbbf24';
         ctx.font = '800 11px Outfit, system-ui, sans-serif';
-        ctx.fillText(`${medal} #${rankInfo.rank} en ${benchScopeShort}`, x + colW - 16, y + 54);
+        ctx.fillText(`${medal} #${rankInfo.rank} en ${benchScopeShort}`, x + colW - 14, y + 52);
       } else if (t.diff !== null) {
         const sign = t.diff > 0 ? '+' : '';
         const arrow = t.improved ? '↗' : '↘';
         ctx.fillStyle = t.improved ? '#34d399' : '#f87171';
         ctx.font = '800 11px Outfit, system-ui, sans-serif';
-        ctx.fillText(`${sign}${t.diff}${unit} ${arrow}`, x + colW - 16, y + 54);
+        ctx.fillText(`${sign}${t.diff}${unit} ${arrow}`, x + colW - 14, y + 52);
       }
       ctx.textAlign = 'left';
     } else {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.font = '700 13px Outfit, system-ui, sans-serif';
+      ctx.font = '700 12px Outfit, system-ui, sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText('Sin datos', x + colW - 16, y + 40);
+      ctx.fillText('Sin datos', x + colW - 14, y + 38);
       ctx.textAlign = 'left';
     }
   });
 
-  // 5. Footer
+  // 6. Footer
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(40, 1070);
-  ctx.lineTo(800, 1070);
+  ctx.moveTo(40, 1195);
+  ctx.lineTo(800, 1195);
   ctx.stroke();
 
   ctx.fillStyle = '#9bb1d6';
   ctx.font = '700 12px Outfit, system-ui, sans-serif';
-  ctx.fillText('Preparación Física • Club Regatas Andino Hockey Femenino', 40, 1098);
+  ctx.fillText('Preparación Física • Club Regatas Andino Hockey Femenino', 40, 1224);
 
   ctx.fillStyle = '#64748b';
   ctx.font = '600 11px Outfit, system-ui, sans-serif';
   ctx.textAlign = 'right';
   const now = new Date();
   const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
-  ctx.fillText(`Generado el ${dateStr}`, 800, 1098);
+  ctx.fillText(`Generado el ${dateStr}`, 800, 1224);
   ctx.textAlign = 'left';
 
   // Exportar a Blob y Compartir/Descargar
@@ -1789,7 +1940,7 @@ function generateAndSharePlayerImage(player) {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    showToast('¡Placa guardada como imagen en tu dispositivo!');
+    showToast('¡Placa con radar guardada en tu dispositivo!');
   }, 'image/png');
 }
 
