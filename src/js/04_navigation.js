@@ -229,6 +229,8 @@ function showView(viewName) {
     if (physicalPlayers.length > 0) {
       if (currentPhysViewMode === 'averages') {
         renderCategoryAverages(currentPhysFilter);
+      } else if (currentPhysViewMode === 'top10') {
+        renderTop10Panel();
       } else if (!selectedPlayerId) {
         renderPhysicalSuggestions();
       }

@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v22">
+  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v23">
 </head>
 <body>
 
@@ -408,13 +408,16 @@
           <button class="filter-chip" data-filter="5ta">5ta División</button>
         </div>
 
-        <!-- Selector de Modo: Jugadoras vs Medias por Categoría -->
+        <!-- Selector de Modo: Jugadoras vs Medias vs Top 10 -->
         <div class="phys-view-mode-bar" id="physViewModeBar">
           <button type="button" class="phys-mode-btn active" id="btnPhysModePlayers">
             <span>👤</span> Jugadoras
           </button>
           <button type="button" class="phys-mode-btn" id="btnPhysModeAverages">
-            <span>📊</span> Medias por Categoría
+            <span>📊</span> Medias
+          </button>
+          <button type="button" class="phys-mode-btn" id="btnPhysModeTop10">
+            <span>🏆</span> Top 10
           </button>
         </div>
 
@@ -425,6 +428,11 @@
 
         <!-- Panel de Medias por Categoría -->
         <div class="category-averages-panel" id="categoryAveragesPanel" style="display: none;">
+          <!-- Renderizado dinámicamente por app.js -->
+        </div>
+
+        <!-- Panel de Top 10 por Evaluación -->
+        <div class="phys-top10-panel" id="physTop10Panel" style="display: none;">
           <!-- Renderizado dinámicamente por app.js -->
         </div>
       </section>
@@ -1294,7 +1302,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261021_mobile_v22"></script>
-  <script src="app.js?v=20261021_mobile_v22"></script>
+  <script src="data.js?v=20261021_mobile_v23"></script>
+  <script src="app.js?v=20261021_mobile_v23"></script>
 </body>
 </html>

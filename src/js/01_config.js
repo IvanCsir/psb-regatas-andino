@@ -25,7 +25,9 @@ let physicalCategoryAverages = null;
 let selectedPlayerId = null;
 let currentPhysFilter = "all"; // 'all' | '1ra' | 'Inter' | '5ta'
 let currentPhysBenchmarkScope = "category"; // 'category' | 'all'
-let currentPhysViewMode = "players"; // 'players' | 'averages'
+let currentPhysViewMode = "players"; // 'players' | 'averages' | 'top10'
+let currentTop10Test = "all"; // 'all' | 'broadJump' | 'cmj' | 'agility' | 'sprint' | 'yoyo' | 'bench' | 'deadlift' | 'squat' | 'platform'
+let currentTop10Round = "latest"; // 'latest' | 'best' | '1' | '2' | '3'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 

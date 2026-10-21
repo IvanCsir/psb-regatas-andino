@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T17:04:05.766Z
+ * Última actualización: 2026-10-21T17:26:55.819Z
  */
 
 // ============================================================================
@@ -35,7 +35,9 @@ let physicalCategoryAverages = null;
 let selectedPlayerId = null;
 let currentPhysFilter = "all"; // 'all' | '1ra' | 'Inter' | '5ta'
 let currentPhysBenchmarkScope = "category"; // 'category' | 'all'
-let currentPhysViewMode = "players"; // 'players' | 'averages'
+let currentPhysViewMode = "players"; // 'players' | 'averages' | 'top10'
+let currentTop10Test = "all"; // 'all' | 'broadJump' | 'cmj' | 'agility' | 'sprint' | 'yoyo' | 'bench' | 'deadlift' | 'squat' | 'platform'
+let currentTop10Round = "latest"; // 'latest' | 'best' | '1' | '2' | '3'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 
@@ -519,6 +521,8 @@ function showView(viewName) {
     if (physicalPlayers.length > 0) {
       if (currentPhysViewMode === 'averages') {
         renderCategoryAverages(currentPhysFilter);
+      } else if (currentPhysViewMode === 'top10') {
+        renderTop10Panel();
       } else if (!selectedPlayerId) {
         renderPhysicalSuggestions();
       }
@@ -1483,6 +1487,7 @@ function setupPhysicalSection() {
   const btnChange = document.getElementById('btnChangePlayer');
   const btnModePlayers = document.getElementById('btnPhysModePlayers');
   const btnModeAverages = document.getElementById('btnPhysModeAverages');
+  const btnModeTop10 = document.getElementById('btnPhysModeTop10');
   const benchScopePills = document.getElementById('benchmarkScopePills');
 
   // Cargar datos cacheados si existen
@@ -1493,6 +1498,8 @@ function setupPhysicalSection() {
       physicalCategoryAverages = calculateCategoryAverages();
       if (currentPhysViewMode === 'averages') {
         renderCategoryAverages(currentPhysFilter);
+      } else if (currentPhysViewMode === 'top10') {
+        renderTop10Panel();
       } else {
         renderPhysicalSuggestions();
       }
@@ -1519,7 +1526,7 @@ function setupPhysicalSection() {
     });
   }
 
-  // Selector de Modo: Jugadoras vs Medias por Categoría
+  // Selector de Modo: Jugadoras vs Medias vs Top 10
   if (btnModePlayers) {
     btnModePlayers.addEventListener('click', () => {
       switchPhysicalViewMode('players');
@@ -1529,6 +1536,12 @@ function setupPhysicalSection() {
   if (btnModeAverages) {
     btnModeAverages.addEventListener('click', () => {
       switchPhysicalViewMode('averages');
+    });
+  }
+
+  if (btnModeTop10) {
+    btnModeTop10.addEventListener('click', () => {
+      switchPhysicalViewMode('top10');
     });
   }
 
@@ -1544,6 +1557,8 @@ function setupPhysicalSection() {
 
       if (currentPhysViewMode === 'averages') {
         renderCategoryAverages(currentPhysFilter);
+      } else if (currentPhysViewMode === 'top10') {
+        renderTop10Panel();
       } else {
         const q = inputSearch ? inputSearch.value.trim() : '';
         renderPhysicalSuggestions(q);
@@ -1587,32 +1602,45 @@ function setupPhysicalSection() {
   }
 }
 
-// Conmutar entre Modo Jugadoras y Modo Medias por Categoría
+// Conmutar entre Modo Jugadoras, Modo Medias y Modo Top 10
 function switchPhysicalViewMode(mode) {
   currentPhysViewMode = mode;
   const btnPlayers = document.getElementById('btnPhysModePlayers');
   const btnAverages = document.getElementById('btnPhysModeAverages');
+  const btnTop10 = document.getElementById('btnPhysModeTop10');
   const suggestList = document.getElementById('playersSuggestList');
   const searchWrapper = document.querySelector('.search-input-wrapper');
   const avgPanel = document.getElementById('categoryAveragesPanel');
+  const top10Panel = document.getElementById('physTop10Panel');
   const profileCard = document.getElementById('playerProfileCard');
   const emptyState = document.getElementById('emptyPlayerState');
   const inputSearch = document.getElementById('inputSearchPlayer');
 
+  if (btnPlayers) btnPlayers.classList.toggle('active', mode === 'players');
+  if (btnAverages) btnAverages.classList.toggle('active', mode === 'averages');
+  if (btnTop10) btnTop10.classList.toggle('active', mode === 'top10');
+
   if (mode === 'averages') {
-    if (btnPlayers) btnPlayers.classList.remove('active');
-    if (btnAverages) btnAverages.classList.add('active');
     if (suggestList) suggestList.style.display = 'none';
     if (searchWrapper) searchWrapper.style.display = 'none';
     if (profileCard) profileCard.style.display = 'none';
     if (emptyState) emptyState.style.display = 'none';
+    if (top10Panel) top10Panel.style.display = 'none';
     if (avgPanel) avgPanel.style.display = 'flex';
     renderCategoryAverages(currentPhysFilter);
+  } else if (mode === 'top10') {
+    if (suggestList) suggestList.style.display = 'none';
+    if (searchWrapper) searchWrapper.style.display = 'none';
+    if (profileCard) profileCard.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
+    if (avgPanel) avgPanel.style.display = 'none';
+    if (top10Panel) top10Panel.style.display = 'flex';
+    renderTop10Panel();
   } else {
-    if (btnPlayers) btnPlayers.classList.add('active');
-    if (btnAverages) btnAverages.classList.remove('active');
+    // Modo Jugadoras
     if (searchWrapper) searchWrapper.style.display = 'flex';
     if (avgPanel) avgPanel.style.display = 'none';
+    if (top10Panel) top10Panel.style.display = 'none';
 
     if (selectedPlayerId) {
       if (profileCard) profileCard.style.display = 'flex';
@@ -1811,7 +1839,12 @@ function renderCategoryAverages(catFilter = 'all') {
           ${roundsHtml}
         </div>
 
-        ${diffBadgeHtml ? `<div style="display:flex; justify-content:flex-end; padding-top:4px;">${diffBadgeHtml}</div>` : ''}
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:6px; flex-wrap:wrap; gap:6px;">
+          <button type="button" class="btn-card-top10" data-test="${cfg.key}">
+            🏆 Ver Top 10 en ${cfg.name}
+          </button>
+          ${diffBadgeHtml ? `<div>${diffBadgeHtml}</div>` : ''}
+        </div>
       </div>
     `;
   }).join('');
@@ -1827,6 +1860,258 @@ function renderCategoryAverages(catFilter = 'all') {
       ${testCardsHtml}
     </div>
   `;
+
+  // Listener para el botón directo al Top 10 de ese test
+  container.querySelectorAll('.btn-card-top10').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tKey = btn.getAttribute('data-test');
+      if (tKey) currentTop10Test = tKey;
+      switchPhysicalViewMode('top10');
+    });
+  });
+}
+
+// ============================================================================
+// TOP 10 Y RANKINGS POR EVALUACIÓN
+// ============================================================================
+
+// Obtener ranking ordenado de jugadoras para un test físico
+function getRankedPlayersForTest(testKey, categoryFilter = 'all', roundFilter = 'latest') {
+  const cfg = TESTS_CONFIG.find(c => c.key === testKey);
+  if (!cfg || !physicalPlayers || physicalPlayers.length === 0) return [];
+
+  const catPlayers = (categoryFilter === 'all')
+    ? physicalPlayers
+    : physicalPlayers.filter(p => p.filterTag === categoryFilter);
+
+  const rankedList = [];
+
+  catPlayers.forEach(p => {
+    const pTest = p.tests ? p.tests[testKey] : null;
+    if (!pTest || !pTest.evals || pTest.evals.length === 0) return;
+
+    let targetEv = null;
+
+    if (roundFilter === 'latest') {
+      targetEv = pTest.evals[pTest.evals.length - 1];
+    } else if (roundFilter === 'best') {
+      let best = null;
+      pTest.evals.forEach(ev => {
+        if (typeof ev.value !== 'number') return;
+        if (!best) {
+          best = ev;
+        } else if (cfg.higherIsBetter ? (ev.value > best.value) : (ev.value < best.value)) {
+          best = ev;
+        }
+      });
+      targetEv = best;
+    } else {
+      const rNum = parseInt(roundFilter, 10);
+      targetEv = pTest.evals.find(ev => ev.round === rNum);
+    }
+
+    if (targetEv && typeof targetEv.value === 'number') {
+      rankedList.push({
+        id: p.id,
+        name: p.name,
+        divisionLabel: p.divisionLabel,
+        filterTag: p.filterTag,
+        value: targetEv.value,
+        round: targetEv.round
+      });
+    }
+  });
+
+  // Ordenar según el test (mayor o menor es mejor)
+  if (cfg.higherIsBetter) {
+    rankedList.sort((a, b) => b.value - a.value);
+  } else {
+    rankedList.sort((a, b) => a.value - b.value);
+  }
+
+  // Asignar puestos de ranking con desempate
+  rankedList.forEach((item, idx) => {
+    if (idx > 0 && item.value === rankedList[idx - 1].value) {
+      item.rank = rankedList[idx - 1].rank;
+    } else {
+      item.rank = idx + 1;
+    }
+  });
+
+  return rankedList;
+}
+
+// Obtener la posición de una jugadora en un test específico
+function getPlayerRankInTest(playerId, testKey, categoryFilter = 'all', roundFilter = 'latest') {
+  const ranked = getRankedPlayersForTest(testKey, categoryFilter, roundFilter);
+  const found = ranked.find(p => p.id === playerId);
+  return found ? { rank: found.rank, total: ranked.length, value: found.value } : null;
+}
+
+// Renderizar Panel de Top 10 por Evaluación
+function renderTop10Panel() {
+  const container = document.getElementById('physTop10Panel');
+  if (!container) return;
+
+  if (!physicalPlayers || physicalPlayers.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: #9bb1d6; padding: 24px;">No hay evaluaciones físicas disponibles para calcular el Top 10.</div>';
+    return;
+  }
+
+  let scopeLabel = 'Todo el Plantel';
+  if (currentPhysFilter === '1ra') scopeLabel = '1ra División';
+  if (currentPhysFilter === 'Inter') scopeLabel = 'Intermedia';
+  if (currentPhysFilter === '5ta') scopeLabel = '5ta División';
+
+  let roundLabel = 'Última Evaluación';
+  if (currentTop10Round === 'best') roundLabel = 'Mejor Marca';
+  if (currentTop10Round === '1') roundLabel = '1° Evaluación';
+  if (currentTop10Round === '2') roundLabel = '2° Evaluación';
+  if (currentTop10Round === '3') roundLabel = '3° Evaluación';
+
+  // Pills de Tests
+  const testPillsHtml = `
+    <div class="top10-test-pills" id="top10TestPills">
+      <button type="button" class="top10-test-pill ${currentTop10Test === 'all' ? 'active' : ''}" data-test="all">
+        <span>📋</span> Todos los Tests
+      </button>
+      ${TESTS_CONFIG.map(cfg => `
+        <button type="button" class="top10-test-pill ${currentTop10Test === cfg.key ? 'active' : ''}" data-test="${cfg.key}">
+          <span>${cfg.icon}</span> ${cfg.name}
+        </button>
+      `).join('')}
+    </div>
+  `;
+
+  // Barra de Selector de Ronda
+  const roundBarHtml = `
+    <div class="top10-round-bar">
+      <span class="top10-round-label">Medición:</span>
+      <div class="top10-round-pills" id="top10RoundPills">
+        <button type="button" class="top10-round-pill ${currentTop10Round === 'latest' ? 'active' : ''}" data-round="latest">Última</button>
+        <button type="button" class="top10-round-pill ${currentTop10Round === 'best' ? 'active' : ''}" data-round="best">Mejor Marca</button>
+        <button type="button" class="top10-round-pill ${currentTop10Round === '1' ? 'active' : ''}" data-round="1">1° Eval</button>
+        <button type="button" class="top10-round-pill ${currentTop10Round === '2' ? 'active' : ''}" data-round="2">2° Eval</button>
+        <button type="button" class="top10-round-pill ${currentTop10Round === '3' ? 'active' : ''}" data-round="3">3° Eval</button>
+      </div>
+    </div>
+  `;
+
+  // Tests a mostrar
+  const testsToDisplay = (currentTop10Test === 'all')
+    ? TESTS_CONFIG
+    : TESTS_CONFIG.filter(cfg => cfg.key === currentTop10Test);
+
+  const cardsHtml = testsToDisplay.map(cfg => {
+    const fullRanked = getRankedPlayersForTest(cfg.key, currentPhysFilter, currentTop10Round);
+    const top10 = fullRanked.slice(0, 10);
+
+    let itemsHtml = '';
+    if (top10.length === 0) {
+      itemsHtml = '<div style="text-align: center; color: #9bb1d6; font-size: 0.8rem; padding: 14px;">No hay mediciones registradas en esta evaluación para el filtro actual.</div>';
+    } else {
+      itemsHtml = top10.map(item => {
+        let rankClass = 'rank-other';
+        let rankIcon = `#${item.rank}`;
+        if (item.rank === 1) {
+          rankClass = 'rank-1';
+          rankIcon = '🥇';
+        } else if (item.rank === 2) {
+          rankClass = 'rank-2';
+          rankIcon = '🥈';
+        } else if (item.rank === 3) {
+          rankClass = 'rank-3';
+          rankIcon = '🥉';
+        }
+
+        let badgeClass = 'badge-1ra';
+        if (item.filterTag === 'Inter') badgeClass = 'badge-inter';
+        if (item.filterTag === '5ta') badgeClass = 'badge-5ta';
+
+        return `
+          <div class="top10-item" data-player-id="${item.id}" title="Ver ficha de ${escapeHtml(item.name)}">
+            <div class="top10-rank-box">
+              <span class="top10-rank-badge ${rankClass}">${rankIcon}</span>
+              <div class="top10-player-info">
+                <span class="top10-player-name">${escapeHtml(item.name)}</span>
+                <div class="top10-player-meta">
+                  <span class="suggest-player-badge ${badgeClass}">${item.divisionLabel}</span>
+                  <span class="top10-round-tag">${item.round}° Eval</span>
+                </div>
+              </div>
+            </div>
+            <div class="top10-val-box">
+              <div class="top10-val-num">${item.value}<small>${cfg.unit}</small></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    return `
+      <div class="top10-card">
+        <div class="top10-card-header">
+          <div class="top10-card-title">
+            <span class="top10-icon">${cfg.icon}</span>
+            <div>
+              <h4 class="top10-name">${cfg.name}</h4>
+              <span class="top10-type">${cfg.type}</span>
+            </div>
+          </div>
+          <span class="top10-scope-badge">${escapeHtml(scopeLabel)} • ${top10.length} clasificadas</span>
+        </div>
+        <div class="top10-items-list">
+          ${itemsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="top10-header-card">
+      <span class="top10-badge">🏆 TABLA DE LÍDERES</span>
+      <h3 class="top10-title">TOP 10 POR EVALUACIÓN</h3>
+      <p class="top10-subtitle">Las mejores marcas físicas para <strong>${escapeHtml(scopeLabel)}</strong> (${roundLabel}). Tocá cualquier jugadora para ver su perfil completo.</p>
+    </div>
+    ${testPillsHtml}
+    ${roundBarHtml}
+    <div class="top10-grid">
+      ${cardsHtml}
+    </div>
+  `;
+
+  // Listeners de Selección de Test
+  const pillsContainer = document.getElementById('top10TestPills');
+  if (pillsContainer) {
+    pillsContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.top10-test-pill');
+      if (!btn) return;
+      currentTop10Test = btn.getAttribute('data-test') || 'all';
+      renderTop10Panel();
+    });
+  }
+
+  // Listeners de Selección de Ronda
+  const roundContainer = document.getElementById('top10RoundPills');
+  if (roundContainer) {
+    roundContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.top10-round-pill');
+      if (!btn) return;
+      currentTop10Round = btn.getAttribute('data-round') || 'latest';
+      renderTop10Panel();
+    });
+  }
+
+  // Listeners para abrir la ficha de la jugadora al hacer clic en el Top 10
+  container.querySelectorAll('.top10-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const pId = el.getAttribute('data-player-id');
+      if (pId) {
+        switchPhysicalViewMode('players');
+        selectPlayer(pId);
+      }
+    });
+  });
 }
 
 // Cargar y Parsear Planilla de Evaluaciones Físicas
@@ -1937,6 +2222,8 @@ async function loadPhysicalEvaluations(manual = false) {
       // Actualizar vista activa
       if (currentPhysViewMode === 'averages') {
         renderCategoryAverages(currentPhysFilter);
+      } else if (currentPhysViewMode === 'top10') {
+        renderTop10Panel();
       } else if (selectedPlayerId) {
         const p = physicalPlayers.find(pl => pl.id === selectedPlayerId);
         if (p) renderPlayerCard(p);
@@ -2125,6 +2412,18 @@ function renderPlayerCard(player) {
     const evals = t.evals || [];
     const unit = cfg.unit ? ` ${cfg.unit}` : '';
 
+    // Ranking en Top 10 si corresponde
+    let rankPillHtml = '';
+    const rankInfo = getPlayerRankInTest(player.id, k, benchCatKey, 'latest');
+    if (rankInfo && rankInfo.rank <= 10) {
+      let rankClass = 'rank-other';
+      let medal = '🏆';
+      if (rankInfo.rank === 1) { rankClass = 'rank-1'; medal = '🥇'; }
+      else if (rankInfo.rank === 2) { rankClass = 'rank-2'; medal = '🥈'; }
+      else if (rankInfo.rank === 3) { rankClass = 'rank-3'; medal = '🥉'; }
+      rankPillHtml = `<span class="test-top10-pill ${rankClass}" title="Posición #${rankInfo.rank} de ${rankInfo.total} en ${benchScopeName}">${medal} #${rankInfo.rank} en ${benchScopeShort}</span>`;
+    }
+
     // Badge de Evolución Personal
     let diffBadgeHtml = '';
     if (evals.length >= 2) {
@@ -2289,7 +2588,10 @@ function renderPlayerCard(player) {
               <span class="test-type">${cfg.type}</span>
             </div>
           </div>
-          ${diffBadgeHtml}
+          <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+            ${rankPillHtml}
+            ${diffBadgeHtml}
+          </div>
         </div>
 
         <div class="test-evals-row">
