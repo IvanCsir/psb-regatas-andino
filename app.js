@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T17:26:55.819Z
+ * Última actualización: 2026-10-21T17:33:56.538Z
  */
 
 // ============================================================================
@@ -37,7 +37,7 @@ let currentPhysFilter = "all"; // 'all' | '1ra' | 'Inter' | '5ta'
 let currentPhysBenchmarkScope = "category"; // 'category' | 'all'
 let currentPhysViewMode = "players"; // 'players' | 'averages' | 'top10'
 let currentTop10Test = "all"; // 'all' | 'broadJump' | 'cmj' | 'agility' | 'sprint' | 'yoyo' | 'bench' | 'deadlift' | 'squat' | 'platform'
-let currentTop10Round = "latest"; // 'latest' | 'best' | '1' | '2' | '3'
+let currentTop10Round = "latest"; // 'latest' | 'best' | 'avg' | '1' | '2' | '3'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 
@@ -1891,9 +1891,12 @@ function getRankedPlayersForTest(testKey, categoryFilter = 'all', roundFilter = 
     if (!pTest || !pTest.evals || pTest.evals.length === 0) return;
 
     let targetEv = null;
+    let evalCount = 1;
+    let roundLabelTag = '';
 
     if (roundFilter === 'latest') {
       targetEv = pTest.evals[pTest.evals.length - 1];
+      roundLabelTag = `${targetEv ? targetEv.round : 1}° Eval`;
     } else if (roundFilter === 'best') {
       let best = null;
       pTest.evals.forEach(ev => {
@@ -1905,9 +1908,20 @@ function getRankedPlayersForTest(testKey, categoryFilter = 'all', roundFilter = 
         }
       });
       targetEv = best;
+      roundLabelTag = `${best ? best.round : 1}° Eval (Mejor)`;
+    } else if (roundFilter === 'avg') {
+      const validEvals = pTest.evals.filter(ev => typeof ev.value === 'number');
+      if (validEvals.length > 0) {
+        const sum = validEvals.reduce((acc, ev) => acc + ev.value, 0);
+        const avg = +(sum / validEvals.length).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+        targetEv = { value: avg, round: validEvals[validEvals.length - 1].round };
+        evalCount = validEvals.length;
+        roundLabelTag = validEvals.length > 1 ? `Promedio (${validEvals.length} evals)` : '1 eval';
+      }
     } else {
       const rNum = parseInt(roundFilter, 10);
       targetEv = pTest.evals.find(ev => ev.round === rNum);
+      roundLabelTag = `${rNum}° Eval`;
     }
 
     if (targetEv && typeof targetEv.value === 'number') {
@@ -1917,7 +1931,9 @@ function getRankedPlayersForTest(testKey, categoryFilter = 'all', roundFilter = 
         divisionLabel: p.divisionLabel,
         filterTag: p.filterTag,
         value: targetEv.value,
-        round: targetEv.round
+        round: targetEv.round,
+        evalCount,
+        roundLabelTag
       });
     }
   });
@@ -1965,6 +1981,7 @@ function renderTop10Panel() {
 
   let roundLabel = 'Última Evaluación';
   if (currentTop10Round === 'best') roundLabel = 'Mejor Marca';
+  if (currentTop10Round === 'avg') roundLabel = 'Promedio de Evaluaciones';
   if (currentTop10Round === '1') roundLabel = '1° Evaluación';
   if (currentTop10Round === '2') roundLabel = '2° Evaluación';
   if (currentTop10Round === '3') roundLabel = '3° Evaluación';
@@ -1990,6 +2007,7 @@ function renderTop10Panel() {
       <div class="top10-round-pills" id="top10RoundPills">
         <button type="button" class="top10-round-pill ${currentTop10Round === 'latest' ? 'active' : ''}" data-round="latest">Última</button>
         <button type="button" class="top10-round-pill ${currentTop10Round === 'best' ? 'active' : ''}" data-round="best">Mejor Marca</button>
+        <button type="button" class="top10-round-pill ${currentTop10Round === 'avg' ? 'active' : ''}" data-round="avg">Promedio</button>
         <button type="button" class="top10-round-pill ${currentTop10Round === '1' ? 'active' : ''}" data-round="1">1° Eval</button>
         <button type="button" class="top10-round-pill ${currentTop10Round === '2' ? 'active' : ''}" data-round="2">2° Eval</button>
         <button type="button" class="top10-round-pill ${currentTop10Round === '3' ? 'active' : ''}" data-round="3">3° Eval</button>
@@ -2036,7 +2054,7 @@ function renderTop10Panel() {
                 <span class="top10-player-name">${escapeHtml(item.name)}</span>
                 <div class="top10-player-meta">
                   <span class="suggest-player-badge ${badgeClass}">${item.divisionLabel}</span>
-                  <span class="top10-round-tag">${item.round}° Eval</span>
+                  <span class="top10-round-tag">${escapeHtml(item.roundLabelTag || (item.round + '° Eval'))}</span>
                 </div>
               </div>
             </div>
