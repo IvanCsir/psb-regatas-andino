@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T14:41:32.655Z
+ * Última actualización: 2026-10-21T17:04:05.766Z
  */
 
 // ============================================================================
@@ -31,8 +31,11 @@ let currentMatchesTab = 'played'; // 'played' | 'pending'
 const PHYSICAL_SPREADSHEET_ID = "1dAoeA0_F4RGLDEjJ0taIJiPA3WlMWl5e";
 const PHYSICAL_STORAGE_KEY = "regatas_andino_fisico_v1";
 let physicalPlayers = [];
+let physicalCategoryAverages = null;
 let selectedPlayerId = null;
-let currentPhysFilter = "all"; // 'all' | 'PS-B' | 'PS-C' | '5ta'
+let currentPhysFilter = "all"; // 'all' | '1ra' | 'Inter' | '5ta'
+let currentPhysBenchmarkScope = "category"; // 'category' | 'all'
+let currentPhysViewMode = "players"; // 'players' | 'averages'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 
@@ -513,8 +516,12 @@ function showView(viewName) {
     renderTournamentView();
   } else if (viewName === 'fisico') {
     stopDtCloudPolling();
-    if (physicalPlayers.length > 0 && !selectedPlayerId) {
-      renderPhysicalSuggestions();
+    if (physicalPlayers.length > 0) {
+      if (currentPhysViewMode === 'averages') {
+        renderCategoryAverages(currentPhysFilter);
+      } else if (!selectedPlayerId) {
+        renderPhysicalSuggestions();
+      }
     }
   } else if (viewName === 'dt') {
     handleDtViewOpen();
@@ -1466,7 +1473,6 @@ const TESTS_CONFIG = [
   { key: 'platform', name: 'Plataforma', type: 'Potencia', unit: '', higherIsBetter: true, icon: '🎯', decimals: 1, cols: [27, 28, 29] }
 ];
 
-
 // SECCIÓN DE EVALUACIONES FÍSICAS
 // ============================================================================
 
@@ -1475,13 +1481,21 @@ function setupPhysicalSection() {
   const btnClear = document.getElementById('btnClearSearch');
   const filterChips = document.getElementById('physFilterChips');
   const btnChange = document.getElementById('btnChangePlayer');
+  const btnModePlayers = document.getElementById('btnPhysModePlayers');
+  const btnModeAverages = document.getElementById('btnPhysModeAverages');
+  const benchScopePills = document.getElementById('benchmarkScopePills');
 
   // Cargar datos cacheados si existen
   const cached = localStorage.getItem(PHYSICAL_STORAGE_KEY);
   if (cached) {
     try {
       physicalPlayers = JSON.parse(cached);
-      renderPhysicalSuggestions();
+      physicalCategoryAverages = calculateCategoryAverages();
+      if (currentPhysViewMode === 'averages') {
+        renderCategoryAverages(currentPhysFilter);
+      } else {
+        renderPhysicalSuggestions();
+      }
     } catch (e) {}
   }
 
@@ -1490,6 +1504,8 @@ function setupPhysicalSection() {
     inputSearch.addEventListener('input', () => {
       const q = inputSearch.value.trim();
       if (btnClear) btnClear.style.display = q ? 'block' : 'none';
+      const suggestList = document.getElementById('playersSuggestList');
+      if (suggestList) suggestList.style.display = 'flex';
       renderPhysicalSuggestions(q);
     });
   }
@@ -1503,7 +1519,20 @@ function setupPhysicalSection() {
     });
   }
 
-  // Chips de Filtro
+  // Selector de Modo: Jugadoras vs Medias por Categoría
+  if (btnModePlayers) {
+    btnModePlayers.addEventListener('click', () => {
+      switchPhysicalViewMode('players');
+    });
+  }
+
+  if (btnModeAverages) {
+    btnModeAverages.addEventListener('click', () => {
+      switchPhysicalViewMode('averages');
+    });
+  }
+
+  // Chips de Filtro (Categoría)
   if (filterChips) {
     filterChips.addEventListener('click', (e) => {
       const chip = e.target.closest('.filter-chip');
@@ -1513,8 +1542,29 @@ function setupPhysicalSection() {
       chip.classList.add('active');
       currentPhysFilter = chip.getAttribute('data-filter') || 'all';
 
-      const q = inputSearch ? inputSearch.value.trim() : '';
-      renderPhysicalSuggestions(q);
+      if (currentPhysViewMode === 'averages') {
+        renderCategoryAverages(currentPhysFilter);
+      } else {
+        const q = inputSearch ? inputSearch.value.trim() : '';
+        renderPhysicalSuggestions(q);
+      }
+    });
+  }
+
+  // Selector de Alcance de Comparativa en Perfil (Categoría vs Plantel Completo)
+  if (benchScopePills) {
+    benchScopePills.addEventListener('click', (e) => {
+      const pill = e.target.closest('.bench-pill');
+      if (!pill) return;
+
+      benchScopePills.querySelectorAll('.bench-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      currentPhysBenchmarkScope = pill.getAttribute('data-scope') || 'category';
+
+      if (selectedPlayerId) {
+        const p = physicalPlayers.find(pl => pl.id === selectedPlayerId);
+        if (p) renderPlayerCard(p);
+      }
     });
   }
 
@@ -1522,8 +1572,12 @@ function setupPhysicalSection() {
   if (btnChange) {
     btnChange.addEventListener('click', () => {
       selectedPlayerId = null;
-      document.getElementById('playerProfileCard').style.display = 'none';
-      document.getElementById('emptyPlayerState').style.display = 'block';
+      const profileCard = document.getElementById('playerProfileCard');
+      const emptyState = document.getElementById('emptyPlayerState');
+      const suggestList = document.getElementById('playersSuggestList');
+      if (profileCard) profileCard.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'block';
+      if (suggestList) suggestList.style.display = 'flex';
       if (inputSearch) {
         inputSearch.value = '';
         inputSearch.focus();
@@ -1531,6 +1585,248 @@ function setupPhysicalSection() {
       renderPhysicalSuggestions();
     });
   }
+}
+
+// Conmutar entre Modo Jugadoras y Modo Medias por Categoría
+function switchPhysicalViewMode(mode) {
+  currentPhysViewMode = mode;
+  const btnPlayers = document.getElementById('btnPhysModePlayers');
+  const btnAverages = document.getElementById('btnPhysModeAverages');
+  const suggestList = document.getElementById('playersSuggestList');
+  const searchWrapper = document.querySelector('.search-input-wrapper');
+  const avgPanel = document.getElementById('categoryAveragesPanel');
+  const profileCard = document.getElementById('playerProfileCard');
+  const emptyState = document.getElementById('emptyPlayerState');
+  const inputSearch = document.getElementById('inputSearchPlayer');
+
+  if (mode === 'averages') {
+    if (btnPlayers) btnPlayers.classList.remove('active');
+    if (btnAverages) btnAverages.classList.add('active');
+    if (suggestList) suggestList.style.display = 'none';
+    if (searchWrapper) searchWrapper.style.display = 'none';
+    if (profileCard) profileCard.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
+    if (avgPanel) avgPanel.style.display = 'flex';
+    renderCategoryAverages(currentPhysFilter);
+  } else {
+    if (btnPlayers) btnPlayers.classList.add('active');
+    if (btnAverages) btnAverages.classList.remove('active');
+    if (searchWrapper) searchWrapper.style.display = 'flex';
+    if (avgPanel) avgPanel.style.display = 'none';
+
+    if (selectedPlayerId) {
+      if (profileCard) profileCard.style.display = 'flex';
+      if (emptyState) emptyState.style.display = 'none';
+      if (suggestList) suggestList.style.display = 'none';
+      const p = physicalPlayers.find(pl => pl.id === selectedPlayerId);
+      if (p) renderPlayerCard(p);
+    } else {
+      if (profileCard) profileCard.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'block';
+      if (suggestList) suggestList.style.display = 'flex';
+      renderPhysicalSuggestions(inputSearch ? inputSearch.value.trim() : '');
+    }
+  }
+}
+
+// Calcular Medias de Cada Evaluación por Categoría y Plantel Completo
+function calculateCategoryAverages() {
+  if (!physicalPlayers || physicalPlayers.length === 0) return null;
+
+  const categories = [
+    { key: 'all', label: 'Todo el Plantel', filter: () => true },
+    { key: '1ra', label: '1ra División', filter: p => p.filterTag === '1ra' },
+    { key: 'Inter', label: 'Intermedia', filter: p => p.filterTag === 'Inter' },
+    { key: '5ta', label: '5ta División', filter: p => p.filterTag === '5ta' }
+  ];
+
+  const result = {};
+
+  categories.forEach(cat => {
+    const playersInCat = physicalPlayers.filter(cat.filter);
+    const testsStats = {};
+
+    TESTS_CONFIG.forEach(cfg => {
+      const rounds = {
+        1: { count: 0, sum: 0, avg: null },
+        2: { count: 0, sum: 0, avg: null },
+        3: { count: 0, sum: 0, avg: null }
+      };
+
+      const latestVals = [];
+
+      playersInCat.forEach(p => {
+        const pTest = p.tests ? p.tests[cfg.key] : null;
+        if (!pTest || !pTest.evals || pTest.evals.length === 0) return;
+
+        pTest.evals.forEach(ev => {
+          if (ev.round >= 1 && ev.round <= 3 && typeof ev.value === 'number') {
+            rounds[ev.round].count++;
+            rounds[ev.round].sum += ev.value;
+          }
+        });
+
+        const lastEv = pTest.evals[pTest.evals.length - 1];
+        if (lastEv && typeof lastEv.value === 'number') {
+          latestVals.push(lastEv.value);
+        }
+      });
+
+      // Medias de cada ronda (1°, 2°, 3° evaluación)
+      [1, 2, 3].forEach(r => {
+        if (rounds[r].count > 0) {
+          rounds[r].avg = +(rounds[r].sum / rounds[r].count).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+        }
+      });
+
+      // Media general / última medición
+      let latestAvg = null;
+      if (latestVals.length > 0) {
+        const sum = latestVals.reduce((a, b) => a + b, 0);
+        latestAvg = +(sum / latestVals.length).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+      }
+
+      // Evolución de la media del grupo entre primera y última evaluación disponible
+      let diff = null;
+      let diffPct = null;
+      let improved = null;
+      const validRoundKeys = [1, 2, 3].filter(r => rounds[r].avg !== null);
+      if (validRoundKeys.length >= 2) {
+        const firstR = validRoundKeys[0];
+        const lastR = validRoundKeys[validRoundKeys.length - 1];
+        diff = +(rounds[lastR].avg - rounds[firstR].avg).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+        diffPct = rounds[firstR].avg !== 0 ? +((diff / rounds[firstR].avg) * 100).toFixed(1) : 0;
+        improved = cfg.higherIsBetter ? (diff > 0) : (diff < 0);
+      }
+
+      testsStats[cfg.key] = {
+        config: cfg,
+        rounds,
+        latestAvg,
+        latestCount: latestVals.length,
+        diff,
+        diffPct,
+        improved
+      };
+    });
+
+    result[cat.key] = {
+      key: cat.key,
+      label: cat.label,
+      playerCount: playersInCat.length,
+      tests: testsStats
+    };
+  });
+
+  return result;
+}
+
+// Renderizar Panel de Medias de Evaluaciones por Categoría
+function renderCategoryAverages(catFilter = 'all') {
+  const container = document.getElementById('categoryAveragesPanel');
+  if (!container) return;
+
+  if (!physicalCategoryAverages) {
+    physicalCategoryAverages = calculateCategoryAverages();
+  }
+
+  if (!physicalCategoryAverages) {
+    container.innerHTML = '<div style="text-align: center; color: #9bb1d6; padding: 20px;">No hay evaluaciones físicas disponibles para calcular medias.</div>';
+    return;
+  }
+
+  const catData = physicalCategoryAverages[catFilter] || physicalCategoryAverages['all'];
+  if (!catData) return;
+
+  const testCardsHtml = TESTS_CONFIG.map(cfg => {
+    const tData = catData.tests[cfg.key];
+    const unit = cfg.unit ? ` ${cfg.unit}` : '';
+
+    if (!tData || tData.latestCount === 0) {
+      return `
+        <div class="cat-avg-card">
+          <div class="cat-avg-header">
+            <div class="cat-avg-title-box">
+              <span class="cat-avg-icon">${cfg.icon}</span>
+              <div>
+                <h4 class="cat-avg-name">${cfg.name}</h4>
+                <span class="cat-avg-type">${cfg.type}</span>
+              </div>
+            </div>
+            <div class="cat-avg-latest-val">
+              <span class="cat-avg-num" style="color: var(--text-muted); font-size: 0.95rem;">Sin registros</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Badge de evolución de la media si existen 2+ rondas
+    let diffBadgeHtml = '';
+    if (tData.diff !== null) {
+      const sign = tData.diff > 0 ? '+' : '';
+      const pctSign = tData.diffPct > 0 ? '+' : '';
+      if (tData.improved) {
+        diffBadgeHtml = `<span class="test-diff-badge positive">${sign}${tData.diff}${unit} (${pctSign}${tData.diffPct}%) ↗ Evolución</span>`;
+      } else if (tData.diff === 0) {
+        diffBadgeHtml = `<span class="test-diff-badge neutral">= Media estable</span>`;
+      } else {
+        diffBadgeHtml = `<span class="test-diff-badge negative">${sign}${tData.diff}${unit} (${pctSign}${tData.diffPct}%) ↘</span>`;
+      }
+    }
+
+    // Rondas evaluadas
+    const roundsHtml = [1, 2, 3].map(r => {
+      const rData = tData.rounds[r];
+      const hasAvg = (rData && rData.avg !== null);
+      const valStr = hasAvg ? `${rData.avg}<small>${cfg.unit}</small>` : '-';
+      const countStr = hasAvg ? `${rData.count} evaluadas` : 'Sin registros';
+
+      return `
+        <div class="cat-avg-round-item">
+          <span class="cat-avg-round-name">${r}° EVAL</span>
+          <div class="cat-avg-round-num">${valStr}</div>
+          <span class="cat-avg-round-count">${countStr}</span>
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="cat-avg-card">
+        <div class="cat-avg-header">
+          <div class="cat-avg-title-box">
+            <span class="cat-avg-icon">${cfg.icon}</span>
+            <div>
+              <h4 class="cat-avg-name">${cfg.name}</h4>
+              <span class="cat-avg-type">${cfg.type}</span>
+            </div>
+          </div>
+          <div class="cat-avg-latest-val">
+            <div class="cat-avg-num">${tData.latestAvg !== null ? tData.latestAvg : '-'}<small>${tData.latestAvg !== null ? cfg.unit : ''}</small></div>
+            <div class="cat-avg-lbl">Media Actual</div>
+          </div>
+        </div>
+
+        <div class="cat-avg-rounds-row">
+          ${roundsHtml}
+        </div>
+
+        ${diffBadgeHtml ? `<div style="display:flex; justify-content:flex-end; padding-top:4px;">${diffBadgeHtml}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="cat-avg-intro">
+      <div class="cat-avg-intro-title">
+        <span>📊</span> Medias de Rendimiento: <strong>${escapeHtml(catData.label)}</strong>
+      </div>
+      <span class="cat-avg-count-badge">${catData.playerCount} Jugadoras</span>
+    </div>
+    <div class="cat-avg-grid">
+      ${testCardsHtml}
+    </div>
+  `;
 }
 
 // Cargar y Parsear Planilla de Evaluaciones Físicas
@@ -1602,7 +1898,7 @@ async function loadPhysicalEvaluations(manual = false) {
           if (validEvals.length >= 2) {
             const first = validEvals[0].value;
             const last = validEvals[validEvals.length - 1].value;
-            diff = +(last - first).toFixed(cfg.decimals || 2);
+            diff = +(last - first).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
             diffPct = first !== 0 ? +((diff / first) * 100).toFixed(1) : 0;
             improved = cfg.higherIsBetter ? (diff > 0) : (diff < 0);
           }
@@ -1635,8 +1931,13 @@ async function loadPhysicalEvaluations(manual = false) {
         localStorage.setItem(PHYSICAL_STORAGE_KEY, JSON.stringify(physicalPlayers));
       } catch (e) {}
 
-      // Actualizar vista activa si hay seleccionada
-      if (selectedPlayerId) {
+      // Calcular medias por categoría
+      physicalCategoryAverages = calculateCategoryAverages();
+
+      // Actualizar vista activa
+      if (currentPhysViewMode === 'averages') {
+        renderCategoryAverages(currentPhysFilter);
+      } else if (selectedPlayerId) {
         const p = physicalPlayers.find(pl => pl.id === selectedPlayerId);
         if (p) renderPlayerCard(p);
       } else {
@@ -1721,15 +2022,17 @@ function selectPlayer(id) {
 
   const profileCard = document.getElementById('playerProfileCard');
   const emptyState = document.getElementById('emptyPlayerState');
+  const suggestList = document.getElementById('playersSuggestList');
 
   if (profileCard) profileCard.style.display = 'flex';
   if (emptyState) emptyState.style.display = 'none';
+  if (suggestList) suggestList.style.display = 'none';
 
   // Scroll suave hacia la ficha en móviles
   profileCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-// Renderizar Perfil y Comparativas de la Jugadora
+// Renderizar Perfil y Comparativas de la Jugadora vs Medias de Cada Evaluación
 function renderPlayerCard(player) {
   const nameEl = document.getElementById('profilePlayerName');
   const initialEl = document.getElementById('profileInitial');
@@ -1745,24 +2048,67 @@ function renderPlayerCard(player) {
   const testKeys = Object.keys(player.tests);
   if (countEl) countEl.textContent = `${testKeys.length} Tests Evaluados`;
 
-  // Contar mejoras
+  // Asegurar medias de categorías calculadas
+  if (!physicalCategoryAverages) {
+    physicalCategoryAverages = calculateCategoryAverages();
+  }
+
+  // Determinar categoría para la comparativa
+  const isCatScope = (currentPhysBenchmarkScope !== 'all');
+  const benchCatKey = isCatScope ? (player.filterTag || '1ra') : 'all';
+  const benchScopeName = isCatScope ? player.divisionLabel : 'Todo el Plantel';
+  const benchScopeShort = isCatScope ? (player.filterTag === 'Inter' ? 'Inter' : (player.filterTag === '5ta' ? '5ta' : '1ra')) : 'Plantel';
+  const catBenchmark = physicalCategoryAverages ? physicalCategoryAverages[benchCatKey] : null;
+
+  // Actualizar estado visual de los botones de alcance de comparativa
+  const pillCat = document.getElementById('btnBenchCategory');
+  const pillAll = document.getElementById('btnBenchAll');
+  if (pillCat) pillCat.classList.toggle('active', isCatScope);
+  if (pillAll) pillAll.classList.toggle('active', !isCatScope);
+
+  // Contar mejoras personales y marcas que superan la media
   let improvedCount = 0;
   let comparableCount = 0;
+  let aboveAvgCount = 0;
+  let benchCount = 0;
 
   testKeys.forEach(k => {
     const t = player.tests[k];
-    if (t.evals && t.evals.length >= 2) {
+    const cfg = t.config;
+    const evals = t.evals || [];
+
+    if (evals.length >= 2) {
       comparableCount++;
       if (t.improved) improvedCount++;
+    }
+
+    if (evals.length > 0 && catBenchmark) {
+      const lastEval = evals[evals.length - 1];
+      const catTest = catBenchmark.tests[k];
+      const catRoundAvg = (catTest?.rounds[lastEval.round]?.avg !== null && catTest?.rounds[lastEval.round]?.avg !== undefined)
+        ? catTest.rounds[lastEval.round].avg
+        : catTest?.latestAvg;
+
+      if (catRoundAvg !== null && catRoundAvg !== undefined) {
+        benchCount++;
+        const diff = +(lastEval.value - catRoundAvg).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+        const isSuperior = cfg.higherIsBetter ? (diff > 0) : (diff < 0);
+        if (isSuperior) aboveAvgCount++;
+      }
     }
   });
 
   if (summaryText) {
+    const summaryParts = [];
     if (comparableCount > 0) {
-      summaryText.textContent = `¡Progreso destacado! ${improvedCount} de ${comparableCount} tests con superación de marcas.`;
-    } else {
-      summaryText.textContent = `Mediciones físicas registradas.`;
+      summaryParts.push(`📈 <strong>${improvedCount}/${comparableCount}</strong> tests con superación personal`);
     }
+    if (benchCount > 0) {
+      summaryParts.push(`⭐ <strong>${aboveAvgCount}/${benchCount}</strong> superan la media (${benchScopeShort})`);
+    }
+    summaryText.innerHTML = summaryParts.length > 0
+      ? summaryParts.join(' &nbsp;•&nbsp; ')
+      : 'Mediciones físicas registradas.';
   }
 
   if (!testsGrid) return;
@@ -1772,14 +2118,14 @@ function renderPlayerCard(player) {
     return;
   }
 
-  // Renderizar cada test físico
+  // Renderizar cada test físico con comparativa de media por cada evaluación
   testsGrid.innerHTML = testKeys.map(k => {
     const t = player.tests[k];
     const cfg = t.config;
     const evals = t.evals || [];
     const unit = cfg.unit ? ` ${cfg.unit}` : '';
 
-    // Badge de Evolución
+    // Badge de Evolución Personal
     let diffBadgeHtml = '';
     if (evals.length >= 2) {
       const sign = t.diff > 0 ? '+' : '';
@@ -1795,29 +2141,46 @@ function renderPlayerCard(player) {
       diffBadgeHtml = `<span class="test-diff-badge info">1° Medición</span>`;
     }
 
-    // Fila de Cajas de Evaluación
+    // Fila de Cajas de Evaluación (con subtítulo de media de cada evaluación por categoría)
     const evalsBoxesHtml = evals.map((ev, i) => {
       const isLast = (i === evals.length - 1 && evals.length > 1);
       const highlightClass = isLast ? 'highlight' : '';
       const arrowHtml = (i < evals.length - 1) ? '<div class="eval-arrow">➔</div>' : '';
 
+      // Media de esta evaluación específica
+      let avgSubHtml = '';
+      const catTest = catBenchmark ? catBenchmark.tests[k] : null;
+      const rAvg = catTest?.rounds[ev.round]?.avg;
+      if (rAvg !== null && rAvg !== undefined) {
+        const rDiff = +(ev.value - rAvg).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+        const isBetter = cfg.higherIsBetter ? (rDiff >= 0) : (rDiff <= 0);
+        const rSign = rDiff > 0 ? '+' : '';
+        const rColor = isBetter ? '#34d399' : '#f87171';
+        avgSubHtml = `
+          <span class="eval-box-avg" title="Media de ${benchScopeName}: ${rAvg}${cfg.unit}">
+            Media ${benchScopeShort}: <strong style="color: #ffffff;">${rAvg}</strong>
+            <span style="color: ${rColor}; font-size: 0.62rem; margin-left: 2px;">(${rSign}${rDiff})</span>
+          </span>
+        `;
+      }
+
       return `
         <div class="eval-box ${highlightClass}">
           <span class="eval-label">${ev.round}° EVALUACIÓN</span>
           <span class="eval-val">${ev.value}<small>${cfg.unit}</small></span>
+          ${avgSubHtml}
         </div>
         ${arrowHtml}
       `;
     }).join('');
 
-    // Barra de Progreso Comparativa
+    // Barra de Progreso Personal (si hay 2+ evaluaciones)
     let progressBarHtml = '';
     if (evals.length >= 2) {
       const values = evals.map(e => e.value);
       const maxVal = Math.max(...values) * 1.08;
       
       const barsHtml = evals.map((ev, i) => {
-        const isFirst = (i === 0);
         const isLast = (i === evals.length - 1);
         let fillClass = 'fill-first';
         if (isLast) {
@@ -1845,6 +2208,77 @@ function renderPlayerCard(player) {
       `;
     }
 
+    // Box Comparativo Benchmark vs Media de la Categoría
+    let benchmarkHtml = '';
+    const lastEval = evals[evals.length - 1];
+    const catTest = catBenchmark ? catBenchmark.tests[k] : null;
+    const catRefAvg = (lastEval && catTest?.rounds[lastEval.round]?.avg !== null && catTest?.rounds[lastEval.round]?.avg !== undefined)
+      ? catTest.rounds[lastEval.round].avg
+      : catTest?.latestAvg;
+
+    if (lastEval && catRefAvg !== null && catRefAvg !== undefined) {
+      const playerVal = lastEval.value;
+      const benchDiff = +(playerVal - catRefAvg).toFixed(cfg.decimals !== undefined ? cfg.decimals : 2);
+      const benchDiffAbs = Math.abs(benchDiff);
+      const benchPct = catRefAvg !== 0 ? +((benchDiffAbs / catRefAvg) * 100).toFixed(1) : 0;
+      const isSuperior = cfg.higherIsBetter ? (benchDiff > 0) : (benchDiff < 0);
+      const isIdentical = (benchDiff === 0);
+
+      let bClass = 'positive';
+      let bText = '';
+
+      if (isIdentical) {
+        bClass = 'neutral';
+        bText = '= Igual a la media';
+      } else if (isSuperior) {
+        bClass = 'positive';
+        if (cfg.higherIsBetter) {
+          bText = `+${benchDiffAbs}${unit} (+${benchPct}%) Supera media`;
+        } else {
+          bText = `-${benchDiffAbs}${unit} (${benchPct}% más rápida)`;
+        }
+      } else {
+        bClass = 'warning';
+        if (cfg.higherIsBetter) {
+          bText = `-${benchDiffAbs}${unit} (-${benchPct}%) Bajo la media`;
+        } else {
+          bText = `+${benchDiffAbs}${unit} (${benchPct}% sobre la media)`;
+        }
+      }
+
+      const maxRef = Math.max(playerVal, catRefAvg) * 1.12;
+      const playerWidthPct = Math.min(100, Math.max(12, (playerVal / maxRef) * 100));
+      const avgWidthPct = Math.min(100, Math.max(12, (catRefAvg / maxRef) * 100));
+      const playerFillClass = isSuperior ? 'player-better' : 'player-regular';
+
+      benchmarkHtml = `
+        <div class="test-benchmark-box">
+          <div class="benchmark-header">
+            <div class="benchmark-title">
+              <span>📊</span> Comparativa vs Media (${benchScopeName})
+            </div>
+            <span class="benchmark-badge ${bClass}">${bText}</span>
+          </div>
+          <div class="benchmark-bars-wrapper">
+            <div class="benchmark-bar-row">
+              <span class="benchmark-bar-lbl">Jugadora:</span>
+              <div class="benchmark-bar-track">
+                <div class="benchmark-bar-fill ${playerFillClass}" style="width: ${playerWidthPct.toFixed(1)}%;"></div>
+              </div>
+              <span class="benchmark-bar-val">${playerVal}${unit}</span>
+            </div>
+            <div class="benchmark-bar-row">
+              <span class="benchmark-bar-lbl">Media ${benchScopeShort}:</span>
+              <div class="benchmark-bar-track">
+                <div class="benchmark-bar-fill average-ref" style="width: ${avgWidthPct.toFixed(1)}%;"></div>
+              </div>
+              <span class="benchmark-bar-val">${catRefAvg}${unit}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="test-card">
         <div class="test-card-header">
@@ -1863,6 +2297,8 @@ function renderPlayerCard(player) {
         </div>
 
         ${progressBarHtml}
+
+        ${benchmarkHtml}
       </div>
     `;
   }).join('');

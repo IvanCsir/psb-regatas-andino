@@ -21,8 +21,11 @@ let currentMatchesTab = 'played'; // 'played' | 'pending'
 const PHYSICAL_SPREADSHEET_ID = "1dAoeA0_F4RGLDEjJ0taIJiPA3WlMWl5e";
 const PHYSICAL_STORAGE_KEY = "regatas_andino_fisico_v1";
 let physicalPlayers = [];
+let physicalCategoryAverages = null;
 let selectedPlayerId = null;
-let currentPhysFilter = "all"; // 'all' | 'PS-B' | 'PS-C' | '5ta'
+let currentPhysFilter = "all"; // 'all' | '1ra' | 'Inter' | '5ta'
+let currentPhysBenchmarkScope = "category"; // 'category' | 'all'
+let currentPhysViewMode = "players"; // 'players' | 'averages'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 

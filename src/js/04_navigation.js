@@ -226,8 +226,12 @@ function showView(viewName) {
     renderTournamentView();
   } else if (viewName === 'fisico') {
     stopDtCloudPolling();
-    if (physicalPlayers.length > 0 && !selectedPlayerId) {
-      renderPhysicalSuggestions();
+    if (physicalPlayers.length > 0) {
+      if (currentPhysViewMode === 'averages') {
+        renderCategoryAverages(currentPhysFilter);
+      } else if (!selectedPlayerId) {
+        renderPhysicalSuggestions();
+      }
     }
   } else if (viewName === 'dt') {
     handleDtViewOpen();

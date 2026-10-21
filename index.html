@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v21">
+  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v22">
 </head>
 <body>
 
@@ -408,8 +408,23 @@
           <button class="filter-chip" data-filter="5ta">5ta División</button>
         </div>
 
+        <!-- Selector de Modo: Jugadoras vs Medias por Categoría -->
+        <div class="phys-view-mode-bar" id="physViewModeBar">
+          <button type="button" class="phys-mode-btn active" id="btnPhysModePlayers">
+            <span>👤</span> Jugadoras
+          </button>
+          <button type="button" class="phys-mode-btn" id="btnPhysModeAverages">
+            <span>📊</span> Medias por Categoría
+          </button>
+        </div>
+
         <!-- Lista sugerida de jugadoras -->
         <div class="players-suggest-list" id="playersSuggestList">
+          <!-- Renderizado dinámicamente por app.js -->
+        </div>
+
+        <!-- Panel de Medias por Categoría -->
+        <div class="category-averages-panel" id="categoryAveragesPanel" style="display: none;">
           <!-- Renderizado dinámicamente por app.js -->
         </div>
       </section>
@@ -431,6 +446,19 @@
           <button class="btn-change-player" id="btnChangePlayer" title="Cerrar y buscar otra jugadora">
             ✕
           </button>
+        </div>
+
+        <!-- Selector de Alcance de Comparativa (Categoría vs Plantel Completo) -->
+        <div class="profile-benchmark-switch-bar">
+          <span class="benchmark-switch-label">Comparar con:</span>
+          <div class="benchmark-switch-pills" id="benchmarkScopePills">
+            <button type="button" class="bench-pill active" data-scope="category" id="btnBenchCategory">
+              Media de su Categoría
+            </button>
+            <button type="button" class="bench-pill" data-scope="all" id="btnBenchAll">
+              Media Todo el Plantel
+            </button>
+          </div>
         </div>
 
         <!-- Barra resumen de comparativa -->
@@ -1266,7 +1294,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261021_mobile_v21"></script>
-  <script src="app.js?v=20261021_mobile_v21"></script>
+  <script src="data.js?v=20261021_mobile_v22"></script>
+  <script src="app.js?v=20261021_mobile_v22"></script>
 </body>
 </html>
