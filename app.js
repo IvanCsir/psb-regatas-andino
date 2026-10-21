@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T12:37:39.108Z
+ * Última actualización: 2026-10-21T12:48:09.846Z
  */
 
 // ============================================================================
@@ -1926,7 +1926,6 @@ function formatCitacionSyncTime(timestamp) {
 function updateCitacionSyncBadge(state = 'success', customText = null) {
   const dot = document.getElementById('citacionSyncDot');
   const textEl = document.getElementById('citacionSyncText');
-  const btn = document.getElementById('btnRefreshCitacion');
 
   if (!dot || !textEl) return;
 
@@ -1934,12 +1933,9 @@ function updateCitacionSyncBadge(state = 'success', customText = null) {
 
   if (state === 'syncing') {
     dot.classList.add('syncing');
-    if (btn) btn.classList.add('is-spinning');
-    textEl.textContent = customText || 'Actualizando desde Google Sheets...';
+    textEl.textContent = customText || 'Actualizando...';
     return;
   }
-
-  if (btn) btn.classList.remove('is-spinning');
 
   let savedTs = null;
   try {
@@ -1948,26 +1944,19 @@ function updateCitacionSyncBadge(state = 'success', customText = null) {
 
   if (state === 'success') {
     const timeFormatted = formatCitacionSyncTime(savedTs || Date.now());
-    textEl.textContent = customText || `Citación al día • ${timeFormatted}`;
+    textEl.textContent = customText || `Actualizado ${timeFormatted}`;
   } else if (state === 'offline' || state === 'error') {
     dot.classList.add('offline');
     if (savedTs) {
       const timeFormatted = formatCitacionSyncTime(savedTs);
       textEl.textContent = customText || `Sin conexión • Guardado ${timeFormatted}`;
     } else {
-      textEl.textContent = customText || 'Sin conexión a Google Sheets';
+      textEl.textContent = customText || 'Sin conexión';
     }
   }
 }
 
 function setupCitacionSyncUI() {
-  const btnRefresh = document.getElementById('btnRefreshCitacion');
-  if (btnRefresh) {
-    btnRefresh.addEventListener('click', (e) => {
-      e.preventDefault();
-      syncWithGoogleSheets(true);
-    });
-  }
   updateCitacionSyncBadge('success');
 }
 

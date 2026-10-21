@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v16">
+  <link rel="stylesheet" href="styles.css?v=20261021_mobile_v17">
 </head>
 <body>
 
@@ -245,16 +245,10 @@
         </div>
       </section>
 
-      <!-- Estado de Sincronización al final de la Citación -->
-      <div class="citacion-sync-status" id="citacionSyncStatus">
-        <div class="sync-status-indicator">
-          <span class="sync-status-dot" id="citacionSyncDot"></span>
-          <span class="sync-status-text" id="citacionSyncText">Citación al día</span>
-        </div>
-        <button type="button" class="btn-citacion-refresh" id="btnRefreshCitacion" title="Actualizar citación desde Google Sheets" aria-label="Actualizar citación">
-          <span class="refresh-icon">🔄</span>
-          <span class="refresh-label">Actualizar</span>
-        </button>
+      <!-- Pie minimalista de sincronización -->
+      <div class="citacion-minimal-footer" id="citacionSyncStatus">
+        <span class="sync-status-dot" id="citacionSyncDot"></span>
+        <span class="sync-status-text" id="citacionSyncText">Actualizado recientemente</span>
       </div>
 
     </div> <!-- /viewCitacion -->
@@ -1257,7 +1251,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="data.js?v=20261021_mobile_v16"></script>
-  <script src="app.js?v=20261021_mobile_v16"></script>
+  <script src="data.js?v=20261021_mobile_v17"></script>
+  <script src="app.js?v=20261021_mobile_v17"></script>
 </body>
 </html>
