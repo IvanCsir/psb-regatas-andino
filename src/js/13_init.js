@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentActiveView === 'torneo') syncTournamentData();
       }
     }
-  }, 60000);
+  }, 25000);
 
   // Al volver a la app o desbloquear el celular
   document.addEventListener('visibilitychange', () => {

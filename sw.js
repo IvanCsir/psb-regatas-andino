@@ -1,6 +1,6 @@
 // Service Worker - Regatas Andino Hockey PWA
 // Cache Version
-const CACHE_NAME = 'regatas-hockey-v20261020-mobile-v15';
+const CACHE_NAME = 'regatas-hockey-v20261020-mobile-v16';
 
 // Recursos críticos para funcionamiento offline
 const STATIC_ASSETS = [

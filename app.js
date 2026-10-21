@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T00:01:31.406Z
+ * Última actualización: 2026-10-21T12:37:39.108Z
  */
 
 // ============================================================================
@@ -1536,7 +1536,10 @@ function setupPhysicalSection() {
 async function loadPhysicalEvaluations(manual = false) {
   try {
     const url = `https://docs.google.com/spreadsheets/d/${PHYSICAL_SPREADSHEET_ID}/gviz/tq?tqx=out:json&_t=${Date.now()}`;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     const match = text.match(/setResponse\(([\s\S]+)\);/);
@@ -1975,7 +1978,10 @@ async function syncWithGoogleSheets(manual = false) {
   try {
     const fetchTab = async (tabName) => {
       const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&range=A:L&sheet=${encodeURIComponent(tabName)}&_t=${Date.now()}`;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache' }
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
       const match = text.match(/setResponse\(([\s\S]+)\);/);
@@ -6592,7 +6598,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentActiveView === 'torneo') syncTournamentData();
       }
     }
-  }, 60000);
+  }, 25000);
 
   // Al volver a la app o desbloquear el celular
   document.addEventListener('visibilitychange', () => {
