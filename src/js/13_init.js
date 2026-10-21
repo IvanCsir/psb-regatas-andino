@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Polling inteligente respetando visibilidad de pantalla (ahorro de batería en celulares)
   setInterval(() => {
     if (document.visibilityState === 'visible') {
+      updateCtUiState();
       syncWithGoogleSheets();
       if (typeof currentActiveView !== 'undefined') {
         if (currentActiveView === 'fisico') loadPhysicalEvaluations();
@@ -33,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Al volver a la app o desbloquear el celular
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      updateCtUiState();
       syncWithGoogleSheets();
       if (typeof currentActiveView !== 'undefined') {
         if (currentActiveView === 'fisico') loadPhysicalEvaluations();
@@ -42,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('focus', () => {
+    updateCtUiState();
     syncWithGoogleSheets();
     if (typeof currentActiveView !== 'undefined') {
       if (currentActiveView === 'fisico') loadPhysicalEvaluations();

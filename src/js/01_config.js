@@ -26,8 +26,7 @@ let currentPhysFilter = "all"; // 'all' | 'PS-B' | 'PS-C' | '5ta'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 
-// Seguridad & Hash SHA-256 de Cuerpo Técnico (clave oficial hasheada, nunca en texto plano)
-const CT_PASSWORD_HASH = '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf05279b26691a4d';
-const CT_AUTH_STORAGE_KEY = 'regatas_ct_auth_v3';
+// Sesión y Seguridad de Cuerpo Técnico (Expiración de 12hs validada por /api/auth)
+const CT_AUTH_STORAGE_KEY = 'regatas_ct_session_v4';
 const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
 const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';

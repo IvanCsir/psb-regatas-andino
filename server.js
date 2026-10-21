@@ -236,6 +236,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API de Autenticación de Cuerpo Técnico
+  if (reqPath === '/api/auth') {
+    const authHandler = require('./api/auth.js');
+    authHandler(req, res);
+    return;
+  }
+
   let filePath = path.join(__dirname, reqPath === '/' ? 'index.html' : reqPath);
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';

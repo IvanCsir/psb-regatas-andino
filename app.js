@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-20T23:51:37.514Z
+ * Última actualización: 2026-10-21T00:01:31.406Z
  */
 
 // ============================================================================
@@ -36,9 +36,8 @@ let currentPhysFilter = "all"; // 'all' | 'PS-B' | 'PS-C' | '5ta'
 
 const STORAGE_KEY = 'regatas_andino_citaciones_v6';
 
-// Seguridad & Hash SHA-256 de Cuerpo Técnico (clave oficial hasheada, nunca en texto plano)
-const CT_PASSWORD_HASH = '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf05279b26691a4d';
-const CT_AUTH_STORAGE_KEY = 'regatas_ct_auth_v3';
+// Sesión y Seguridad de Cuerpo Técnico (Expiración de 12hs validada por /api/auth)
+const CT_AUTH_STORAGE_KEY = 'regatas_ct_session_v4';
 const DT_SPREADSHEET_ID = '1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg';
 const DT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EfZtExHcLrio49A3wmyZcUOCZYZ7jNnatFt-wsebPQg/edit';
 
@@ -126,34 +125,89 @@ function fallbackSha256(ascii) {
 // MÓDULO: 03_auth.js
 // ============================================================================
 
+function getCtSession() {
+  try {
+    const raw = localStorage.getItem(CT_AUTH_STORAGE_KEY);
+    if (!raw) return null;
+    const session = JSON.parse(raw);
+    if (session && session.expiresAt && Date.now() <= Number(session.expiresAt)) {
+      return session;
+    }
+    // Si venció, limpiar
+    localStorage.removeItem(CT_AUTH_STORAGE_KEY);
+  } catch (e) {}
+  return null;
+}
+
 async function verifyCtPassword(input) {
   const clean = (input || '').trim().toLowerCase();
   if (!clean) return false;
-  const hash = await sha256Hex(clean);
-  return hash === CT_PASSWORD_HASH;
+
+  // 1. Validar contra el Backend Serverless (/api/auth)
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: clean })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.token && data.expiresAt) {
+        setCtAuthenticated(true, data);
+        return true;
+      }
+    } else if (res.status === 401) {
+      return false; // Contraseña incorrecta confirmada por el servidor
+    }
+  } catch (netErr) {
+    console.warn('[Auth] Sin conexión al backend /api/auth, evaluando fallback offline:', netErr);
+  }
+
+  // 2. Fallback de emergencia offline (por si no hay señal en la cancha durante el inicio)
+  try {
+    const hash = await sha256Hex(clean);
+    if (hash === '22d8ca9f3e18516b47d360c698dd09900b1195161cbecf7bcf05279b26691a4d') {
+      const fallbackExpires = Date.now() + (12 * 60 * 60 * 1000);
+      setCtAuthenticated(true, { expiresAt: fallbackExpires, token: 'offline_token' });
+      return true;
+    }
+  } catch (e) {}
+
+  return false;
 }
 
 function isCtAuthenticated() {
-  try {
-    return localStorage.getItem(CT_AUTH_STORAGE_KEY) === 'true';
-  } catch (e) {
-    return false;
-  }
+  return getCtSession() !== null;
 }
 
 function isDtAuthenticated() {
   return isCtAuthenticated();
 }
 
-function setCtAuthenticated(authenticated = true) {
+function setCtAuthenticated(authenticated = true, sessionData = null) {
   try {
     if (authenticated) {
-      localStorage.setItem(CT_AUTH_STORAGE_KEY, 'true');
+      const existing = getCtSession();
+      const expiresAt = (sessionData && sessionData.expiresAt)
+        ? Number(sessionData.expiresAt)
+        : (existing ? existing.expiresAt : (Date.now() + 12 * 60 * 60 * 1000));
+      const token = (sessionData && sessionData.token)
+        ? sessionData.token
+        : (existing ? existing.token : 'active_token');
+
+      const session = {
+        authenticated: true,
+        token,
+        expiresAt
+      };
+      localStorage.setItem(CT_AUTH_STORAGE_KEY, JSON.stringify(session));
     } else {
       localStorage.removeItem(CT_AUTH_STORAGE_KEY);
+      localStorage.removeItem('regatas_ct_auth_v3');
+      localStorage.removeItem('regatas_ct_auth_v2');
       sessionStorage.removeItem('regatas_dt_auth_ok');
       sessionStorage.removeItem('regatas_ct_auth_v2');
-      localStorage.removeItem('regatas_ct_auth_v2');
     }
   } catch (e) {}
   updateCtUiState();
@@ -161,11 +215,17 @@ function setCtAuthenticated(authenticated = true) {
 
 function updateCtUiState() {
   const isAuth = isCtAuthenticated();
+  const session = getCtSession();
 
   // Actualizar indicadores del Menú Drawer
   document.querySelectorAll('.drawer-badge-lock').forEach(badge => {
     badge.textContent = isAuth ? '🔓' : '🔒';
-    badge.title = isAuth ? 'Sesión de Cuerpo Técnico activa' : 'Requiere contraseña de Cuerpo Técnico';
+    if (isAuth && session && session.expiresAt) {
+      const expTime = new Date(session.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      badge.title = `Sesión de Cuerpo Técnico activa hasta las ${expTime} hs`;
+    } else {
+      badge.title = isAuth ? 'Sesión de Cuerpo Técnico activa' : 'Requiere contraseña de Cuerpo Técnico';
+    }
     badge.style.color = isAuth ? '#34d399' : '';
   });
 
@@ -6525,6 +6585,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Polling inteligente respetando visibilidad de pantalla (ahorro de batería en celulares)
   setInterval(() => {
     if (document.visibilityState === 'visible') {
+      updateCtUiState();
       syncWithGoogleSheets();
       if (typeof currentActiveView !== 'undefined') {
         if (currentActiveView === 'fisico') loadPhysicalEvaluations();
@@ -6536,6 +6597,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Al volver a la app o desbloquear el celular
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      updateCtUiState();
       syncWithGoogleSheets();
       if (typeof currentActiveView !== 'undefined') {
         if (currentActiveView === 'fisico') loadPhysicalEvaluations();
@@ -6545,6 +6607,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('focus', () => {
+    updateCtUiState();
     syncWithGoogleSheets();
     if (typeof currentActiveView !== 'undefined') {
       if (currentActiveView === 'fisico') loadPhysicalEvaluations();
