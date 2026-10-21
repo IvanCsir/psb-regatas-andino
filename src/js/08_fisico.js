@@ -134,6 +134,26 @@ function setupPhysicalSection() {
       renderPhysicalSuggestions();
     });
   }
+
+  // Botones de Compartir Ficha (WhatsApp e Imagen)
+  const btnShareWA = document.getElementById('btnShareProfileWhatsApp');
+  const btnShareImg = document.getElementById('btnShareProfileImage');
+
+  if (btnShareWA) {
+    btnShareWA.addEventListener('click', () => {
+      if (!selectedPlayerId) return;
+      const p = physicalPlayers.find(pl => pl.id === selectedPlayerId);
+      if (p) sharePlayerProfileWhatsApp(p);
+    });
+  }
+
+  if (btnShareImg) {
+    btnShareImg.addEventListener('click', () => {
+      if (!selectedPlayerId) return;
+      const p = physicalPlayers.find(pl => pl.id === selectedPlayerId);
+      if (p) generateAndSharePlayerImage(p);
+    });
+  }
 }
 
 // Conmutar entre Modo Jugadoras, Modo Medias y Modo Top 10
@@ -1432,6 +1452,357 @@ function escapeHtml(string) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// ============================================================================
+// COMPARTIR FICHA DE RENDIMIENTO FÍSICO (WHATSAPP E IMAGEN)
+// ============================================================================
+
+function sharePlayerProfileWhatsApp(player) {
+  if (!player) return;
+
+  const isCatScope = (currentPhysBenchmarkScope !== 'all');
+  const benchCatKey = isCatScope ? (player.filterTag || '1ra') : 'all';
+  const benchScopeShort = isCatScope ? (player.filterTag === 'Inter' ? 'Inter' : (player.filterTag === '5ta' ? '5ta' : '1ra')) : 'Plantel';
+
+  // Dimensiones del Radar para calcular puntaje global y fortaleza
+  const playerDimScores = RADAR_DIMENSIONS.map(d => ({
+    dim: d,
+    score: getPlayerDimensionScore(player, d, benchCatKey)
+  }));
+  const playerOverall = Math.round(playerDimScores.reduce((acc, s) => acc + s.score, 0) / RADAR_DIMENSIONS.length);
+  const topDim = [...playerDimScores].sort((a, b) => b.score - a.score)[0];
+
+  // Líneas de cada test
+  const testLines = [];
+  let improvedCount = 0;
+  let comparableCount = 0;
+
+  TESTS_CONFIG.forEach(cfg => {
+    const t = player.tests ? player.tests[cfg.key] : null;
+    if (!t || !t.evals || t.evals.length === 0) return;
+
+    const lastEv = t.evals[t.evals.length - 1];
+    const unit = cfg.unit ? ` ${cfg.unit}` : '';
+
+    if (t.evals.length >= 2) {
+      comparableCount++;
+      if (t.improved) improvedCount++;
+    }
+
+    let diffTag = '';
+    if (t.diff !== null) {
+      const sign = t.diff > 0 ? '+' : '';
+      const arrow = t.improved ? '↗' : '↘';
+      diffTag = ` (${sign}${t.diff}${unit} ${arrow})`;
+    }
+
+    let rankTag = '';
+    const rankInfo = getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'latest');
+    if (rankInfo && rankInfo.rank <= 10) {
+      const medal = rankInfo.rank === 1 ? '🥇' : (rankInfo.rank === 2 ? '🥈' : (rankInfo.rank === 3 ? '🥉' : '🏆'));
+      rankTag = ` | ${medal} #${rankInfo.rank}`;
+    }
+
+    testLines.push(`• ${cfg.icon} *${cfg.name}:* ${lastEv.value}${unit}${diffTag}${rankTag}`);
+  });
+
+  let progressText = '';
+  if (comparableCount > 0) {
+    progressText = `\n📈 *Evolución:* ${improvedCount} de ${comparableCount} tests con superación personal.`;
+  }
+
+  const msg = [
+    `🏑 *CLUB REGATAS ANDINO • HOCKEY*`,
+    `📋 *FICHA DE EVALUACIÓN FÍSICA*`,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `👤 *Jugadora:* ${player.name}`,
+    `🎽 *División:* ${player.divisionLabel}`,
+    `⚡ *Índice Atlético:* ${playerOverall} / 100`,
+    `🌟 *Mayor Fortaleza:* ${topDim.dim.icon} ${topDim.dim.name} (${topDim.score} pts)`,
+    ``,
+    `📊 *MEDICIONES REGISTRADAS:*`,
+    testLines.join('\n'),
+    progressText,
+    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `🔵⚪ *Club Regatas Andino • Temporada 2026*`
+  ].filter(line => line !== '').join('\n');
+
+  // Intentar copiar al portapapeles
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).catch(() => {});
+  }
+
+  // Abrir WhatsApp con el mensaje codificado
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+  showToast('¡Abriendo WhatsApp y ficha copiada al portapapeles!');
+}
+
+function generateAndSharePlayerImage(player) {
+  if (!player) return;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 840;
+  canvas.height = 1140;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const isCatScope = (currentPhysBenchmarkScope !== 'all');
+  const benchCatKey = isCatScope ? (player.filterTag || '1ra') : 'all';
+  const benchScopeShort = isCatScope ? (player.filterTag === 'Inter' ? 'Inter' : (player.filterTag === '5ta' ? '5ta' : '1ra')) : 'Plantel';
+
+  const playerDimScores = RADAR_DIMENSIONS.map(d => ({
+    dim: d,
+    score: getPlayerDimensionScore(player, d, benchCatKey)
+  }));
+  const playerOverall = Math.round(playerDimScores.reduce((acc, s) => acc + s.score, 0) / RADAR_DIMENSIONS.length);
+  const topDim = [...playerDimScores].sort((a, b) => b.score - a.score)[0];
+
+  // 1. Fondo degradé
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 1140);
+  bgGrad.addColorStop(0, '#030d2d');
+  bgGrad.addColorStop(1, '#071542');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 840, 1140);
+
+  // Línea de acento superior
+  ctx.fillStyle = '#00a2ff';
+  ctx.fillRect(0, 0, 840, 8);
+
+  // 2. Cabecera
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '900 24px Outfit, system-ui, sans-serif';
+  ctx.fillText('CLUB REGATAS ANDINO', 40, 52);
+
+  ctx.fillStyle = '#9bb1d6';
+  ctx.font = '700 13px Outfit, system-ui, sans-serif';
+  ctx.fillText('HOCKEY FEMENINO • EVALUACIONES FÍSICAS 2026', 40, 75);
+
+  // Línea divisoria
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(40, 95);
+  ctx.lineTo(800, 95);
+  ctx.stroke();
+
+  // 3. Ficha de la Jugadora (Tarjeta Superior)
+  drawRoundRect(ctx, 40, 115, 760, 175, 16);
+  ctx.fillStyle = 'rgba(9, 24, 73, 0.9)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0, 162, 255, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Avatar / Círculo inicial
+  const avatarGrad = ctx.createLinearGradient(60, 140, 120, 200);
+  avatarGrad.addColorStop(0, '#0284c7');
+  avatarGrad.addColorStop(1, '#00a2ff');
+  ctx.beginPath();
+  ctx.arc(100, 170, 36, 0, Math.PI * 2);
+  ctx.fillStyle = avatarGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Letra inicial
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 32px Outfit, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText((player.name.trim().charAt(0) || 'P').toUpperCase(), 100, 181);
+  ctx.textAlign = 'left';
+
+  // Nombre de la jugadora
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 28px Outfit, system-ui, sans-serif';
+  ctx.fillText(player.name.toUpperCase(), 155, 165);
+
+  // Badge de División
+  drawRoundRect(ctx, 155, 178, 125, 26, 13);
+  ctx.fillStyle = 'rgba(0, 162, 255, 0.2)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0, 162, 255, 0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = '#38bdf8';
+  ctx.font = '800 12px Outfit, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(player.divisionLabel.toUpperCase(), 217, 195);
+  ctx.textAlign = 'left';
+
+  // Badge de Índice Atlético (derecha)
+  drawRoundRect(ctx, 600, 135, 180, 65, 12);
+  ctx.fillStyle = 'rgba(3, 13, 45, 0.9)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffd700';
+  ctx.font = '900 26px Outfit, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${playerOverall}`, 665, 172);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  ctx.font = '700 14px Outfit, system-ui, sans-serif';
+  ctx.fillText('/ 100', 730, 172);
+
+  ctx.fillStyle = '#9bb1d6';
+  ctx.font = '800 10px Outfit, system-ui, sans-serif';
+  ctx.fillText('ÍNDICE ATLÉTICO', 690, 190);
+  ctx.textAlign = 'left';
+
+  // Banner de Mayor Fortaleza (inferior de la tarjeta)
+  drawRoundRect(ctx, 60, 222, 720, 48, 10);
+  ctx.fillStyle = 'rgba(3, 13, 45, 0.7)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = '#34d399';
+  ctx.font = '800 14px Outfit, system-ui, sans-serif';
+  ctx.fillText(`🌟 Mayor Fortaleza: ${topDim.dim.icon} ${topDim.dim.name} (${topDim.score} pts)`, 80, 252);
+
+  // 4. Grilla de Tests Físicos (2 Columnas)
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 16px Outfit, system-ui, sans-serif';
+  ctx.fillText('RESULTADOS DE MEDICIONES FÍSICAS', 40, 325);
+
+  const colW = 370;
+  const colH = 92;
+  const startY = 345;
+  const gapY = 14;
+
+  TESTS_CONFIG.forEach((cfg, idx) => {
+    const colIdx = idx % 2;
+    const rowIdx = Math.floor(idx / 2);
+    const x = colIdx === 0 ? 40 : 430;
+    const y = startY + rowIdx * (colH + gapY);
+
+    if (y + colH > 1050) return;
+
+    // Caja del Test
+    drawRoundRect(ctx, x, y, colW, colH, 12);
+    ctx.fillStyle = 'rgba(4, 16, 52, 0.75)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    const t = player.tests ? player.tests[cfg.key] : null;
+
+    // Nombre e Icono
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 14px Outfit, system-ui, sans-serif';
+    ctx.fillText(`${cfg.icon} ${cfg.name}`, x + 16, y + 28);
+
+    // Tipo
+    ctx.fillStyle = '#9bb1d6';
+    ctx.font = '600 11px Outfit, system-ui, sans-serif';
+    ctx.fillText(cfg.type, x + 16, y + 46);
+
+    if (t && t.evals && t.evals.length > 0) {
+      const lastEv = t.evals[t.evals.length - 1];
+      const unit = cfg.unit ? ` ${cfg.unit}` : '';
+
+      // Valor de la marca
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '900 20px Outfit, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${lastEv.value}${unit}`, x + colW - 16, y + 34);
+
+      // Ranking o Evolución abajo
+      const rankInfo = getPlayerRankInTest(player.id, cfg.key, benchCatKey, 'latest');
+      if (rankInfo && rankInfo.rank <= 10) {
+        const medal = rankInfo.rank === 1 ? '🥇' : (rankInfo.rank === 2 ? '🥈' : (rankInfo.rank === 3 ? '🥉' : '🏆'));
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '800 11px Outfit, system-ui, sans-serif';
+        ctx.fillText(`${medal} #${rankInfo.rank} en ${benchScopeShort}`, x + colW - 16, y + 54);
+      } else if (t.diff !== null) {
+        const sign = t.diff > 0 ? '+' : '';
+        const arrow = t.improved ? '↗' : '↘';
+        ctx.fillStyle = t.improved ? '#34d399' : '#f87171';
+        ctx.font = '800 11px Outfit, system-ui, sans-serif';
+        ctx.fillText(`${sign}${t.diff}${unit} ${arrow}`, x + colW - 16, y + 54);
+      }
+      ctx.textAlign = 'left';
+    } else {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.font = '700 13px Outfit, system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('Sin datos', x + colW - 16, y + 40);
+      ctx.textAlign = 'left';
+    }
+  });
+
+  // 5. Footer
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(40, 1070);
+  ctx.lineTo(800, 1070);
+  ctx.stroke();
+
+  ctx.fillStyle = '#9bb1d6';
+  ctx.font = '700 12px Outfit, system-ui, sans-serif';
+  ctx.fillText('Preparación Física • Club Regatas Andino Hockey Femenino', 40, 1098);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = '600 11px Outfit, system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  const now = new Date();
+  const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+  ctx.fillText(`Generado el ${dateStr}`, 800, 1098);
+  ctx.textAlign = 'left';
+
+  // Exportar a Blob y Compartir/Descargar
+  canvas.toBlob(async (blob) => {
+    if (!blob) return;
+    const cleanName = player.name.replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `Ficha_Fisica_${cleanName}.png`;
+    const file = new File([blob], fileName, { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `Ficha Física - ${player.name}`,
+          text: `Ficha de rendimiento físico de ${player.name} - Club Regatas Andino`
+        });
+        showToast('¡Placa compartida con éxito!');
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+      }
+    }
+
+    // Descarga directa como fallback
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast('¡Placa guardada como imagen en tu dispositivo!');
+  }, 'image/png');
+}
+
+function drawRoundRect(ctx, x, y, w, h, r) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }
 
 // ============================================================================

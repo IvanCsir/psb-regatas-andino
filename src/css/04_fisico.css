@@ -1436,3 +1436,60 @@
   color: var(--text-secondary);
   font-weight: 600;
 }
+
+/* ==========================================================================
+   BOTONES DE COMPARTIR FICHA (WHATSAPP E IMAGEN)
+   ========================================================================== */
+
+.profile-share-actions-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 4px 0 6px 0;
+}
+
+.btn-share-profile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  font-family: var(--font-main);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-share-profile span {
+  font-size: 1rem;
+}
+
+.btn-share-wa {
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: #ffffff;
+  box-shadow: 0 3px 12px rgba(37, 211, 102, 0.35);
+}
+
+.btn-share-wa:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.45);
+}
+
+.btn-share-img {
+  background: linear-gradient(135deg, var(--color-regatas-blue), #0d3880);
+  color: #ffffff;
+  border: 1px solid rgba(0, 162, 255, 0.35);
+  box-shadow: 0 3px 12px rgba(0, 162, 255, 0.3);
+}
+
+.btn-share-img:hover {
+  background: linear-gradient(135deg, #0d3880, var(--color-regatas-blue));
+  border-color: var(--color-regatas-cyan);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 162, 255, 0.45);
+}
