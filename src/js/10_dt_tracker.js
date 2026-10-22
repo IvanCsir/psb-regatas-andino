@@ -1580,25 +1580,34 @@ function openDtSummaryModal() {
       (dtMatchState.events || []).forEach(evt => {
         if (evt.team === 'home' && evt.type === 'corner' && evt.wonBy && evt.wonBy.trim()) {
           const w = evt.wonBy.trim();
-          cornersWonMap[w] = (cornersWonMap[w] || 0) + 1;
+          if (!cornersWonMap[w]) cornersWonMap[w] = { total: 0, goals: 0 };
+          cornersWonMap[w].total++;
+          if (evt.endedInGoal) cornersWonMap[w].goals++;
           totalWon++;
         }
       });
-      const cornersWonList = Object.entries(cornersWonMap).sort((a, b) => b[1] - a[1]);
+      const cornersWonList = Object.entries(cornersWonMap).sort((a, b) => b[1].total - a[1].total);
       if (cornersWonList.length === 0) return '';
       return `
         <div class="dt-summary-scorers-box" style="border-left: 3px solid #c084fc;">
           <div class="dt-summary-scorers-header">
             <span class="dt-summary-scorers-title" style="color: #c084fc;">🏑 CÓRNERS CORTOS CONSEGUIDOS</span>
-            <span style="font-size: 0.72rem; color: #c084fc; font-weight: 800;">${totalWon} corto${totalWon === 1 ? '' : 's'} asignado${totalWon === 1 ? '' : 's'}</span>
+            <span style="font-size: 0.72rem; color: #c084fc; font-weight: 800;">${totalWon} forzado${totalWon === 1 ? '' : 's'}</span>
           </div>
           <div class="dt-summary-scorers-list">
-            ${cornersWonList.map(([name, cCount]) => `
-              <div class="dt-summary-scorer-row">
-                <span class="dt-summary-scorer-name">👤 ${escapeHtml(name)}</span>
-                <span class="dt-summary-scorer-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">${cCount} corto${cCount === 1 ? '' : 's'}</span>
-              </div>
-            `).join('')}
+            ${cornersWonList.map(([name, data], idx) => {
+              const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `${idx + 1}.`));
+              return `
+                <div class="dt-summary-scorer-row">
+                  <span class="dt-summary-scorer-name">
+                    <span style="color: #c084fc; font-weight: 800; margin-right: 4px;">${medal}</span>
+                    👤 ${escapeHtml(name)}
+                    ${data.goals > 0 ? `<span style="font-size: 0.68rem; color: #34d399; margin-left: 6px;">(${data.goals} con gol)</span>` : ''}
+                  </span>
+                  <span class="dt-summary-scorer-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 900;">${data.total} corto${data.total === 1 ? '' : 's'}</span>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
       `;

@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-22T12:56:26.569Z
+ * Última actualización: 2026-10-22T13:27:54.234Z
  */
 
 // ============================================================================
@@ -5337,25 +5337,34 @@ function openDtSummaryModal() {
       (dtMatchState.events || []).forEach(evt => {
         if (evt.team === 'home' && evt.type === 'corner' && evt.wonBy && evt.wonBy.trim()) {
           const w = evt.wonBy.trim();
-          cornersWonMap[w] = (cornersWonMap[w] || 0) + 1;
+          if (!cornersWonMap[w]) cornersWonMap[w] = { total: 0, goals: 0 };
+          cornersWonMap[w].total++;
+          if (evt.endedInGoal) cornersWonMap[w].goals++;
           totalWon++;
         }
       });
-      const cornersWonList = Object.entries(cornersWonMap).sort((a, b) => b[1] - a[1]);
+      const cornersWonList = Object.entries(cornersWonMap).sort((a, b) => b[1].total - a[1].total);
       if (cornersWonList.length === 0) return '';
       return `
         <div class="dt-summary-scorers-box" style="border-left: 3px solid #c084fc;">
           <div class="dt-summary-scorers-header">
             <span class="dt-summary-scorers-title" style="color: #c084fc;">🏑 CÓRNERS CORTOS CONSEGUIDOS</span>
-            <span style="font-size: 0.72rem; color: #c084fc; font-weight: 800;">${totalWon} corto${totalWon === 1 ? '' : 's'} asignado${totalWon === 1 ? '' : 's'}</span>
+            <span style="font-size: 0.72rem; color: #c084fc; font-weight: 800;">${totalWon} forzado${totalWon === 1 ? '' : 's'}</span>
           </div>
           <div class="dt-summary-scorers-list">
-            ${cornersWonList.map(([name, cCount]) => `
-              <div class="dt-summary-scorer-row">
-                <span class="dt-summary-scorer-name">👤 ${escapeHtml(name)}</span>
-                <span class="dt-summary-scorer-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">${cCount} corto${cCount === 1 ? '' : 's'}</span>
-              </div>
-            `).join('')}
+            ${cornersWonList.map(([name, data], idx) => {
+              const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `${idx + 1}.`));
+              return `
+                <div class="dt-summary-scorer-row">
+                  <span class="dt-summary-scorer-name">
+                    <span style="color: #c084fc; font-weight: 800; margin-right: 4px;">${medal}</span>
+                    👤 ${escapeHtml(name)}
+                    ${data.goals > 0 ? `<span style="font-size: 0.68rem; color: #34d399; margin-left: 6px;">(${data.goals} con gol)</span>` : ''}
+                  </span>
+                  <span class="dt-summary-scorer-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); font-weight: 900;">${data.total} corto${data.total === 1 ? '' : 's'}</span>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
       `;
@@ -6761,6 +6770,18 @@ function generateSeasonTacticalDiagnosis(trends) {
     }
   }
 
+  if (trends.cornersWonList && trends.cornersWonList.length > 0) {
+    const topGeneradora = trends.cornersWonList[0];
+    if (topGeneradora.total >= 2) {
+      insights.push({
+        type: 'positive',
+        icon: '🏑',
+        title: `Desequilibrio Individual: ${topGeneradora.name}`,
+        desc: `Es la jugadora que más córners cortos generó en el equipo (${topGeneradora.total} CC provocados${topGeneradora.resultedInGoal > 0 ? `, ${topGeneradora.resultedInGoal} terminaron en gol` : ''}). Gran capacidad individual para forzar faltas en el área rival.`
+      });
+    }
+  }
+
   if (trends.totalCornersAway >= 2) {
     if (trends.cornerDefHome >= 80) {
       insights.push({
@@ -7363,6 +7384,25 @@ function renderSeasonTrends(trends) {
             Solo ${trends.cornerGoalsAway} goles sufridos de ${trends.totalCornersAway} cortos concedidos
           </div>
         </div>
+
+        <div class="stats-corners-box" style="border-left: 3px solid #c084fc;">
+          <div class="stats-corners-box-title" style="color: #c084fc;">
+            <span>⭐</span> MÁXIMA GENERADORA
+          </div>
+          <div class="stats-corners-box-val" style="color: #c084fc; font-size: 1.12rem;">
+            ${trends.cornersWonList && trends.cornersWonList.length > 0 ? escapeHtml(trends.cornersWonList[0].name) : '-'}
+          </div>
+          <div class="stats-corners-box-sub">
+            ${trends.cornersWonList && trends.cornersWonList.length > 0 
+              ? `<strong>${trends.cornersWonList[0].total} cortos ganados</strong> (${trends.cornersWonList[0].resultedInGoal} con gol)`
+              : 'Sin jugadoras registradas en cortos aún'}
+          </div>
+          <div class="stats-corners-box-sub" style="margin-top: 4px; color: #c8d8f0;">
+            ${trends.cornersWonList && trends.cornersWonList.length > 0
+              ? `${trends.cornersWonList.reduce((acc, c) => acc + c.total, 0)} jugadas fijas con jugadora asignada`
+              : 'Se registran desde la botonera táctica DT'}
+          </div>
+        </div>
       </div>
     </section>
 
@@ -7454,33 +7494,52 @@ function renderSeasonTrends(trends) {
           `}
         </div>
 
-        <!-- CÓRNERS CORTOS CONSEGUIDOS -->
-        ${trends.cornersWonList && trends.cornersWonList.length > 0 ? `
-          <div class="stats-players-card">
-            <div class="stats-players-card-title">
-              <span style="color: #c084fc;">🏑 CÓRNERS CORTOS CONSEGUIDOS</span>
-              <span style="font-size: 0.68rem; color: #c084fc;">Jugadas Fijas Forzadas</span>
-            </div>
+        <!-- TOP GENERADORAS DE CÓRNER CORTO -->
+        <div class="stats-players-card" style="border-top: 3px solid #c084fc;">
+          <div class="stats-players-card-title">
+            <span style="color: #c084fc;">🏑 TOP GENERADORAS DE CORTO</span>
+            <span style="font-size: 0.68rem; color: #c084fc; font-weight: 800;">
+              ${trends.cornersWonList && trends.cornersWonList.length > 0 
+                ? `${trends.cornersWonList.reduce((acc, c) => acc + c.total, 0)} Provocados` 
+                : 'Jugadas Fijas'}
+            </span>
+          </div>
+
+          ${trends.cornersWonList && trends.cornersWonList.length > 0 ? `
             <table class="stats-players-mini-table">
               <thead>
                 <tr>
+                  <th style="width: 22px;">#</th>
                   <th>Jugadora</th>
-                  <th style="text-align: center;">Cortos Ganados</th>
-                  <th style="text-align: center;">Terminaron en Gol</th>
+                  <th style="text-align: center;">Cortos</th>
+                  <th style="text-align: center;">Con Gol</th>
+                  <th>Efectividad</th>
                 </tr>
               </thead>
               <tbody>
-                ${trends.cornersWonList.map(c => `
-                  <tr>
-                    <td><strong>${escapeHtml(c.name)}</strong></td>
-                    <td style="text-align: center; color: #c084fc; font-weight: 800;">${c.total}</td>
-                    <td style="text-align: center; color: #34d399;">${c.resultedInGoal}</td>
-                  </tr>
-                `).join('')}
+                ${trends.cornersWonList.map((c, idx) => {
+                  const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `${idx + 1}.`));
+                  const effPct = c.total > 0 ? Math.round((c.resultedInGoal / c.total) * 100) : 0;
+                  return `
+                    <tr>
+                      <td style="color: var(--text-muted); font-size: 0.72rem; font-weight: 800;">${medal}</td>
+                      <td><strong>${escapeHtml(c.name)}</strong></td>
+                      <td style="text-align: center; color: #c084fc; font-weight: 900; font-size: 0.82rem;">${c.total}</td>
+                      <td style="text-align: center; color: #34d399; font-weight: 700;">${c.resultedInGoal}</td>
+                      <td style="color: #38bdf8; font-weight: 800;">${effPct}%</td>
+                    </tr>
+                  `;
+                }).join('')}
               </tbody>
             </table>
-          </div>
-        ` : ''}
+          ` : `
+            <div class="stats-empty-hint">
+              <span style="font-size: 1.1rem; display: block; margin-bottom: 4px;">🏑</span>
+              Aún no hay jugadoras asignadas en córners cortos.<br>
+              <span style="font-size: 0.68rem; color: #9bb1d6;">Al registrar un córner en la botonera DT podés marcar quién lo provocó.</span>
+            </div>
+          `}
+        </div>
 
         <!-- DISCIPLINA & TARJETAS -->
         <div class="stats-players-card">
@@ -7948,9 +8007,20 @@ async function exportStatsVisualCard() {
       ctx.fillText('No se registran goleadoras individuales en esta muestra', 90, topY + 86);
     }
 
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '600 14px system-ui, sans-serif';
-    ctx.fillText('Datos sincronizados directamente desde la botonera táctica oficial.', 90, topY + 128);
+    if (trends.cornersWonList && trends.cornersWonList.length > 0) {
+      ctx.fillStyle = '#c084fc';
+      ctx.font = '800 15px system-ui, sans-serif';
+      ctx.fillText('🏑 GENERADORAS DE CORTO:', 90, topY + 128);
+
+      const topCStr = trends.cornersWonList.slice(0, 3).map((c, i) => `${i + 1}. ${c.name} (${c.total} CC)`).join('   •   ');
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 15px system-ui, sans-serif';
+      ctx.fillText(topCStr, 345, topY + 128);
+    } else {
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '600 14px system-ui, sans-serif';
+      ctx.fillText('Datos sincronizados directamente desde la botonera táctica oficial.', 90, topY + 128);
+    }
 
   } else {
     // -------------------------------------------------------------
