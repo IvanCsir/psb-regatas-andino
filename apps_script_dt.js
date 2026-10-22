@@ -327,6 +327,13 @@ function appendIncidentRow(sheet, evt, matchState) {
   var teamLabel = evt.team === 'home' ? 'Regatas' : ((matchState && matchState.rivalName) ? matchState.rivalName : 'Rival');
   var goalLabel = evt.endedInGoal ? 'SÍ (GOL ⚽)' : 'No';
 
+  var playerDetail = evt.player || '';
+  if (evt.type === 'corner') {
+    if (evt.wonBy) {
+      playerDetail = evt.player ? (evt.player + ' (Provocó: ' + evt.wonBy + ')') : ('Provocó: ' + evt.wonBy);
+    }
+  }
+
   var row = [
     evt.id || ('evt_' + Date.now()),
     evt.timeDisplay || new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
@@ -334,7 +341,7 @@ function appendIncidentRow(sheet, evt, matchState) {
     evt.clockTime || '',
     teamLabel,
     evt.label || evt.type,
-    evt.player || '',
+    playerDetail,
     goalLabel
   ];
 
@@ -401,6 +408,18 @@ function fetchIncidentRows(sheet) {
     else if (lowerLbl.indexOf('amarilla') !== -1) evtType = 'cardYellow';
     else if (lowerLbl.indexOf('roja') !== -1) evtType = 'cardRed';
 
+    var playerField = (row[6] || '').toString();
+    var wonBy = '';
+    var mWon = (lbl + ' ' + playerField).match(/Provocó:\s*([^)\].]+)/i);
+    if (mWon) wonBy = mWon[1].trim();
+
+    var cleanPlayer = playerField;
+    if (cleanPlayer.indexOf('(Provocó:') !== -1) {
+      cleanPlayer = cleanPlayer.split('(Provocó:')[0].trim();
+    } else if (cleanPlayer.indexOf('Provocó:') !== -1) {
+      cleanPlayer = '';
+    }
+
     return {
       id: row[0],
       timeDisplay: row[1],
@@ -408,7 +427,8 @@ function fetchIncidentRows(sheet) {
       clockTime: row[3],
       team: isHome ? 'home' : 'away',
       label: lbl,
-      player: row[6],
+      player: cleanPlayer,
+      wonBy: wonBy,
       endedInGoal: isGoal,
       type: evtType
     };

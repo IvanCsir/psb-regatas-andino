@@ -239,6 +239,12 @@ function populateStatsMatchFilter() {
 function getAggregatedQuarterStats(selectedKey = 'all') {
   statsCurrentSelectedFilter = selectedKey;
 
+  // Sincronizar partido activo actual en memoria con el almacén multi-partido
+  if (typeof dtMatchState !== 'undefined' && dtMatchState && typeof dtCurrentMatchKey !== 'undefined' && dtCurrentMatchKey) {
+    if (typeof dtMatchesStore === 'undefined' || !dtMatchesStore) dtMatchesStore = {};
+    dtMatchesStore[dtCurrentMatchKey] = dtMatchState;
+  }
+
   // Colección de partidos a incluir (solo con datos reales cuando es acumulado)
   let targetMatches = [];
   if (selectedKey === 'all') {
@@ -381,6 +387,12 @@ function getAggregatedQuarterStats(selectedKey = 'all') {
 
 // Cálculo agregado de métricas de Tendencias de Temporada (1T vs 2T, campaña, goleadoras, timeline)
 function getSeasonTrendsData(selectedKey = 'all') {
+  // Sincronizar partido activo actual en memoria con el almacén multi-partido
+  if (typeof dtMatchState !== 'undefined' && dtMatchState && typeof dtCurrentMatchKey !== 'undefined' && dtCurrentMatchKey) {
+    if (typeof dtMatchesStore === 'undefined' || !dtMatchesStore) dtMatchesStore = {};
+    dtMatchesStore[dtCurrentMatchKey] = dtMatchState;
+  }
+
   let matchesList = [];
   const matchKeys = Object.keys(dtMatchesStore || {});
 
@@ -515,14 +527,25 @@ function getSeasonTrendsData(selectedKey = 'all') {
           else scorersMap[key].field++;
         }
 
-        if (type === 'corner' && evt.wonBy && evt.wonBy.trim()) {
-          const key = evt.wonBy.trim();
-          if (!cornersWonMap[key]) {
-            cornersWonMap[key] = { name: key, total: 0, resultedInGoal: 0 };
+        if (type === 'corner') {
+          // Extraer la jugadora que provocó o ejecutó el córner
+          let wonByPlayer = (evt.wonBy || '').trim();
+          if (!wonByPlayer && evt.label) {
+            const mWon = evt.label.match(/Provocó:\s*([^)\].]+)/i);
+            if (mWon) wonByPlayer = mWon[1].trim();
           }
-          cornersWonMap[key].total++;
-          if (isGoal) {
-            cornersWonMap[key].resultedInGoal++;
+          if (!wonByPlayer && playerName) {
+            wonByPlayer = playerName;
+          }
+
+          if (wonByPlayer) {
+            if (!cornersWonMap[wonByPlayer]) {
+              cornersWonMap[wonByPlayer] = { name: wonByPlayer, total: 0, resultedInGoal: 0 };
+            }
+            cornersWonMap[wonByPlayer].total++;
+            if (isGoal) {
+              cornersWonMap[wonByPlayer].resultedInGoal++;
+            }
           }
         }
 
@@ -1031,6 +1054,133 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
           </tr>
         </tbody>
       </table>
+
+      <!-- RENDIMIENTO INDIVIDUAL (GOLEADORAS, GENERADORAS DE CORTO Y TARJETAS) -->
+      <section class="stats-halves-card" style="margin-top: 14px;">
+        <div class="stats-card-header">
+          <span class="stats-card-icon">⭐</span>
+          <div>
+            <h3 class="stats-card-title">RENDIMIENTO INDIVIDUAL (${selectedKey === 'all' ? 'ACUMULADO GENERAL' : 'PARTIDO SELECCIONADO'})</h3>
+            <p style="font-size: 0.72rem; color: #9bb1d6; margin: 2px 0 0 0;">Goleadoras, jugadoras que provocaron córners cortos y sanciones</p>
+          </div>
+        </div>
+
+        <div class="stats-players-grid">
+          <!-- TOP GOLEADORAS -->
+          <div class="stats-players-card">
+            <div class="stats-players-card-title">
+              <span>⚽ GOLEADORAS</span>
+              <span style="font-size: 0.68rem; color: #34d399;">${seasonTrends.totalGF} Goles</span>
+            </div>
+            ${seasonTrends.scorersList.length > 0 ? `
+              <table class="stats-players-mini-table">
+                <thead>
+                  <tr>
+                    <th>Jugadora</th>
+                    <th style="text-align: center;">Jugada</th>
+                    <th style="text-align: center;">Corto</th>
+                    <th style="text-align: center;">Penal</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${seasonTrends.scorersList.map(s => `
+                    <tr>
+                      <td><strong>${escapeHtml(s.name)}</strong></td>
+                      <td style="text-align: center; color: #9bb1d6;">${s.field}</td>
+                      <td style="text-align: center; color: #9bb1d6;">${s.corner}</td>
+                      <td style="text-align: center; color: #9bb1d6;">${s.stroke}</td>
+                      <td>${s.total} gol${s.total === 1 ? '' : 'es'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : `
+              <div class="stats-empty-hint">Sin goles asignados en esta muestra.</div>
+            `}
+          </div>
+
+          <!-- TOP GENERADORAS DE CORTO -->
+          <div class="stats-players-card" style="border-top: 3px solid #c084fc;">
+            <div class="stats-players-card-title">
+              <span style="color: #c084fc;">🏑 GENERADORAS DE CÓRNER CORTO</span>
+              <span style="font-size: 0.68rem; color: #c084fc; font-weight: 800;">
+                ${seasonTrends.cornersWonList && seasonTrends.cornersWonList.length > 0 
+                  ? `${seasonTrends.cornersWonList.reduce((acc, c) => acc + c.total, 0)} Provocados` 
+                  : 'Jugadas Fijas'}
+              </span>
+            </div>
+            ${seasonTrends.cornersWonList && seasonTrends.cornersWonList.length > 0 ? `
+              <table class="stats-players-mini-table">
+                <thead>
+                  <tr>
+                    <th style="width: 22px;">#</th>
+                    <th>Jugadora</th>
+                    <th style="text-align: center;">Cortos</th>
+                    <th style="text-align: center;">Con Gol</th>
+                    <th>Efectividad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${seasonTrends.cornersWonList.map((c, idx) => {
+                    const medal = idx === 0 ? '🥇' : (idx === 1 ? '🥈' : (idx === 2 ? '🥉' : `${idx + 1}.`));
+                    const effPct = c.total > 0 ? Math.round((c.resultedInGoal / c.total) * 100) : 0;
+                    return `
+                      <tr>
+                        <td style="color: var(--text-muted); font-size: 0.72rem; font-weight: 800;">${medal}</td>
+                        <td><strong>${escapeHtml(c.name)}</strong></td>
+                        <td style="text-align: center; color: #c084fc; font-weight: 900; font-size: 0.82rem;">${c.total}</td>
+                        <td style="text-align: center; color: #34d399; font-weight: 700;">${c.resultedInGoal}</td>
+                        <td style="color: #38bdf8; font-weight: 800;">${effPct}%</td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            ` : `
+              <div class="stats-empty-hint">
+                <span style="font-size: 1.1rem; display: block; margin-bottom: 4px;">🏑</span>
+                Sin jugadoras asignadas en cortos en esta muestra.<br>
+                <span style="font-size: 0.68rem; color: #9bb1d6;">Al registrar un córner en la botonera DT podés elegir quién lo provocó.</span>
+              </div>
+            `}
+          </div>
+
+          <!-- TARJETAS Y DISCIPLINA -->
+          <div class="stats-players-card">
+            <div class="stats-players-card-title">
+              <span>🟨 TARJETAS & DISCIPLINA</span>
+              <span style="font-size: 0.68rem; color: #fbbf24;">Sanciones</span>
+            </div>
+            ${seasonTrends.cardsList.length > 0 ? `
+              <table class="stats-players-mini-table">
+                <thead>
+                  <tr>
+                    <th>Jugadora</th>
+                    <th style="text-align: center;">🟩 2m</th>
+                    <th style="text-align: center;">🟨 5m</th>
+                    <th style="text-align: center;">🟥 Exp</th>
+                    <th>Minutos Fuera</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${seasonTrends.cardsList.map(c => `
+                    <tr>
+                      <td><strong>${escapeHtml(c.name)}</strong></td>
+                      <td style="text-align: center; color: #34d399;">${c.green}</td>
+                      <td style="text-align: center; color: #fbbf24;">${c.yellow}</td>
+                      <td style="text-align: center; color: #f87171;">${c.red}</td>
+                      <td style="color: #f87171;">${c.penaltyMinutes} min</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            ` : `
+              <div class="stats-empty-hint" style="color: #34d399;">¡Plantel impecable! Sin tarjetas registradas.</div>
+            `}
+          </div>
+        </div>
+      </section>
     `;
   }
 

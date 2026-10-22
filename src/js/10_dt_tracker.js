@@ -593,6 +593,18 @@ function normalizeCloudEvent(cEvt) {
   let clockTime = formatCloudTimeString(cEvt.clockTime);
   let timeDisplay = formatCloudTimeString(cEvt.timeDisplay);
 
+  let player = (cEvt.player || '').toString().trim();
+  let wonBy = (cEvt.wonBy || '').toString().trim();
+
+  // Si wonBy no vino explícito (ej: descargado desde Google Sheets), extraer de la etiqueta o del campo jugadora
+  if (!wonBy && label) {
+    const mWon = label.match(/Provocó:\s*([^)\].]+)/i);
+    if (mWon) wonBy = mWon[1].trim();
+  }
+  if (!wonBy && type === 'corner' && !isGoal && player) {
+    wonBy = player;
+  }
+
   return {
     id: cEvt.id || ('evt_cloud_' + Math.random().toString(36).substr(2, 6)),
     quarter: quarter >= 1 && quarter <= 4 ? quarter : 1,
@@ -601,9 +613,9 @@ function normalizeCloudEvent(cEvt) {
     type: type,
     team: team,
     endedInGoal: isGoal,
-    player: cEvt.player || '',
-    wonBy: cEvt.wonBy || '',
-    label: label || getIncidentLabel(type, isGoal, team, cEvt.player, cEvt.wonBy)
+    player: player,
+    wonBy: wonBy,
+    label: label || getIncidentLabel(type, isGoal, team, player, wonBy)
   };
 }
 
