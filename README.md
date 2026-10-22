@@ -7,7 +7,6 @@ Página web de citaciones oficial para el **Plantel Superior B (1ra e Intermedia
 ## 📊 Sincronización en Vivo con Google Sheets
 
 La página web está conectada directamente con tu planilla de Google Sheets:
-🔗 [Abrir Planilla de Google Sheets](https://docs.google.com/spreadsheets/d/1S0g4BpD6m6Ih9_DQRrdLlnUsruUKrZmlKBAKiWL3XbU/edit?usp=sharing)
 
 ### ¿Cómo funciona cada fin de semana?
 1. **Jugadoras Citadas (Columna F)**:
