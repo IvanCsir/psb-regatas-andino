@@ -416,6 +416,12 @@ body.dt-sun-mode .dt-feed-meta {
   font-weight: 700 !important;
 }
 
+body.dt-sun-mode .dt-feed-wonby-badge {
+  background: #f3e8ff !important;
+  color: #6b21a8 !important;
+  border: 1.5px solid #a855f7 !important;
+}
+
 body.dt-sun-mode .btn-del-event {
   background: #fee2e2 !important;
   border: 1px solid #dc2626 !important;

@@ -440,6 +440,7 @@ function getSeasonTrendsData(selectedKey = 'all') {
 
   const scorersMap = {};
   const cardsMap = {};
+  const cornersWonMap = {};
   const matchChronology = [];
 
   matchesList.forEach(m => {
@@ -514,6 +515,17 @@ function getSeasonTrendsData(selectedKey = 'all') {
           else scorersMap[key].field++;
         }
 
+        if (type === 'corner' && evt.wonBy && evt.wonBy.trim()) {
+          const key = evt.wonBy.trim();
+          if (!cornersWonMap[key]) {
+            cornersWonMap[key] = { name: key, total: 0, resultedInGoal: 0 };
+          }
+          cornersWonMap[key].total++;
+          if (isGoal) {
+            cornersWonMap[key].resultedInGoal++;
+          }
+        }
+
         if (type === 'cardGreen' || type === 'cardYellow' || type === 'cardRed') {
           const key = playerName || 'Jugadora no especificada';
           if (!cardsMap[key]) {
@@ -561,6 +573,7 @@ function getSeasonTrendsData(selectedKey = 'all') {
 
   const scorersList = Object.values(scorersMap).sort((a, b) => b.total - a.total);
   const cardsList = Object.values(cardsMap).sort((a, b) => b.penaltyMinutes - a.penaltyMinutes);
+  const cornersWonList = Object.values(cornersWonMap).sort((a, b) => b.total - a.total);
 
   return {
     selectedKey,
@@ -589,6 +602,7 @@ function getSeasonTrendsData(selectedKey = 'all') {
     halves,
     scorersList,
     cardsList,
+    cornersWonList,
     matchChronology
   };
 }
@@ -1359,6 +1373,34 @@ function renderSeasonTrends(trends) {
           `}
         </div>
 
+        <!-- CÓRNERS CORTOS CONSEGUIDOS -->
+        ${trends.cornersWonList && trends.cornersWonList.length > 0 ? `
+          <div class="stats-players-card">
+            <div class="stats-players-card-title">
+              <span style="color: #c084fc;">🏑 CÓRNERS CORTOS CONSEGUIDOS</span>
+              <span style="font-size: 0.68rem; color: #c084fc;">Jugadas Fijas Forzadas</span>
+            </div>
+            <table class="stats-players-mini-table">
+              <thead>
+                <tr>
+                  <th>Jugadora</th>
+                  <th style="text-align: center;">Cortos Ganados</th>
+                  <th style="text-align: center;">Terminaron en Gol</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trends.cornersWonList.map(c => `
+                  <tr>
+                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td style="text-align: center; color: #c084fc; font-weight: 800;">${c.total}</td>
+                    <td style="text-align: center; color: #34d399;">${c.resultedInGoal}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
+
         <!-- DISCIPLINA & TARJETAS -->
         <div class="stats-players-card">
           <div class="stats-players-card-title">
@@ -1517,6 +1559,9 @@ function shareStatsWhatsApp() {
       `🎯 *CÓRNERS CORTOS:*`,
       `*Ataque:* ${trends.cornerGoalsHome} goles en ${trends.totalCornersHome} CC (${trends.cornerEffHome}% efectividad)`,
       `*Defensa:* ${trends.cornerDefHome}% defendidos con éxito (${trends.cornerGoalsAway} goles sufridos en ${trends.totalCornersAway} CC)`,
+      ...(trends.cornersWonList && trends.cornersWonList.length > 0 ? [
+        `*Provocados por:* ${trends.cornersWonList.slice(0, 3).map(c => `${c.name} (${c.total})`).join(', ')}`
+      ] : []),
       ``,
       `⭐ *TOP GOLEADORAS:*`,
       topScorersStr,

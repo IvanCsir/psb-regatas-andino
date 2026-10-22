@@ -1,7 +1,7 @@
 /**
  * Web Citaciones y Evaluaciones Físicas - Club Regatas Andino
  * Compilado automáticamente desde /src/js/
- * Última actualización: 2026-10-21T18:35:46.170Z
+ * Última actualización: 2026-10-22T12:56:26.569Z
  */
 
 // ============================================================================
@@ -4359,7 +4359,8 @@ function normalizeCloudEvent(cEvt) {
     team: team,
     endedInGoal: isGoal,
     player: cEvt.player || '',
-    label: label || getIncidentLabel(type, isGoal, team, cEvt.player)
+    wonBy: cEvt.wonBy || '',
+    label: label || getIncidentLabel(type, isGoal, team, cEvt.player, cEvt.wonBy)
   };
 }
 
@@ -4687,7 +4688,7 @@ function initDtModule() {
   if (btnHomeEntry) btnHomeEntry.addEventListener('click', () => logIncident('entry', 'home'));
 
   const btnHomeCorner = document.getElementById('btnHomeCorner');
-  if (btnHomeCorner) btnHomeCorner.addEventListener('click', () => openIncidentOptionModal('corner', 'home'));
+  if (btnHomeCorner) btnHomeCorner.addEventListener('click', () => openPlayerAssignModal({ type: 'cornerWon', team: 'home' }));
 
   const btnHomeStroke = document.getElementById('btnHomeStroke');
   if (btnHomeStroke) btnHomeStroke.addEventListener('click', () => openIncidentOptionModal('stroke', 'home'));
@@ -4842,7 +4843,7 @@ function initDtModule() {
 }
 
 // Registro centralizado de incidencias
-function logIncident(type, team, endedInGoal = false, player = '') {
+function logIncident(type, team, endedInGoal = false, player = '', wonBy = '') {
   const clockStr = formatClockTime(dtMatchState.timer.seconds);
   const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -4855,7 +4856,8 @@ function logIncident(type, team, endedInGoal = false, player = '') {
     team,
     endedInGoal: !!endedInGoal,
     player: player || '',
-    label: getIncidentLabel(type, endedInGoal, team, player)
+    wonBy: wonBy || '',
+    label: getIncidentLabel(type, endedInGoal, team, player, wonBy)
   };
 
   if (!dtMatchState.events) dtMatchState.events = [];
@@ -4885,12 +4887,23 @@ function logIncident(type, team, endedInGoal = false, player = '') {
   renderDtView();
 }
 
-function getIncidentLabel(type, endedInGoal, team, player = '') {
+function getIncidentLabel(type, endedInGoal, team, player = '', wonBy = '') {
   const teamLabel = team === 'home' ? 'Regatas' : (dtMatchState.rivalName || 'Rival');
   const playerSuffix = player ? ` (${player})` : '';
+  const wonByClean = (wonBy || '').trim();
 
   if (type === 'entry') return `Ingreso al área (${teamLabel})`;
-  if (type === 'corner') return endedInGoal ? `¡GOL de Córner Corto! (${teamLabel}${playerSuffix})` : `Córner Corto (${teamLabel})`;
+  if (type === 'corner') {
+    if (endedInGoal) {
+      return wonByClean
+        ? `¡GOL de Córner Corto! (${teamLabel}${playerSuffix} • Provocó: ${wonByClean})`
+        : `¡GOL de Córner Corto! (${teamLabel}${playerSuffix})`;
+    } else {
+      return wonByClean
+        ? `Córner Corto (${teamLabel} • Provocó: ${wonByClean})`
+        : `Córner Corto (${teamLabel})`;
+    }
+  }
   if (type === 'stroke') return endedInGoal ? `¡GOL de Penal! (${teamLabel}${playerSuffix})` : `Penal ejecutado (${teamLabel})`;
   if (type === 'fieldGoal') return `¡GOL de Jugada! (${teamLabel}${playerSuffix})`;
   if (type === 'cardGreen') return `Tarjeta Verde 🟩 (${teamLabel}${playerSuffix})`;
@@ -4940,14 +4953,19 @@ function openPlayerAssignModal(incidentData) {
   const isGoal = !!incidentData.endedInGoal;
   const type = incidentData.type;
 
-  if (type === 'fieldGoal') {
+  if (type === 'cornerWon') {
+    if (icon) icon.textContent = '🏑';
+    if (title) title.textContent = 'CÓRNER CORTO A FAVOR';
+    if (subtitle) subtitle.textContent = '¿Quién provocó o consiguió el córner corto?';
+  } else if (type === 'fieldGoal') {
     if (icon) icon.textContent = '⚽';
     if (title) title.textContent = '¡GOL DE JUGADA!';
     if (subtitle) subtitle.textContent = '¿Quién convirtió el gol de Regatas?';
   } else if (type === 'corner') {
     if (icon) icon.textContent = '🏑';
     if (title) title.textContent = '¡GOL DE CÓRNER CORTO!';
-    if (subtitle) subtitle.textContent = '¿Quién convirtió el gol de jugada fija?';
+    const wonByTxt = incidentData.wonBy ? `Provocó: ${incidentData.wonBy} • ` : '';
+    if (subtitle) subtitle.textContent = `${wonByTxt}¿Quién convirtió el gol de jugada fija?`;
   } else if (type === 'stroke') {
     if (icon) icon.textContent = '🎯';
     if (title) title.textContent = '¡GOL DE PENAL!';
@@ -5017,10 +5035,16 @@ function renderPlayerAssignGrid(filter = '') {
 
 function confirmPlayerAssign(playerName = '') {
   if (dtPendingPlayerIncident) {
-    const { type, team, endedInGoal } = dtPendingPlayerIncident;
+    const { type, team, endedInGoal, wonBy } = dtPendingPlayerIncident;
     dtPendingPlayerIncident = null;
     closePlayerAssignModal();
-    logIncident(type, team, endedInGoal, (playerName || '').trim());
+
+    if (type === 'cornerWon') {
+      openIncidentOptionModal('corner', 'home', (playerName || '').trim());
+      return;
+    }
+
+    logIncident(type, team, endedInGoal, (playerName || '').trim(), wonBy || '');
   } else {
     closePlayerAssignModal();
   }
@@ -5035,8 +5059,8 @@ window.confirmPlayerAssign = confirmPlayerAssign;
 window.closePlayerAssignModal = closePlayerAssignModal;
 
 // Modal de Opción A: Córner Corto / Penal
-function openIncidentOptionModal(type, team) {
-  dtPendingOptionAction = { type, team };
+function openIncidentOptionModal(type, team, wonBy = '') {
+  dtPendingOptionAction = { type, team, wonBy: wonBy || '' };
 
   const modal = document.getElementById('modalIncidentOption');
   const icon = document.getElementById('choiceModalIcon');
@@ -5047,7 +5071,11 @@ function openIncidentOptionModal(type, team) {
   if (type === 'corner') {
     if (icon) icon.textContent = '🏑';
     if (title) title.textContent = `Córner Corto - ${teamName}`;
-    if (subtitle) subtitle.textContent = '¿Terminó en gol esta jugada fija?';
+    if (wonBy) {
+      if (subtitle) subtitle.innerHTML = `Provocó: <strong style="color: #c084fc;">${escapeHtml(wonBy)}</strong><br>¿Terminó en gol esta jugada fija?`;
+    } else {
+      if (subtitle) subtitle.textContent = '¿Terminó en gol esta jugada fija?';
+    }
   } else {
     if (icon) icon.textContent = '🎯';
     if (title) title.textContent = `Penal - ${teamName}`;
@@ -5062,9 +5090,9 @@ function confirmIncidentOption(isGoal) {
     const action = { ...dtPendingOptionAction };
     closeIncidentOptionModal();
     if (isGoal && action.team === 'home') {
-      openPlayerAssignModal({ type: action.type, team: 'home', endedInGoal: true });
+      openPlayerAssignModal({ type: action.type, team: 'home', endedInGoal: true, wonBy: action.wonBy || '' });
     } else {
-      logIncident(action.type, action.team, isGoal);
+      logIncident(action.type, action.team, isGoal, '', action.wonBy || '');
     }
   } else {
     closeIncidentOptionModal();
@@ -5295,6 +5323,37 @@ function openDtSummaryModal() {
               <div class="dt-summary-scorer-row">
                 <span class="dt-summary-scorer-name">👤 ${escapeHtml(name)}</span>
                 <span class="dt-summary-scorer-badge">${gCount} gol${gCount === 1 ? '' : 'es'}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    })()}
+
+    <!-- Córners Cortos Conseguidos (Regatas) -->
+    ${(() => {
+      const cornersWonMap = {};
+      let totalWon = 0;
+      (dtMatchState.events || []).forEach(evt => {
+        if (evt.team === 'home' && evt.type === 'corner' && evt.wonBy && evt.wonBy.trim()) {
+          const w = evt.wonBy.trim();
+          cornersWonMap[w] = (cornersWonMap[w] || 0) + 1;
+          totalWon++;
+        }
+      });
+      const cornersWonList = Object.entries(cornersWonMap).sort((a, b) => b[1] - a[1]);
+      if (cornersWonList.length === 0) return '';
+      return `
+        <div class="dt-summary-scorers-box" style="border-left: 3px solid #c084fc;">
+          <div class="dt-summary-scorers-header">
+            <span class="dt-summary-scorers-title" style="color: #c084fc;">🏑 CÓRNERS CORTOS CONSEGUIDOS</span>
+            <span style="font-size: 0.72rem; color: #c084fc; font-weight: 800;">${totalWon} corto${totalWon === 1 ? '' : 's'} asignado${totalWon === 1 ? '' : 's'}</span>
+          </div>
+          <div class="dt-summary-scorers-list">
+            ${cornersWonList.map(([name, cCount]) => `
+              <div class="dt-summary-scorer-row">
+                <span class="dt-summary-scorer-name">👤 ${escapeHtml(name)}</span>
+                <span class="dt-summary-scorer-badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4);">${cCount} corto${cCount === 1 ? '' : 's'}</span>
               </div>
             `).join('')}
           </div>
@@ -5575,6 +5634,9 @@ function renderDtView() {
         const playerBadge = (evt.player && evt.player.trim())
           ? `<span class="dt-feed-player-badge">👤 ${escapeHtml(evt.player)}</span>`
           : '';
+        const wonByBadge = (evt.wonBy && evt.wonBy.trim())
+          ? `<span class="dt-feed-wonby-badge">🏑 Provocó: ${escapeHtml(evt.wonBy)}</span>`
+          : '';
 
         return `
           <div class="dt-feed-item ${teamClass}">
@@ -5582,7 +5644,10 @@ function renderDtView() {
               <span class="dt-feed-icon">${icon}</span>
               <div class="dt-feed-info">
                 <span class="dt-feed-label">${escapeHtml(evt.label)}</span>
-                ${playerBadge}
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  ${playerBadge}
+                  ${wonByBadge}
+                </div>
                 <span class="dt-feed-meta">${evt.quarter}° Cuarto • ${evt.clockTime || ''} (${evt.timeDisplay})</span>
               </div>
             </div>
@@ -6456,6 +6521,7 @@ function getSeasonTrendsData(selectedKey = 'all') {
 
   const scorersMap = {};
   const cardsMap = {};
+  const cornersWonMap = {};
   const matchChronology = [];
 
   matchesList.forEach(m => {
@@ -6530,6 +6596,17 @@ function getSeasonTrendsData(selectedKey = 'all') {
           else scorersMap[key].field++;
         }
 
+        if (type === 'corner' && evt.wonBy && evt.wonBy.trim()) {
+          const key = evt.wonBy.trim();
+          if (!cornersWonMap[key]) {
+            cornersWonMap[key] = { name: key, total: 0, resultedInGoal: 0 };
+          }
+          cornersWonMap[key].total++;
+          if (isGoal) {
+            cornersWonMap[key].resultedInGoal++;
+          }
+        }
+
         if (type === 'cardGreen' || type === 'cardYellow' || type === 'cardRed') {
           const key = playerName || 'Jugadora no especificada';
           if (!cardsMap[key]) {
@@ -6577,6 +6654,7 @@ function getSeasonTrendsData(selectedKey = 'all') {
 
   const scorersList = Object.values(scorersMap).sort((a, b) => b.total - a.total);
   const cardsList = Object.values(cardsMap).sort((a, b) => b.penaltyMinutes - a.penaltyMinutes);
+  const cornersWonList = Object.values(cornersWonMap).sort((a, b) => b.total - a.total);
 
   return {
     selectedKey,
@@ -6605,6 +6683,7 @@ function getSeasonTrendsData(selectedKey = 'all') {
     halves,
     scorersList,
     cardsList,
+    cornersWonList,
     matchChronology
   };
 }
@@ -7375,6 +7454,34 @@ function renderSeasonTrends(trends) {
           `}
         </div>
 
+        <!-- CÓRNERS CORTOS CONSEGUIDOS -->
+        ${trends.cornersWonList && trends.cornersWonList.length > 0 ? `
+          <div class="stats-players-card">
+            <div class="stats-players-card-title">
+              <span style="color: #c084fc;">🏑 CÓRNERS CORTOS CONSEGUIDOS</span>
+              <span style="font-size: 0.68rem; color: #c084fc;">Jugadas Fijas Forzadas</span>
+            </div>
+            <table class="stats-players-mini-table">
+              <thead>
+                <tr>
+                  <th>Jugadora</th>
+                  <th style="text-align: center;">Cortos Ganados</th>
+                  <th style="text-align: center;">Terminaron en Gol</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${trends.cornersWonList.map(c => `
+                  <tr>
+                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td style="text-align: center; color: #c084fc; font-weight: 800;">${c.total}</td>
+                    <td style="text-align: center; color: #34d399;">${c.resultedInGoal}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
+
         <!-- DISCIPLINA & TARJETAS -->
         <div class="stats-players-card">
           <div class="stats-players-card-title">
@@ -7533,6 +7640,9 @@ function shareStatsWhatsApp() {
       `🎯 *CÓRNERS CORTOS:*`,
       `*Ataque:* ${trends.cornerGoalsHome} goles en ${trends.totalCornersHome} CC (${trends.cornerEffHome}% efectividad)`,
       `*Defensa:* ${trends.cornerDefHome}% defendidos con éxito (${trends.cornerGoalsAway} goles sufridos en ${trends.totalCornersAway} CC)`,
+      ...(trends.cornersWonList && trends.cornersWonList.length > 0 ? [
+        `*Provocados por:* ${trends.cornersWonList.slice(0, 3).map(c => `${c.name} (${c.total})`).join(', ')}`
+      ] : []),
       ``,
       `⭐ *TOP GOLEADORAS:*`,
       topScorersStr,

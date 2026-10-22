@@ -311,6 +311,21 @@
   margin-top: 3px;
 }
 
+/* Badge de jugadora que provocó córner en el Feed DT */
+.dt-feed-wonby-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+  font-weight: 800;
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-top: 3px;
+}
+
 /* Sección de Goleadoras y Sanciones en el Resumen DT */
 .dt-summary-scorers-box {
   background: rgba(3, 13, 45, 0.75);
