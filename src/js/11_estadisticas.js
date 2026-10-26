@@ -346,17 +346,34 @@ function getAggregatedQuarterStats(selectedKey = 'all') {
     });
   });
 
+  // Calcular Índice de Rendimiento Integral (Ponderación xG hockey: Goles x10, Cortos x3, Ingresos x1)
+  [1, 2, 3, 4, 'total'].forEach(qKey => {
+    const qH = quarters[qKey].home;
+    const qA = quarters[qKey].away;
+    const offScore = (qH.goals * 10) + (qH.corners * 3) + (qH.entries * 1);
+    const defScore = (qA.goals * 10) + (qA.corners * 3) + (qA.entries * 1);
+    quarters[qKey].offScore = offScore;
+    quarters[qKey].defScore = defScore;
+    quarters[qKey].performanceIndex = offScore - defScore;
+  });
+
   // Insights tácticos
   let bestQByGoals = { q: 1, val: -1 };
   let bestQByEntries = { q: 1, val: -1 };
   let bestQByDiff = { q: 1, val: -999 };
   let hardestQDef = { q: 1, val: -1 };
+  let bestQByPerformance = { q: 1, val: -999, offScore: 0, defScore: 0, hGoals: 0, aGoals: 0, hEntries: 0, aEntries: 0, hCorners: 0, aCorners: 0 };
+  let worstQByPerformance = { q: 1, val: 999, offScore: 0, defScore: 0, hGoals: 0, aGoals: 0, hEntries: 0, aEntries: 0, hCorners: 0, aCorners: 0 };
 
   for (let q = 1; q <= 4; q++) {
     const hGoals = quarters[q].home.goals;
+    const aGoals = quarters[q].away.goals;
     const hEntries = quarters[q].home.entries;
-    const diff = hGoals - quarters[q].away.goals;
     const aEntries = quarters[q].away.entries;
+    const hCorners = quarters[q].home.corners;
+    const aCorners = quarters[q].away.corners;
+    const diff = hGoals - aGoals;
+    const perf = quarters[q].performanceIndex;
 
     if (hGoals > bestQByGoals.val) {
       bestQByGoals = { q, val: hGoals, entries: hEntries };
@@ -368,9 +385,40 @@ function getAggregatedQuarterStats(selectedKey = 'all') {
       bestQByDiff = { q, val: diff };
     }
     if (aEntries > hardestQDef.val) {
-      hardestQDef = { q, val: aEntries, goals: quarters[q].away.goals };
+      hardestQDef = { q, val: aEntries, goals: aGoals };
+    }
+    if (perf > bestQByPerformance.val) {
+      bestQByPerformance = {
+        q,
+        val: perf,
+        offScore: quarters[q].offScore,
+        defScore: quarters[q].defScore,
+        hGoals,
+        aGoals,
+        hEntries,
+        aEntries,
+        hCorners,
+        aCorners
+      };
+    }
+    if (perf < worstQByPerformance.val) {
+      worstQByPerformance = {
+        q,
+        val: perf,
+        offScore: quarters[q].offScore,
+        defScore: quarters[q].defScore,
+        hGoals,
+        aGoals,
+        hEntries,
+        aEntries,
+        hCorners,
+        aCorners
+      };
     }
   }
+
+  if (bestQByPerformance.val === -999) bestQByPerformance.val = 0;
+  if (worstQByPerformance.val === 999) worstQByPerformance.val = 0;
 
   return {
     selectedKey,
@@ -381,6 +429,8 @@ function getAggregatedQuarterStats(selectedKey = 'all') {
     bestQByGoals,
     bestQByEntries,
     bestQByDiff,
+    bestQByPerformance,
+    worstQByPerformance,
     hardestQDef
   };
 }
@@ -794,10 +844,10 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
       <div class="stats-kpi-card">
         <div class="stats-kpi-header">
           <span class="stats-kpi-icon">⚡</span>
-          <span class="stats-kpi-title">MEJOR CUARTO</span>
+          <span class="stats-kpi-title">MEJOR CUARTO (ÍNDICE)</span>
         </div>
-        <div class="stats-kpi-val">${stats.bestQByEntries.q}° Cuarto</div>
-        <div class="stats-kpi-sub">${stats.bestQByEntries.val} ingresos y ${stats.bestQByGoals.val} goles marcados</div>
+        <div class="stats-kpi-val">${stats.totalEventsCount > 0 ? `${stats.bestQByPerformance.q}° Cuarto` : '-'} <small style="font-size:0.75rem; color:${stats.bestQByPerformance.val >= 0 ? '#34d399':'#f87171'};">${stats.totalEventsCount > 0 ? `(${stats.bestQByPerformance.val > 0 ? '+':''}${stats.bestQByPerformance.val} pts)` : ''}</small></div>
+        <div class="stats-kpi-sub">${stats.totalEventsCount > 0 ? `${stats.bestQByPerformance.hGoals}-${stats.bestQByPerformance.aGoals} goles • ${stats.bestQByPerformance.hEntries} vs ${stats.bestQByPerformance.aEntries} ing. • ${stats.bestQByPerformance.hCorners} CC` : 'Sin datos suficientes'}</div>
       </div>
     `;
   }
@@ -814,6 +864,9 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
       let awayPct = 100 - homePct;
 
       const qGoalDiff = qH.goals - qA.goals;
+      const qPerf = q[c].performanceIndex || 0;
+      const perfColor = qPerf > 0 ? '#34d399' : (qPerf === 0 ? '#94a3b8' : '#f87171');
+      const perfSign = qPerf > 0 ? `+${qPerf}` : `${qPerf}`;
       let badgeHtml = '';
       if (qGoalDiff > 0) {
         badgeHtml = `<span class="stats-quarter-badge stats-badge-win">Ganado +${qGoalDiff} (${qH.goals}-${qA.goals})</span>`;
@@ -822,6 +875,7 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
       } else {
         badgeHtml = `<span class="stats-quarter-badge stats-badge-loss">Abajo ${qGoalDiff} (${qH.goals}-${qA.goals})</span>`;
       }
+      badgeHtml += ` <span class="stats-quarter-badge" style="background: rgba(255,255,255,0.06); color: ${perfColor}; border: 1px solid ${perfColor}40;" title="Índice de Eficiencia (Goles x10 + Cortos x3 + Ingresos x1 a favor vs rival)">⚡ ${perfSign} pts</span>`;
 
       barsHtml += `
         <div class="stats-quarter-bar-row">
@@ -1051,6 +1105,14 @@ function renderAnalyticsDashboard(selectedKey = 'all') {
             <td style="color:${(q3H.corners - q3A.corners) >= 0 ? '#34d399':'#f87171'}">${(q3H.corners - q3A.corners) > 0 ? '+':''}${q3H.corners - q3A.corners}</td>
             <td style="color:${(q4H.corners - q4A.corners) >= 0 ? '#34d399':'#f87171'}">${(q4H.corners - q4A.corners) > 0 ? '+':''}${q4H.corners - q4A.corners}</td>
             <td class="total-col" style="color:${(totH.corners - totA.corners) >= 0 ? '#34d399':'#f87171'}">${(totH.corners - totA.corners) > 0 ? '+':''}${totH.corners - totA.corners}</td>
+          </tr>
+          <tr class="stats-row-highlight" style="background: rgba(56, 189, 248, 0.09);">
+            <td>⚡ Índice Rendimiento Integral (+ / -)<br><small style="font-size:0.68rem; color:#94a3b8; font-weight:normal;">Goles (x10) + Cortos (x3) + Ingresos (x1)</small></td>
+            <td style="color:${q[1].performanceIndex >= 0 ? '#34d399':'#f87171'}"><strong>${q[1].performanceIndex > 0 ? '+':''}${q[1].performanceIndex} pts</strong></td>
+            <td style="color:${q[2].performanceIndex >= 0 ? '#34d399':'#f87171'}"><strong>${q[2].performanceIndex > 0 ? '+':''}${q[2].performanceIndex} pts</strong></td>
+            <td style="color:${q[3].performanceIndex >= 0 ? '#34d399':'#f87171'}"><strong>${q[3].performanceIndex > 0 ? '+':''}${q[3].performanceIndex} pts</strong></td>
+            <td style="color:${q[4].performanceIndex >= 0 ? '#34d399':'#f87171'}"><strong>${q[4].performanceIndex > 0 ? '+':''}${q[4].performanceIndex} pts</strong></td>
+            <td class="total-col" style="color:${q.total.performanceIndex >= 0 ? '#34d399':'#f87171'}"><strong>${q.total.performanceIndex > 0 ? '+':''}${q.total.performanceIndex} pts</strong></td>
           </tr>
         </tbody>
       </table>
@@ -1798,12 +1860,14 @@ function shareStatsWhatsApp() {
     `🟨 *Tarjetas Regatas:* 🟩 ${totH.green} • 🟨 ${totH.yellow} • 🟥 ${totH.red}`,
     ``,
     `📋 *DESGLOSE CUARTO POR CUARTO:*`,
-    `*1°C:* Regatas ${q[1].home.goals}-${q[1].away.goals} | Ing: ${q[1].home.entries} vs ${q[1].away.entries} | CC: ${q[1].home.corners} (${q[1].home.cornerGoals}g)`,
-    `*2°C:* Regatas ${q[2].home.goals}-${q[2].away.goals} | Ing: ${q[2].home.entries} vs ${q[2].away.entries} | CC: ${q[2].home.corners} (${q[2].home.cornerGoals}g)`,
-    `*3°C:* Regatas ${q[3].home.goals}-${q[3].away.goals} | Ing: ${q[3].home.entries} vs ${q[3].away.entries} | CC: ${q[3].home.corners} (${q[3].home.cornerGoals}g)`,
-    `*4°C:* Regatas ${q[4].home.goals}-${q[4].away.goals} | Ing: ${q[4].home.entries} vs ${q[4].away.entries} | CC: ${q[4].home.corners} (${q[4].home.cornerGoals}g)`,
+    `*1°C:* Regatas ${q[1].home.goals}-${q[1].away.goals} | Ing: ${q[1].home.entries} vs ${q[1].away.entries} | CC: ${q[1].home.corners} (${q[1].home.cornerGoals}g) | Índice: ${q[1].performanceIndex > 0 ? '+' : ''}${q[1].performanceIndex} pts`,
+    `*2°C:* Regatas ${q[2].home.goals}-${q[2].away.goals} | Ing: ${q[2].home.entries} vs ${q[2].away.entries} | CC: ${q[2].home.corners} (${q[2].home.cornerGoals}g) | Índice: ${q[2].performanceIndex > 0 ? '+' : ''}${q[2].performanceIndex} pts`,
+    `*3°C:* Regatas ${q[3].home.goals}-${q[3].away.goals} | Ing: ${q[3].home.entries} vs ${q[3].away.entries} | CC: ${q[3].home.corners} (${q[3].home.cornerGoals}g) | Índice: ${q[3].performanceIndex > 0 ? '+' : ''}${q[3].performanceIndex} pts`,
+    `*4°C:* Regatas ${q[4].home.goals}-${q[4].away.goals} | Ing: ${q[4].home.entries} vs ${q[4].away.entries} | CC: ${q[4].home.corners} (${q[4].home.cornerGoals}g) | Índice: ${q[4].performanceIndex > 0 ? '+' : ''}${q[4].performanceIndex} pts`,
     ``,
-    `⚡ *Insight Clave:* Mejor cuarto ofensivo: ${stats.bestQByEntries.q}° Cuarto (${stats.bestQByEntries.val} ingresos y ${stats.bestQByGoals.val} goles)`,
+    `⚡ *Rendimiento Táctico:*`,
+    `• ⭐ *Mejor Cuarto (Índice Integral):* ${stats.bestQByPerformance.q}° Cuarto (${stats.bestQByPerformance.val > 0 ? '+' : ''}${stats.bestQByPerformance.val} pts: Regatas ${stats.bestQByPerformance.hGoals}-${stats.bestQByPerformance.aGoals} | ${stats.bestQByPerformance.hEntries} vs ${stats.bestQByPerformance.aEntries} ing)`,
+    `• 📥 *Mayor Presión Ofensiva:* ${stats.bestQByEntries.q}° Cuarto (${stats.bestQByEntries.val} ingresos al área rival)`,
     ``,
     `_Generado desde la App Oficial de Citaciones y Botonera DT de Regatas Andino B_`
   ];
@@ -2100,7 +2164,7 @@ async function exportStatsVisualCard() {
     const miniMetrics = [
       { l: 'MARCADOR', v: `${totH.goals} - ${totA.goals}`, c: '#ffffff' },
       { l: 'INGRESOS TOTALES', v: `${totH.entries} vs ${totA.entries}`, c: '#38bdf8' },
-      { l: 'CÓRNERS CORTOS', v: `${totH.corners} (${totH.cornerGoals}g)`, c: '#34d399' },
+      { l: 'CÓRNERS CORTOS', v: `${totH.corners} vs ${totA.corners}`, c: '#34d399' },
       { l: 'CONVERSIÓN ÁREA', v: `${totH.conversion}%`, c: '#fbbf24' }
     ];
 
@@ -2160,14 +2224,14 @@ async function exportStatsVisualCard() {
         totVal: `${totH.corners} vs ${totA.corners}`
       },
       {
-        label: '🥅 Goles de Córner Corto',
-        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.cornerGoals}`),
-        totVal: `${totH.cornerGoals}`
+        label: '🥅 Goles de Corto (Reg vs Riv)',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.cornerGoals} vs ${q[idx].away.cornerGoals}`),
+        totVal: `${totH.cornerGoals} vs ${totA.cornerGoals}`
       },
       {
-        label: '🏑 Penales / Strokes Registrados',
-        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.strokes}`),
-        totVal: `${totH.strokes}`
+        label: '🎯 Penales / Strokes (Reg vs Riv)',
+        qVals: [1, 2, 3, 4].map(idx => `${q[idx].home.strokes} vs ${q[idx].away.strokes}`),
+        totVal: `${totH.strokes} vs ${totA.strokes}`
       },
       {
         label: '🟨 Tarjetas Regatas (V-A-R)',
@@ -2209,7 +2273,7 @@ async function exportStatsVisualCard() {
 
     ctx.fillStyle = '#ffffff';
     ctx.font = '700 17px system-ui, sans-serif';
-    ctx.fillText(`Mejor cuarto ofensivo: ${stats.bestQByEntries.q}° Cuarto con ${stats.bestQByEntries.val} ingresos y ${stats.bestQByGoals.val} goles.`, 90, insightY + 88);
+    ctx.fillText(`Mejor cuarto integral: ${stats.bestQByPerformance.q}° Cuarto (${stats.bestQByPerformance.val > 0 ? '+' : ''}${stats.bestQByPerformance.val} pts | Regatas ${stats.bestQByPerformance.hGoals}-${stats.bestQByPerformance.aGoals} | ${stats.bestQByPerformance.hEntries} vs ${stats.bestQByPerformance.aEntries} ing).`, 90, insightY + 88);
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '600 15px system-ui, sans-serif';

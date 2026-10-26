@@ -2167,8 +2167,8 @@ async function exportDtMatchImage() {
 
   const qStats = dtMatchState.quarters || {};
   const tot = {
-    home: { entries: 0, corners: 0, cornerGoals: 0, goals: 0 },
-    away: { entries: 0, corners: 0, cornerGoals: 0, goals: 0 }
+    home: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, goals: 0 },
+    away: { entries: 0, corners: 0, cornerGoals: 0, strokes: 0, strokeGoals: 0, goals: 0 }
   };
   [1, 2, 3, 4].forEach(q => {
     const cur = qStats[q] || createDefaultQuarterStats();
@@ -2176,6 +2176,8 @@ async function exportDtMatchImage() {
       tot[tm].entries += cur[tm].entries || 0;
       tot[tm].corners += cur[tm].corners || 0;
       tot[tm].cornerGoals += cur[tm].cornerGoals || 0;
+      tot[tm].strokes += cur[tm].strokes || 0;
+      tot[tm].strokeGoals += cur[tm].strokeGoals || 0;
       tot[tm].goals += cur[tm].goals || 0;
     });
   });
@@ -2188,48 +2190,53 @@ async function exportDtMatchImage() {
       highlight: true
     },
     {
-      label: '🏑 Córners Cortos',
-      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.corners) || 0} vs ${(qStats[q] && qStats[q].away && qStats[q].away.corners) || 0}`),
-      totVal: `${tot.home.corners} vs ${tot.away.corners}`
-    },
-    {
       label: '📥 Ingresos al Área 25 yd',
       qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.entries) || 0} vs ${(qStats[q] && qStats[q].away && qStats[q].away.entries) || 0}`),
       totVal: `${tot.home.entries} vs ${tot.away.entries}`
     },
     {
-      label: '🎯 Efectividad de Cortos',
+      label: '🏑 Córners Cortos',
+      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.corners) || 0} vs ${(qStats[q] && qStats[q].away && qStats[q].away.corners) || 0}`),
+      totVal: `${tot.home.corners} vs ${tot.away.corners}`
+    },
+    {
+      label: '🥅 Goles de Corto (Reg vs Riv)',
+      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.cornerGoals) || 0} vs ${(qStats[q] && qStats[q].away && qStats[q].away.cornerGoals) || 0}`),
+      totVal: `${tot.home.cornerGoals} vs ${tot.away.cornerGoals}`
+    },
+    {
+      label: '🎯 Penales / Strokes (Reg vs Riv)',
+      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.strokes) || 0} vs ${(qStats[q] && qStats[q].away && qStats[q].away.strokes) || 0}`),
+      totVal: `${tot.home.strokes} vs ${tot.away.strokes}`
+    },
+    {
+      label: '🎯 Efectividad Cortos Regatas',
       qVals: [1, 2, 3, 4].map(q => {
         const c = (qStats[q] && qStats[q].home && qStats[q].home.corners) || 0;
         const cg = (qStats[q] && qStats[q].home && qStats[q].home.cornerGoals) || 0;
         return c > 0 ? Math.round((cg / c) * 100) + '%' : '-';
       }),
       totVal: tot.home.corners > 0 ? Math.round((tot.home.cornerGoals / tot.home.corners) * 100) + '%' : '-'
-    },
-    {
-      label: '🥅 Goles de Corto',
-      qVals: [1, 2, 3, 4].map(q => `${(qStats[q] && qStats[q].home && qStats[q].home.cornerGoals) || 0}`),
-      totVal: `${tot.home.cornerGoals}`
     }
   ];
 
   rowData.forEach((row, rIdx) => {
-    const ry = tableY + 52 + (rIdx * 51);
+    const ry = tableY + 50 + (rIdx * 43);
     if (rIdx % 2 === 1) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
-      ctx.fillRect(60, ry, W - 120, 51);
+      ctx.fillRect(60, ry, W - 120, 43);
     }
     ctx.textAlign = 'left';
     ctx.fillStyle = row.highlight ? '#38bdf8' : '#ffffff';
     ctx.font = row.highlight ? '900 16px system-ui, sans-serif' : '600 15px system-ui, sans-serif';
-    ctx.fillText(row.label, 90, ry + 32);
+    ctx.fillText(row.label, 90, ry + 28);
 
     ctx.textAlign = 'center';
     cols.forEach((cx, cIdx) => {
       const val = cIdx === 4 ? row.totVal : row.qVals[cIdx];
       ctx.fillStyle = cIdx === 4 ? '#34d399' : (row.highlight ? '#ffffff' : '#94a3b8');
-      ctx.font = cIdx === 4 ? '900 17px system-ui, sans-serif' : '600 15px system-ui, sans-serif';
-      ctx.fillText(val, cx, ry + 32);
+      ctx.font = cIdx === 4 ? '900 16px system-ui, sans-serif' : '600 15px system-ui, sans-serif';
+      ctx.fillText(val, cx, ry + 28);
     });
   });
 
